@@ -637,3 +637,713 @@ main {
   color: #f1f5f9 !important;  /* bright white on hover */
   opacity: 1;
 }
+/* ========== Trackers page styles (append to index.css) ========== */
+
+.tracker-page.container {
+  max-width: 920px;
+  margin: 28px auto;
+  padding: 20px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 14px;
+  border: 1px solid rgba(148,163,184,0.06);
+  color: #e6eef8;
+}
+
+.tracker-page .tabs {
+  display:flex;
+  gap:8px;
+  margin-bottom:16px;
+}
+
+.tracker-page .tabs button {
+  padding:8px 14px;
+  border-radius:10px;
+  border:none;
+  background: rgba(255,255,255,0.02);
+  color: inherit;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.tracker-page .tabs button.active {
+  background: linear-gradient(90deg, rgba(79,70,229,0.95), rgba(59,130,246,0.95));
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(59,130,246,0.18);
+}
+
+.tracker-form {
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+  margin-bottom: 14px;
+  align-items:start;
+}
+
+.tracker-form label {
+  display:flex;
+  flex-direction:column;
+  font-size:14px;
+  gap:6px;
+  color: #cfe8ff;
+}
+
+.tracker-form input,
+.tracker-form select {
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid rgba(148,163,184,0.08);
+  background: rgba(255,255,255,0.02);
+  color: inherit;
+  outline:none;
+}
+
+.tracker-form input:focus,
+.tracker-form select:focus {
+  box-shadow: 0 6px 20px rgba(99,102,241,0.08);
+  border-color: rgba(99,102,241,0.9);
+}
+
+.tracker-form button {
+  grid-column: 1 / -1;
+  padding:10px 14px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  background: linear-gradient(90deg, #60a5fa, #3b82f6);
+  color: #022;
+  font-weight:700;
+}
+
+.recent-list { margin-top: 12px; }
+.recent-list .card {
+  padding:10px 12px;
+  border-radius:8px;
+  margin-bottom:8px;
+  background: rgba(255,255,255,0.02);
+  border:1px solid rgba(148,163,184,0.04);
+  font-size: 13px;
+}
+
+.small { color: #9fb9da; font-size:12px; margin-top:6px; }
+
+.message {
+  margin-top:12px;
+  padding:10px;
+  border-radius:8px;
+  background: rgba(96,165,250,0.08);
+  color: #e6f3ff;
+}
+
+/* responsive */
+@media (max-width: 720px) {
+  .tracker-form { grid-template-columns: 1fr; }
+  .tracker-page.container { padding: 16px; margin: 16px; }
+}
+/* ========== Trackers page styles (append to index.css) ========== */
+
+.tracker-page.container {
+  max-width: 920px;
+  margin: 28px auto;
+  padding: 20px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 14px;
+  border: 1px solid rgba(148,163,184,0.06);
+  color: #e6eef8;
+}
+
+.tracker-page .tabs {
+  display:flex;
+  gap:8px;
+  margin-bottom:16px;
+}
+
+.tracker-page .tabs button {
+  padding:8px 14px;
+  border-radius:10px;
+  border:none;
+  background: rgba(255,255,255,0.02);
+  color: inherit;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.tracker-page .tabs button.active {
+  background: linear-gradient(90deg, rgba(79,70,229,0.95), rgba(59,130,246,0.95));
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(59,130,246,0.18);
+}
+
+.tracker-form {
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+  margin-bottom: 14px;
+  align-items:start;
+}
+
+.tracker-form label {
+  display:flex;
+  flex-direction:column;
+  font-size:14px;
+  gap:6px;
+  color: #cfe8ff;
+}
+
+.tracker-form input,
+.tracker-form select {
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid rgba(148,163,184,0.08);
+  background: rgba(255,255,255,0.02);
+  color: inherit;
+  outline:none;
+}
+
+.tracker-form input:focus,
+.tracker-form select:focus {
+  box-shadow: 0 6px 20px rgba(99,102,241,0.08);
+  border-color: rgba(99,102,241,0.9);
+}
+
+.tracker-form button {
+  grid-column: 1 / -1;
+  padding:10px 14px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  background: linear-gradient(90deg, #60a5fa, #3b82f6);
+  color: #022;
+  font-weight:700;
+}
+
+.recent-list { margin-top: 12px; }
+.recent-list .card {
+  padding:10px 12px;
+  border-radius:8px;
+  margin-bottom:8px;
+  background: rgba(255,255,255,0.02);
+  border:1px solid rgba(148,163,184,0.04);
+  font-size: 13px;
+}
+
+.small { color: #9fb9da; font-size:12px; margin-top:6px; }
+
+.message {
+  margin-top:12px;
+  padding:10px;
+  border-radius:8px;
+  background: rgba(96,165,250,0.08);
+  color: #e6f3ff;
+}
+
+/* responsive */
+@media (max-width: 720px) {
+  .tracker-form { grid-template-columns: 1fr; }
+  .tracker-page.container { padding: 16px; margin: 16px; }
+}
+/* Fix white dropdown background on dark theme */
+select {
+  background-color: rgba(20, 30, 60, 0.9) !important;
+  color: #e5e7eb !important;
+  border: 1px solid rgba(148,163,184,0.2);
+}
+
+/* For options inside the dropdown */
+select option {
+  background-color: rgba(20, 30, 60, 0.95) !important;
+  color: #e5e7eb !important;
+}
+
+/* Remove default OS styling (optional but helpful) */
+select:-internal-list-box {
+  background-color: rgba(20, 30, 60, 0.95) !important;
+}
+/* --------- Streaks & Goals styling (Dashboard middle box) --------- */
+
+.streaks-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-top: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.streak {
+  flex: 1 1 30%;
+  min-width: 120px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148,163,184,0.03);
+}
+
+.streak-title {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color: #9fd2ff;
+  font-weight:700;
+  margin-bottom: 6px;
+}
+
+.streak-value {
+  font-size: 22px;
+  font-weight:800;
+  color: #e6eef8;
+}
+
+.goal-row {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.goal-label {
+  color: #9fb9da;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.goal-progress {
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.goal-bar {
+  flex: 1;
+  height: 12px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.03);
+  overflow:hidden;
+}
+
+.goal-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #34d399, #60a5fa);
+  box-shadow: 0 6px 20px rgba(59,130,246,0.08);
+  border-radius: 999px;
+  width: 0%;
+  transition: width 450ms ease;
+}
+
+.goal-meta {
+  min-width: 120px;
+  text-align: right;
+  color: #cde8ff;
+  font-weight:700;
+  font-size: 13px;
+}
+
+/* small responsive tweaks */
+@media (max-width: 920px) {
+  .streak {
+    flex: 1 1 45%;
+  }
+  .goal-meta { min-width: 90px; font-size:12px; }
+}
+
+@media (max-width: 520px) {
+  .streaks-row { gap: 10px; }
+  .streak { flex: 1 1 100%; }
+  .goal-meta { display:none; } /* save space */
+}
+/* ================= Dashboard: Streaks, Summary & BMI styles ================= */
+
+/* dashboard-grid structure already in your stylesheet; these enhance contents */
+
+/* ---------- Tracker Summary enhancements ---------- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.stat {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+  border: 1px solid rgba(148,163,184,0.03);
+}
+
+.stat-left {
+  display:flex;
+  align-items:center;
+  gap: 12px;
+}
+
+.stat-icon-circle {
+  width:46px;
+  height:46px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.03);
+  color: #9fd2ff;
+  font-size:18px;
+}
+
+.stat-icon-circle.alt { color: #7ee3b9; }
+.stat-icon-circle.water { color: #60a5fa; }
+.stat-icon-circle.sleep { color: #c7b7ff; }
+
+.stat-label { color: #9fb9da; font-size:13px; }
+.stat-value { font-size:18px; font-weight:800; color: #e6eef8; }
+
+.stat-right {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width: 180px;
+  align-items: flex-end;
+}
+
+/* sparkline area */
+.sparkline {
+  width: 160px;
+  height: 36px;
+}
+.sparkline-placeholder {
+  width: 160px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  color: #9fb9da;
+  font-size:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.sparkline svg { width:100%; height:100%; display:block; }
+.sparkline svg polyline { stroke-linecap: round; stroke-linejoin: round; }
+
+/* CTA row in summary */
+.summary-cta {
+  display:flex;
+  gap:10px;
+  margin-top: 12px;
+}
+
+/* ---------- Streaks & Goals styles ---------- */
+.streaks-row {
+  display:flex;
+  gap:14px;
+  align-items:center;
+  margin-top: 6px;
+  margin-bottom: 10px;
+  flex-wrap:wrap;
+}
+
+.streak {
+  flex: 1 1 30%;
+  min-width: 120px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148,163,184,0.03);
+}
+
+.streak-title {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color: #9fd2ff;
+  font-weight:700;
+  margin-bottom: 6px;
+}
+
+.streak-value {
+  font-size: 22px;
+  font-weight:800;
+  color: #e6eef8;
+}
+
+/* goals */
+.goal-row {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.goal-label { color: #9fb9da; font-size: 13px; margin-bottom: 6px; }
+
+.goal-progress { display:flex; align-items:center; gap: 12px; margin-bottom: 8px; }
+
+.goal-bar {
+  flex: 1;
+  height: 12px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.03);
+  overflow:hidden;
+}
+
+.goal-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #34d399, #60a5fa);
+  box-shadow: 0 6px 20px rgba(59,130,246,0.08);
+  border-radius: 999px;
+  width: 0%;
+  transition: width 450ms ease;
+}
+
+.goal-meta {
+  min-width: 120px;
+  text-align: right;
+  color: #cde8ff;
+  font-weight:700;
+  font-size: 13px;
+}
+
+/* ---------- BMI box styles ---------- */
+.bmi-box .muted { color: #9fb9da; margin-top: -2px; }
+.bmi-box-content { display:flex; flex-direction:column; gap:8px; align-items:flex-start; margin-top: 12px; }
+.bmi-value {
+  font-size: 34px;
+  font-weight: 900;
+  color: #e6eef8;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.03);
+}
+.bmi-category { color: #9fd2ff; font-weight:700; }
+.bmi-meta { color: #9fb9da; font-size: 13px; }
+.bmi-empty .small { color: #9fb9da; }
+
+/* small utility */
+.small { color: #9fb9da; font-size: 13px; }
+
+/* responsive */
+@media (max-width: 980px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .streak { flex: 1 1 45%; }
+  .goal-meta { min-width: 90px; font-size:12px; }
+  .stat-right { min-width: 140px; }
+}
+@media (max-width: 520px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .streaks-row { gap: 10px; }
+  .streak { flex: 1 1 100%; }
+  .goal-meta { display:none; }
+  .sparkline, .sparkline-placeholder { width: 100px; }
+  .stat-right { align-items: flex-start; min-width: 0; }
+  .summary-cta { flex-direction: column; }
+}
+/* ====== Fix: prevent Tracker Summary overflow & improve alignment ====== */
+
+/* Make all dashboard children obey border-box sizing */
+.dashboard-card,
+.dash-box,
+.stats-grid,
+.stat,
+.streaks-row,
+.streak,
+.goal-row,
+.bmi-box {
+  box-sizing: border-box;
+}
+
+/* Ensure the main grid has 3 responsive columns (keeps cards from overlapping) */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+/* SAFETY: in case earlier rules set min-widths, allow the grid items to shrink */
+.dashboard-grid > .dash-box {
+  min-width: 0; /* allow flex/grid children to shrink nicely */
+  overflow: visible;
+}
+
+/* Make stat row elements wrap sensibly and stop overflow */
+.stat {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0; /* very important for preventing overflow inside grid */
+  overflow: hidden; /* clip any inner overflow */
+  padding: 10px;
+}
+
+/* Left area should not force the right side to overflow */
+.stat-left {
+  display:flex;
+  gap:12px;
+  align-items:center;
+  min-width: 0;
+}
+
+/* Right area: allow it to shrink; align items to end but clamp width */
+.stat-right {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  align-items:flex-end;
+  min-width: 0;           /* allow it to shrink instead of pushing out */
+  max-width: 46%;         /* cap the width so left area has space */
+}
+
+/* On small screens, the right area should become full width under the left */
+@media (max-width: 940px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr; /* two columns */
+  }
+  .stat-right {
+    max-width: none;
+    align-items: flex-start;
+  }
+}
+
+/* On very small screens stack cards and stat columns */
+@media (max-width: 520px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr; /* stack vertically */
+  }
+  .stat {
+    flex-direction: row;
+    gap: 10px;
+  }
+  .stat-right {
+    align-items:flex-start;
+    width: auto;
+    max-width: none;
+  }
+}
+
+/* Sparkline: make it flexible & clamp width instead of forcing layout */
+.sparkline,
+.sparkline-placeholder {
+  width: 100%;
+  max-width: 180px;  /* don't grow larger than this */
+  min-width: 80px;   /* keeps shape reasonable */
+  height: 36px;
+  display:block;
+  overflow: hidden;
+}
+
+/* If sparkline svg is too wide, scale it to parent */
+.sparkline svg {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Make CTA buttons align nicely on smaller widths */
+.summary-cta {
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* Slightly reduce inner paddings so content fits visually */
+.dash-box {
+  padding: 16px;
+}
+
+/* Ensure progress meta doesn't push layout — allow it to shrink */
+.goal-meta {
+  min-width: 80px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Minor tweak: prevent weird long numeric overflow (eg. long ISO strings) */
+.stat-sub, .stat-value, .stat-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* If browser shows any horiz scroll for dashboard, hide it */
+.dashboard-page {
+  overflow-x: hidden;
+}
+/* ---------- Small layout polish for BMI box (no colors/borders changed) ---------- */
+
+/* Make inner content align nicely and keep consistent spacing */
+.bmi-box .bmi-box-content {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+/* Slightly smaller, tighter BMI number so it sits comfortably */
+.bmi-box .bmi-value {
+  min-width: 84px;
+  height: 70px;
+  font-size: 40px;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* Make the category badge slightly smaller and vertically centered */
+.bmi-box .bmi-category {
+  padding: 7px 12px;
+  font-size: 14px;
+  min-height: 34px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Keep meta line compact and move below the main row on narrow screens */
+.bmi-box .bmi-meta {
+  font-size: 13px;
+  margin-top: 6px;
+  color: inherit; /* keep existing color */
+}
+
+/* Recalculate link: small, aligned under meta and not changing color/border */
+.bmi-box .link-btn {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  display: inline-block;
+  text-decoration: none;
+}
+
+/* On smaller screens stack the value + badge vertically for a tidy layout */
+@media (max-width: 740px) {
+  .bmi-box .bmi-box-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .bmi-box .bmi-value {
+    height: 64px;
+    font-size: 34px;
+    min-width: 72px;
+  }
+  .bmi-box .bmi-category {
+    padding: 6px 10px;
+    font-size: 13px;
+    min-height: 30px;
+  }
+}
+
+/* Ensure internal spacing matches the other cards */
+.bmi-box { padding-top: 20px; padding-bottom: 20px; }

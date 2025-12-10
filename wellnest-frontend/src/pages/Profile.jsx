@@ -1,7 +1,7 @@
 // src/pages/Profile.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FiEdit2, FiMail, FiUser, FiPhone } from "react-icons/fi";
+import { FiEdit2, FiMail, FiUser, FiPhone, FiLogOut } from "react-icons/fi";
 import { fetchCurrentUser } from "../api/userApi";
 
 const Profile = () => {
@@ -17,11 +17,10 @@ const Profile = () => {
       try {
         const res = await fetchCurrentUser();
         if (!mounted) return;
-        // If your API returns the user object in res.data, use that:
         setUser(res.data);
       } catch (err) {
-        // show friendly error, but don't immediately redirect (ProtectedRoute handles auth)
         console.error("fetchCurrentUser error:", err);
+        if (!mounted) return;
         setError(
           err?.response?.data?.message ||
             "Failed to load profile. Please try again."
@@ -36,6 +35,12 @@ const Profile = () => {
       mounted = false;
     };
   }, []);
+
+  // Logout: clear local storage and go to login
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/");
+  };
 
   if (loading) {
     return (
@@ -52,16 +57,20 @@ const Profile = () => {
       <div className="dashboard-page">
         <div className="dashboard-card">
           <p style={{ color: "#f97373" }}>{error}</p>
-          <button
-            className="secondary-btn"
-            onClick={() => {
-              // try again or logout if you want
-              localStorage.removeItem("token");
-              navigate("/");
-            }}
-          >
-            Back to login
-          </button>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              className="secondary-btn"
+              onClick={() => {
+                localStorage.removeItem("token");
+                navigate("/");
+              }}
+            >
+              Back to login
+            </button>
+            <button className="ghost-btn" onClick={() => window.location.reload()}>
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -88,7 +97,15 @@ const Profile = () => {
             <h1>{user.name || "Your Profile"}</h1>
             <p className="dashboard-subtitle">View and edit your profile details</p>
           </div>
-          <div>
+
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {/* Logout button */}
+            <button className="ghost-btn" onClick={handleLogout} title="Logout">
+              <FiLogOut />
+              <span style={{ marginLeft: 8 }}>Logout</span>
+            </button>
+
+            {/* Edit navigates to your setup-profile page */}
             <button
               className="ghost-btn"
               onClick={() => navigate("/setup-profile")}

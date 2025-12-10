@@ -1,6 +1,7 @@
 // src/App.js
 import React, { useState, useEffect } from "react";
 import BmiCalculator from "./pages/BmiCalculator";
+import Trackers from "./pages/Trackers";
 
 import {
   BrowserRouter as Router,
@@ -8,7 +9,7 @@ import {
   Route,
   NavLink,
 } from "react-router-dom";
-import { FiHome, FiUserPlus, FiUser, FiBarChart2 } from "react-icons/fi";
+import { FiHome, FiUserPlus, FiUser, FiBarChart2, FiActivity } from "react-icons/fi";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -59,13 +60,19 @@ const App = () => {
             </>
           )}
 
-          {/* Logged in -> show Dashboard / Profile */}
+          {/* Logged in -> show Dashboard / Trackers / Profile */}
           {isLoggedIn && (
             <>
               <NavLink to="/dashboard" className="nav-link">
                 <FiBarChart2 />
                 <span>Dashboard</span>
               </NavLink>
+
+              <NavLink to="/trackers" className="nav-link">
+                <FiActivity />
+                <span>Trackers</span>
+              </NavLink>
+
               <NavLink to="/profile" className="nav-link">
                 <FiUser />
                 <span>Profile</span>
@@ -92,6 +99,15 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Dashboard onLogout={() => setIsLoggedIn(false)} />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trackers"
+            element={
+              <ProtectedRoute>
+                <Trackers />
               </ProtectedRoute>
             }
           />

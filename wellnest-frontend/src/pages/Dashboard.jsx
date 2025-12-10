@@ -1,53 +1,47 @@
+// src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FiActivity, FiTrendingUp, FiTarget, FiLogOut } from "react-icons/fi";
+import {
+  FiActivity,
+  FiTrendingUp,
+  FiTarget,
+  FiClock,
+  FiSun,
+  FiAward,
+  FiDroplet,
+  FiMoon
+} from "react-icons/fi";
+
 import { fetchCurrentUser } from "../api/userApi";
-import { FiSun } from "react-icons/fi";
+import { getWorkouts, getMeals, getWater, getSleep } from "../api/trackerApi";
 
+/**
+ * Dashboard.jsx
+ * - Tracker Summary (left) - enhanced with sparklines
+ * - Streaks & Goals (center) - streaks + progress bars
+ * - BMI Calculator (right) - shows calculated BMI if profile has data
+ * - Daily Health Tip card below
+ *
+ * Be sure api functions (getWorkouts, getMeals, ...) exist in src/api/trackerApi.js
+ */
 
-const Dashboard = ({ onLogout }) => {
+const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // tracker states
+  const [workouts, setWorkouts] = useState([]);
+  const [meals, setMeals] = useState([]);
+  const [water, setWater] = useState([]);
+  const [sleep, setSleep] = useState([]);
+  const [loadingTrackers, setLoadingTrackers] = useState(true);
+
+  // health tip states
   const [healthTip, setHealthTip] = useState("");
   const [tipLoading, setTipLoading] = useState(true);
   const [tipBackground, setTipBackground] = useState("");
-
-
-  const handleLogout = () => {
-    localStorage.clear();
-    if (typeof onLogout === "function") {
-      onLogout();
-    }
-    navigate("/");
-  };
-
-    const getHealthTipBackground = (tip) => {
-    const tipLower = tip.toLowerCase();
-    
-    // Determine category based on keywords in the tip
-    if (tipLower.includes("water") || tipLower.includes("hydrat")) {
-      return "https://unsplash.com/photos/person-holding-stainless-steel-cup-ZRSw-2dOMU8"; // Water/hydration
-    } else if (tipLower.includes("sleep") || tipLower.includes("rest")) {
-      return "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=800&q=80"; // Sleep/rest
-    } else if (tipLower.includes("fruit") || tipLower.includes("vegetable") || tipLower.includes("nutrition") || tipLower.includes("diet")) {
-      return "https://unsplash.com/photos/a-close-up-of-a-berry-on-a-tree-branch-L34evDsQBuc"; // Fruits/vegetables
-    } else if (tipLower.includes("exercise") || tipLower.includes("workout") || tipLower.includes("fitness") || tipLower.includes("walk")) {
-      return "https://unsplash.com/photos/a-woman-is-doing-exercises-with-dumbbells-8QIkNwjcnck"; // Exercise/fitness
-    } else if (tipLower.includes("stress") || tipLower.includes("meditation") || tipLower.includes("yoga") || tipLower.includes("relax")) {
-      return "https://unsplash.com/photos/person-in-blue-shorts-sitting-on-beach-shore-during-daytime-n8L1VYaypcw"; // Meditation/yoga
-    } else if (tipLower.includes("protein") || tipLower.includes("muscle")) {
-      return "https://unsplash.com/photos/woman-lifting-barbell-jO6vBWX9h9Y"; // Protein/muscle
-    } else if (tipLower.includes("posture") || tipLower.includes("stretch")) {
-      return "https://unsplash.com/photos/woman-in-black-sports-bra-and-black-and-white-skirt-sitting-on-white-and-black-textile-D35YLlQybF4"; // Stretching/posture
-    } else if (tipLower.includes("sun") || tipLower.includes("skin")) {
-      return "https://unsplash.com/photos/white-and-blue-cloudy-sky-TSgwbumanuE"; // Sun/outdoor
-    } else {
-      return "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&q=80"; // General health/wellness
-    }
-  };
-
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -60,134 +54,207 @@ const Dashboard = ({ onLogout }) => {
       try {
         const res = await fetchCurrentUser();
         setUser(res.data);
-      } catch {
-        setError("Failed to load user. Please login again.");
+      } catch (err) {
+        setError("Failed to load user");
       } finally {
         setLoading(false);
       }
     };
-
     loadUser();
   }, [navigate]);
 
-    useEffect(() => {
-    const fetchHealthTip = async () => {
-      // Check if we have a cached tip and if it's still valid for today
-      const cachedTip = localStorage.getItem('dailyHealthTip');
-      const cachedDate = localStorage.getItem('healthTipDate');
-      const cachedBackground = localStorage.getItem('healthTipBackground');
-      const today = new Date().toDateString(); // Gets date like "Mon Dec 09 2024"
-
-      // If we have a cached tip from today, use it
-      if (cachedTip && cachedDate === today && cachedBackground) {
-        setHealthTip(cachedTip);
-        setTipBackground(cachedBackground);
-        setTipLoading(false);
-        return;
-      }
-
-      // Otherwise, fetch a new tip
+  // load trackers
+  useEffect(() => {
+    const loadTrackers = async () => {
+      setLoadingTrackers(true);
       try {
-        // Using health tips API from health-api (free, no key required)
-        const response = await fetch("https://health-tips-api1.p.rapidapi.com/", {
-          method: "GET",
-          headers: {
-            "X-RapidAPI-Key": "SIGN-UP-FOR-KEY",
-            "X-RapidAPI-Host": "health-tips-api1.p.rapidapi.com"
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error("API failed");
-        }
-        
-        const data = await response.json();
-        if (data && data.tip) {
-          const newTip = data.tip;
-          const newBackground = getHealthTipBackground(newTip);
-          
-          setHealthTip(newTip);
-          setTipBackground(newBackground);
-          
-          // Cache the tip, date, and background for today
-          localStorage.setItem('dailyHealthTip', newTip);
-          localStorage.setItem('healthTipDate', today);
-          localStorage.setItem('healthTipBackground', newBackground);
-        } else {
-          throw new Error("No tip in response");
-        }
-      } catch (error) {
-        // Fallback to curated health tips if API fails
-        const healthTips = [
-          "Drink at least 8 glasses of water daily to stay hydrated and support bodily functions.",
-          "Aim for 7-9 hours of quality sleep each night for optimal physical and mental health.",
-          "Include a variety of colorful fruits and vegetables in your diet for essential nutrients.",
-          "Exercise for at least 30 minutes daily to maintain cardiovascular health.",
-          "Practice stress management through meditation, deep breathing, or yoga.",
-          "Limit processed foods and added sugars to reduce risk of chronic diseases.",
-          "Take regular breaks from sitting - stand and stretch every hour.",
-          "Maintain good posture to prevent back and neck pain.",
-          "Wash your hands frequently to prevent the spread of infections.",
-          "Schedule regular health check-ups and screenings with your doctor.",
-          "Limit alcohol consumption and avoid smoking for better health.",
-          "Stay socially connected with friends and family for mental well-being.",
-          "Protect your skin from sun damage by using sunscreen daily.",
-          "Practice portion control to maintain a healthy weight.",
-          "Include lean proteins in your meals to support muscle health."
-        ];
-        
-        // Use date as seed for consistent daily tip selection
-        const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
-        const tipIndex = dayOfYear % healthTips.length;
-        const newTip = healthTips[tipIndex];
-        const newBackground = getHealthTipBackground(newTip);
-        
-        setHealthTip(newTip);
-        setTipBackground(newBackground);
-        
-        // Cache the fallback tip for today
-        localStorage.setItem('dailyHealthTip', newTip);
-        localStorage.setItem('healthTipDate', today);
-        localStorage.setItem('healthTipBackground', newBackground);
+        const [wRes, mRes, waRes, sRes] = await Promise.all([
+          getWorkouts().catch(() => ({ data: [] })),
+          getMeals().catch(() => ({ data: [] })),
+          getWater().catch(() => ({ data: [] })),
+          getSleep().catch(() => ({ data: [] })),
+        ]);
+        setWorkouts(wRes.data || []);
+        setMeals(mRes.data || []);
+        setWater(waRes.data || []);
+        setSleep(sRes.data || []);
       } finally {
-        setTipLoading(false);
+        setLoadingTrackers(false);
       }
     };
-
-    fetchHealthTip();
+    loadTrackers();
   }, []);
 
+  // health tip (light fallback)
+  useEffect(() => {
+    const cachedTip = localStorage.getItem("dailyHealthTip");
+    const cachedDate = localStorage.getItem("healthTipDate");
+    const cachedBackground = localStorage.getItem("healthTipBackground");
+    const today = new Date().toDateString();
 
+    if (cachedTip && cachedDate === today && cachedBackground !== null) {
+      setHealthTip(cachedTip);
+      setTipBackground(cachedBackground);
+      setTipLoading(false);
+      return;
+    }
 
-  if (loading) {
-    return (
-      <div className="dashboard-page">
-        <div className="dashboard-card">
-          <p>Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+    // simple deterministic fallback tip
+    const tips = [
+      "Drink at least 8 glasses of water.",
+      "Get 7–9 hours of sleep daily.",
+      "Add fruits and greens to your meals.",
+      "Walk or exercise for 30 minutes.",
+      "Practice deep breathing to reduce stress."
+    ];
+    const idx = new Date().getDate() % tips.length;
+    const tip = tips[idx];
+    const bg = ""; // keep blank to avoid heavy remote images
+    setHealthTip(tip);
+    setTipBackground(bg);
+    localStorage.setItem('dailyHealthTip', tip);
+    localStorage.setItem('healthTipDate', today);
+    localStorage.setItem('healthTipBackground', bg);
+    setTipLoading(false);
+  }, []);
 
-  if (error || !user) {
-    return (
-      <div className="dashboard-page">
-        <div className="dashboard-card">
-          <p>{error || "Something went wrong"}</p>
-          <button className="secondary-btn" onClick={handleLogout}>
-            Back to login
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // ---------- Helper functions for parsing dates, streaks, and metrics ----------
 
-  const friendlyRole =
-    user.role === "ROLE_TRAINER"
-      ? "Trainer"
-      : user.role === "ROLE_ADMIN"
-      ? "Admin"
-      : "User";
+  // Parse common date fields in backend entries
+  const parseEntryDate = (entry) => {
+    if (!entry) return null;
+    const dateKeys = ["performedAt","loggedAt","logged_at","performed_at","createdAt","created_at","date","sleepDate","loggedDate","timestamp"];
+    for (const k of dateKeys) {
+      if (entry[k]) {
+        const d = new Date(entry[k]);
+        if (!isNaN(d)) return d;
+      }
+    }
+    // if entry itself is string ISO
+    if (typeof entry === "string") {
+      const d = new Date(entry);
+      if (!isNaN(d)) return d;
+    }
+    return null;
+  };
+
+  // day key for local date: YYYY-MM-DD
+  const dayKey = (date) => {
+    if (!(date instanceof Date)) date = new Date(date);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  // build a set of dayKeys from entries
+  const buildDaySet = (entries) => {
+    const s = new Set();
+    (entries || []).forEach(e => {
+      const d = parseEntryDate(e);
+      if (d) s.add(dayKey(d));
+    });
+    return s;
+  };
+
+  // calculate consecutive-day streak up to today (inclusive)
+  const calcStreakUpToToday = (daysSet) => {
+    let count = 0;
+    let cur = new Date();
+    while (true) {
+      const k = dayKey(cur);
+      if (daysSet.has(k)) {
+        count += 1;
+        cur.setDate(cur.getDate() - 1);
+      } else break;
+    }
+    return count;
+  };
+
+  // get numeric liters from a water entry tolerant to field names
+  const litersFromEntry = (e) => {
+    if (!e) return 0;
+    const keys = ["amountLiters","amount","liters","volume"];
+    for (const k of keys) {
+      if (e[k] !== undefined && e[k] !== null && e[k] !== "") {
+        const v = Number(e[k]);
+        if (!isNaN(v)) return v;
+      }
+    }
+    return 0;
+  };
+
+  // start of week (Monday) for given date
+  const startOfWeek = (d) => {
+    const day = new Date(d);
+    const diff = (day.getDay() + 6) % 7; // Monday = 0
+    day.setDate(day.getDate() - diff);
+    day.setHours(0,0,0,0);
+    return day;
+  };
+
+  // volume of water this week (sum)
+  const thisWeekStart = startOfWeek(new Date());
+  const waterThisWeek = (water || []).reduce((sum, w) => {
+    const d = parseEntryDate(w);
+    if (!d) return sum;
+    if (d >= thisWeekStart) return sum + litersFromEntry(w);
+    return sum;
+  }, 0);
+
+  // avg sleep hours in recent ~2 weeks
+  const avgSleepHours = (() => {
+    if (!sleep || sleep.length === 0) return 0;
+    const twoWeeksAgo = new Date(); twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 13);
+    let total = 0, count = 0;
+    for (const s of sleep) {
+      const d = parseEntryDate(s);
+      if (!d) continue;
+      if (d >= twoWeeksAgo) {
+        const hours = (s.hours !== undefined && s.hours !== null) ? Number(s.hours) : (s.durationHours || s.hoursSlept || null);
+        if (hours !== null && !isNaN(hours)) {
+          total += hours; count++;
+        }
+      }
+    }
+    return count ? (total / count) : 0;
+  })();
+
+  // build day sets for streaks
+  const workoutDays = buildDaySet(workouts);
+  const waterDays = buildDaySet(water);
+  const sleepDays = buildDaySet(sleep);
+
+  const workoutStreak = calcStreakUpToToday(workoutDays);
+  const waterStreak = calcStreakUpToToday(waterDays);
+  const sleepStreak = calcStreakUpToToday(sleepDays);
+
+  // Goals (tweakable constants)
+  const WORKOUT_MONTH_TARGET = 20;
+  const WATER_WEEK_TARGET_LITERS = 21;
+  const SLEEP_TARGET_HOURS = 7;
+
+  // workouts this calendar month
+  const workoutsThisMonth = (workouts || []).filter(w => {
+    const d = parseEntryDate(w);
+    if (!d) return false;
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+
+  // helper % clamp
+  const pct = (value, target) => {
+    if (!target || target <= 0) return 0;
+    return Math.min(100, Math.max(0, Math.round((value / target) * 100)));
+  };
+
+  // quick totals
+  const totalCaloriesBurned = workouts.reduce((s, w) => s + (Number(w.caloriesBurned) || 0), 0);
+  const totalCaloriesConsumed = meals.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+
+  // ---------- Render ----------
+  if (loading) return <div className="dashboard-page"><div className="dashboard-card">Loading dashboard…</div></div>;
+  if (error || !user) return <div className="dashboard-page"><div className="dashboard-card">{error || "Something went wrong"}</div></div>;
 
   return (
     <div className="dashboard-page">
@@ -195,136 +262,222 @@ const Dashboard = ({ onLogout }) => {
         <div className="dashboard-header">
           <div>
             <h1>Hey, {user.name}</h1>
-            <p className="dashboard-subtitle">
-              Welcome to your smart health & fitness hub
-            </p>
+            <p className="dashboard-subtitle">Welcome to your smart health & fitness hub</p>
           </div>
-          <button className="ghost-btn" onClick={handleLogout}>
-            <FiLogOut />
-            <span>Logout</span>
-          </button>
         </div>
 
         <div className="dashboard-grid">
+          {/* ---------- Tracker Summary (left) ---------- */}
           <div className="dash-box">
-            <div className="dash-box-icon">
-              <FiActivity />
-            </div>
-            <h3>Body Snapshot</h3>
-            <ul>
-              <li>Age: {user.age ?? "–"}</li>
-              <li>Weight: {user.weightKg ?? "–"} kg</li>
-              <li>Height: {user.heightCm ?? "–"} cm</li>
-            </ul>
+            <div className="dash-box-icon"><FiActivity /></div>
+            <h3>Tracker Summary</h3>
+
+            {loadingTrackers ? <p>Loading tracker data…</p> : (
+              <>
+                <div className="stats-grid">
+
+                  {/* Workouts */}
+                  <div className="stat">
+                    <div className="stat-left">
+                      <div className="stat-icon-circle"><FiActivity /></div>
+                      <div>
+                        <div className="stat-label">Workouts</div>
+                        <div className="stat-value">{workouts.length}</div>
+                      </div>
+                    </div>
+                    <div className="stat-right">
+                      <div className="stat-sub">Calories: <strong>{totalCaloriesBurned}</strong></div>
+                      <div className="sparkline">
+                        {workouts.length ? (() => {
+                          const points = workouts.slice(-8).map(w => Number(w.durationMinutes ?? w.duration ?? 0));
+                          const max = Math.max(...points, 1);
+                          const path = points.map((v,i) => `${(i/(points.length-1||1))*100},${100 - (v/max*100)}`).join(' ');
+                          return <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden><polyline points={path} fill="none" stroke="rgba(96,165,250,0.95)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+                        })() : <div className="sparkline-placeholder">No data</div>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Meals */}
+                  <div className="stat">
+                    <div className="stat-left">
+                      <div className="stat-icon-circle alt"><FiTrendingUp /></div>
+                      <div>
+                        <div className="stat-label">Meals</div>
+                        <div className="stat-value">{meals.length}</div>
+                      </div>
+                    </div>
+                    <div className="stat-right">
+                      <div className="stat-sub">Calories: <strong>{totalCaloriesConsumed}</strong></div>
+                      <div className="sparkline">
+                        {meals.length ? (() => {
+                          const points = meals.slice(-8).map(m => Number(m.calories ?? 0));
+                          const max = Math.max(...points, 1);
+                          const path = points.map((v,i) => `${(i/(points.length-1||1))*100},${100 - (v/max*100)}`).join(' ');
+                          return <svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points={path} fill="none" stroke="rgba(52,211,153,0.95)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+                        })() : <div className="sparkline-placeholder">No data</div>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Water */}
+                  <div className="stat">
+                    <div className="stat-left">
+                      <div className="stat-icon-circle water"><FiDroplet /></div>
+                      <div>
+                        <div className="stat-label">Water</div>
+                        <div className="stat-value">{waterThisWeek.toFixed(2)} L</div>
+                      </div>
+                    </div>
+                    <div className="stat-right">
+                      <div className="stat-sub">This week</div>
+                      <div className="sparkline">
+                        {water.length ? (() => {
+                          const points = water.slice(-8).map(w => litersFromEntry(w));
+                          const max = Math.max(...points, 1);
+                          const path = points.map((v,i) => `${(i/(points.length-1||1))*100},${100 - (v/max*100)}`).join(' ');
+                          return <svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points={path} fill="none" stroke="rgba(59,130,246,0.95)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+                        })() : <div className="sparkline-placeholder">No data</div>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sleep */}
+                  <div className="stat">
+                    <div className="stat-left">
+                      <div className="stat-icon-circle sleep"><FiMoon /></div>
+                      <div>
+                        <div className="stat-label">Sleep</div>
+                        <div className="stat-value">{avgSleepHours ? avgSleepHours.toFixed(1) : 0} h</div>
+                      </div>
+                    </div>
+                    <div className="stat-right">
+                      <div className="stat-sub">Avg (recent)</div>
+                      <div className="sparkline">
+                        {sleep.length ? (() => {
+                          const points = sleep.slice(-8).map(s => Number(s.hours ?? s.durationHours ?? 0));
+                          const max = Math.max(...points, 1);
+                          const path = points.map((v,i) => `${(i/(points.length-1||1))*100},${100 - (v/max*100)}`).join(' ');
+                          return <svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points={path} fill="none" stroke="rgba(99,102,241,0.95)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+                        })() : <div className="sparkline-placeholder">No data</div>}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div className="summary-cta" style={{ marginTop: 12 }}>
+                  <Link to="/trackers" className="link-btn primary">Open Trackers</Link>
+                  <Link to="/bmi-calculator" className="link-btn outline">BMI</Link>
+                </div>
+              </>
+            )}
           </div>
 
+          {/* ---------- Streaks & Goals (center) ---------- */}
           <div className="dash-box">
-            <div className="dash-box-icon">
-              <FiTarget />
+            <div className="dash-box-icon"><FiAward /></div>
+            <h3>Streaks & Goals</h3>
+
+            <div className="streaks-row" style={{ marginTop: 8, marginBottom: 10 }}>
+              <div className="streak">
+                <div className="streak-title"><FiActivity /> Workouts</div>
+                <div className="streak-value">{workoutStreak} <span className="small">days</span></div>
+              </div>
+
+              <div className="streak">
+                <div className="streak-title"><FiDroplet /> Water</div>
+                <div className="streak-value">{waterStreak} <span className="small">days</span></div>
+              </div>
+
+              <div className="streak">
+                <div className="streak-title"><FiMoon /> Sleep</div>
+                <div className="streak-value">{sleepStreak} <span className="small">days</span></div>
+              </div>
             </div>
-            <h3>Your Goal</h3>
-            <p>{user.fitnessGoal || "No goal set yet."}</p>
-            <Link to="/profile" className="link-btn">
-              View full profile
-            </Link>
+
+            <hr style={{ margin: "12px 0", opacity: 0.06 }} />
+
+            <div className="goal-row">
+              <div className="goal-label">Workouts this month</div>
+              <div className="goal-progress">
+                <div className="goal-bar"><div className="goal-bar-fill" style={{ width: `${pct(workoutsThisMonth, WORKOUT_MONTH_TARGET)}%` }} /></div>
+                <div className="goal-meta">{workoutsThisMonth} / {WORKOUT_MONTH_TARGET}</div>
+              </div>
+
+              <div className="goal-label">Water (week)</div>
+              <div className="goal-progress">
+                <div className="goal-bar"><div className="goal-bar-fill" style={{ width: `${pct(waterThisWeek, WATER_WEEK_TARGET_LITERS)}%` }} /></div>
+                <div className="goal-meta">{waterThisWeek.toFixed(1)} L / {WATER_WEEK_TARGET_LITERS} L</div>
+              </div>
+
+              <div className="goal-label">Avg Sleep (recent)</div>
+              <div className="goal-progress">
+                <div className="goal-bar"><div className="goal-bar-fill" style={{ width: `${pct(avgSleepHours, SLEEP_TARGET_HOURS)}%` }} /></div>
+                <div className="goal-meta">{avgSleepHours ? avgSleepHours.toFixed(1) : 0} / {SLEEP_TARGET_HOURS} hrs</div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <Link to="/trackers" className="link-btn">View full trackers</Link>
+            </div>
           </div>
 
-          <div className="dash-box">
-            <div className="dash-box-icon">
-              <FiTrendingUp />
-            </div>
+          {/* ---------- BMI Calculator (right) ---------- */}
+          <div className="dash-box bmi-box">
+            <div className="dash-box-icon"><FiClock /></div>
             <h3>BMI Calculator</h3>
-            <p>Calculate your Body Mass Index and check your health status</p>
-            <Link to="/bmi-calculator" className="link-btn">
-              Calculate BMI
-            </Link>
+            <p className="muted">Calculate your Body Mass Index and check your health</p>
+
+            {user && user.weightKg && user.heightCm ? (() => {
+              const weight = Number(user.weightKg);
+              const heightMeters = Number(user.heightCm) / 100;
+              const bmi = (weight / (heightMeters * heightMeters));
+              const category = bmi < 18.5 ? "Underweight" : bmi < 25 ? "Normal" : bmi < 30 ? "Overweight" : "Obese";
+              return (
+                <div className="bmi-box-content">
+                  <div className="bmi-value">{bmi.toFixed(1)}</div>
+                  <div className="bmi-category">{category}</div>
+                  <div className="bmi-meta small">Weight {weight}kg • Height {user.heightCm}cm</div>
+                  <Link to="/bmi-calculator" className="link-btn">Recalculate</Link>
+                </div>
+              );
+            })() : (
+              <div className="bmi-empty">
+                <p className="small">We don't have height & weight on file. Add them to profile to see your BMI here.</p>
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <Link to="/profile" className="link-btn outline">Update Profile</Link>
+                  <Link to="/bmi-calculator" className="link-btn">Calculate Manually</Link>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>
 
-       <p className="role-pill">Logged in as {friendlyRole}</p>
+        <p className="role-pill">Logged in as {user?.role ? user.role.replace("ROLE_","") : "User"}</p>
       </div>
 
-            {/* Daily Health Tip Card - Separate card below main dashboard */}
-      <div 
-        className="dashboard-card" 
-        style={{ 
-          marginTop: "20px",
-          minHeight: "280px",
-          backgroundImage: tipBackground ? `url(${tipBackground})` : 'none',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-      >
-        {/* Top section with title */}
-        <div 
-          className="dashboard-header" 
-          style={{ 
-            marginBottom: "0",
-            padding: "20px 26px 20px"
-          }}
-        >
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <FiSun style={{ 
-                color: "#fbbf24", 
-                fontSize: "28px",
-                filter: "drop-shadow(0 2px 8px rgba(0, 0, 0, 1))"
-              }} />
-              <h2 style={{ 
-                margin: 0,
-                textShadow: "0 2px 8px rgba(0, 0, 0, 1), 0 0 20px rgba(0, 0, 0, 0.8)",
-                fontSize: "24px",
-                color: "#ffffff",
-                fontWeight: "700"
-              }}>Daily Health Tip</h2>
-            </div>
-            <p className="dashboard-subtitle" style={{
-              textShadow: "0 2px 6px rgba(0, 0, 0, 1), 0 0 15px rgba(0, 0, 0, 0.8)",
-              color: "#f1f5f9",
-              fontWeight: "500"
-            }}>Your wellness tip for today</p>
+      {/* ---------- Health Tip card ---------- */}
+      <div className="dashboard-card" style={{
+        marginTop: 20,
+        minHeight: 220,
+        backgroundImage: tipBackground ? `url(${tipBackground})` : "none",
+        backgroundSize: "cover",
+        backgroundPosition: "center"
+      }}>
+        <div className="dashboard-header">
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <FiSun style={{ color: "#fbbf24", fontSize: 28 }} />
+            <h2>Daily Health Tip</h2>
           </div>
+          <p className="dashboard-subtitle">Your wellness tip for today</p>
         </div>
-
-        {/* Bottom section with tip text  */}
-        <div style={{ 
-          padding: "30px 26px",
-          marginTop: "auto"
-        }}>
-          {tipLoading ? (
-            <p style={{ 
-              textAlign: "center", 
-              fontSize: "16px", 
-              color: "#ffffff",
-              textShadow: "0 2px 8px rgba(0, 0, 0, 1), 0 0 20px rgba(0, 0, 0, 0.8)",
-              fontWeight: "600"
-            }}>Loading health tip...</p>
-          ) : (
-            <p style={{ 
-              fontSize: "18px", 
-              lineHeight: "1.8", 
-              fontStyle: "italic",
-              textShadow: "0 2px 10px rgba(0, 0, 0, 1), 0 0 25px rgba(0, 0, 0, 0.9)",
-              fontWeight: "600",
-              margin: 0,
-              color: "#ffffff"
-            }}>
-              💡 {healthTip}
-            </p>
-          )}
+        <div style={{ padding: "20px 26px", marginTop: "auto" }}>
+          {tipLoading ? <p>Loading tip…</p> : <p style={{ fontSize: 16, fontStyle: "italic" }}>💡 {healthTip}</p>}
         </div>
       </div>
-
-
     </div>
-
   );
 };
 
