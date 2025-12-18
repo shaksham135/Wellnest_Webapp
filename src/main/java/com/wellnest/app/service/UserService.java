@@ -27,4 +27,10 @@ public class UserService {
     public Optional<User> findByResetToken(String token){
         return userRepo.findByResetToken(token);
     }
+
+    public User updateTargetWeight(String email, Double targetWeightKg) {
+        User user = userRepo.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+        user.setTargetWeightKg(targetWeightKg);
+        return userRepo.save(user);
+    }
 }

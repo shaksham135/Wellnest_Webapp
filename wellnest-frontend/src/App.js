@@ -9,7 +9,7 @@ import {
   Route,
   NavLink,
 } from "react-router-dom";
-import { FiHome, FiUserPlus, FiUser, FiBarChart2, FiActivity } from "react-icons/fi";
+import { FiHome, FiUserPlus, FiUser, FiBarChart2, FiActivity, FiTrendingUp } from "react-icons/fi";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -18,6 +18,13 @@ import Profile from "./pages/Profile";
 import SetupProfile from "./pages/SetupProfile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import WorkoutAnalyticsDetail from "./pages/detailed-analytics/WorkoutAnalyticsDetail";
+import NutritionAnalyticsDetail from "./pages/detailed-analytics/NutritionAnalyticsDetail";
+import SleepAnalyticsDetail from "./pages/detailed-analytics/SleepAnalyticsDetail";
+import WaterIntakeAnalyticsDetail from "./pages/detailed-analytics/WaterIntakeAnalyticsDetail";
+import GoalProgressDetail from "./pages/detailed-analytics/GoalProgressDetail";
+import HealthMetricsDetail from "./pages/detailed-analytics/HealthMetricsDetail";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./index.css";
@@ -71,6 +78,11 @@ const App = () => {
               <NavLink to="/trackers" className="nav-link">
                 <FiActivity />
                 <span>Trackers</span>
+              </NavLink>
+
+              <NavLink to="/analytics" className="nav-link">
+                <FiTrendingUp />
+                <span>Analytics</span>
               </NavLink>
 
               <NavLink to="/profile" className="nav-link">
@@ -138,6 +150,21 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <AnalyticsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/analytics/workout" element={<ProtectedRoute><WorkoutAnalyticsDetail /></ProtectedRoute>} />
+          <Route path="/analytics/nutrition" element={<ProtectedRoute><NutritionAnalyticsDetail /></ProtectedRoute>} />
+          <Route path="/analytics/sleep" element={<ProtectedRoute><SleepAnalyticsDetail /></ProtectedRoute>} />
+          <Route path="/analytics/water" element={<ProtectedRoute><WaterIntakeAnalyticsDetail /></ProtectedRoute>} />
+          <Route path="/analytics/goals" element={<ProtectedRoute><GoalProgressDetail /></ProtectedRoute>} />
+          <Route path="/analytics/health" element={<ProtectedRoute><HealthMetricsDetail /></ProtectedRoute>} />
         </Routes>
       </main>
     </Router>

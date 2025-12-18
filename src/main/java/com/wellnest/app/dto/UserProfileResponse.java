@@ -16,12 +16,13 @@ public class UserProfileResponse {
     private Double weightKg;
     private String gender;
     private String fitnessGoal;
+    private Double targetWeightKg;
 
     public UserProfileResponse() {}
 
     public UserProfileResponse(String name, String email, String role,
                                Integer age, Double heightCm, Double weightKg,
-                               String gender, String fitnessGoal) {
+                               String gender, String fitnessGoal, Double targetWeightKg) {
         this.name = name;
         this.email = email;
         this.role = role;
@@ -30,5 +31,6 @@ public class UserProfileResponse {
         this.weightKg = weightKg;
         this.gender = gender;
         this.fitnessGoal = fitnessGoal;
+        this.targetWeightKg = targetWeightKg;
     }
 }

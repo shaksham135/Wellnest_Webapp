@@ -14,6 +14,8 @@ import {
 
 import { fetchCurrentUser } from "../api/userApi";
 import { getWorkouts, getMeals, getWater, getSleep } from "../api/trackerApi";
+import apiClient from "../api/apiClient";
+import GoalProgress from "../components/dashboard/GoalProgress";
 
 /**
  * Dashboard.jsx
@@ -42,6 +44,10 @@ const Dashboard = () => {
   const [healthTip, setHealthTip] = useState("");
   const [tipLoading, setTipLoading] = useState(true);
   const [tipBackground, setTipBackground] = useState("");
+
+  // goal progress state
+  const [goalData, setGoalData] = useState(null);
+  const [loadingGoal, setLoadingGoal] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -116,6 +122,22 @@ const Dashboard = () => {
     localStorage.setItem('healthTipDate', today);
     localStorage.setItem('healthTipBackground', bg);
     setTipLoading(false);
+  }, []);
+
+  // load goal progress data
+  useEffect(() => {
+    const loadGoalProgress = async () => {
+      setLoadingGoal(true);
+      try {
+        const res = await apiClient.get("/analytics/summary");
+        setGoalData(res.data.goalProgress);
+      } catch (err) {
+        console.error("Failed to load goal progress data:", err);
+      } finally {
+        setLoadingGoal(false);
+      }
+    };
+    loadGoalProgress();
   }, []);
 
   // ---------- Helper functions for parsing dates, streaks, and metrics ----------
@@ -457,6 +479,18 @@ const Dashboard = () => {
 
         <p className="role-pill">Logged in as {user?.role ? user.role.replace("ROLE_","") : "User"}</p>
       </div>
+
+      {/* Goal Progress Summary */}
+      {!loadingGoal && goalData && (
+          <div className="dashboard-card" style={{ marginTop: 20 }}>
+              <div className="dash-box">
+                  <GoalProgress data={goalData} />
+                  <div style={{ marginTop: 12 }}>
+                      <Link to="/analytics" className="link-btn">View Detailed Analytics</Link>
+                  </div>
+              </div>
+          </div>
+      )}
 
       {/* ---------- Health Tip card ---------- */}
       <div className="dashboard-card" style={{

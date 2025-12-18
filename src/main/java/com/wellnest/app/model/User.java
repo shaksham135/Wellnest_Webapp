@@ -36,6 +36,8 @@ public class User{
 
     private String fitnessGoal;
 
+    private Double targetWeightKg;
+
     private String resetToken;
 
     private LocalDateTime resetTokenExpiry;

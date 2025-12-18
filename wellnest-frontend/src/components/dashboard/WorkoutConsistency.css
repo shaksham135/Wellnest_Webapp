@@ -1,0 +1,70 @@
+.heatmap-container {
+    margin-top: 1.5rem;
+    padding: 0 1rem;
+}
+
+.react-calendar-heatmap text {
+    font-size: 10px;
+    fill: #9ca3af;
+}
+
+.react-calendar-heatmap .react-calendar-heatmap-month-label {
+    font-size: 14px;
+    font-weight: 600;
+    fill: #e5e7eb;
+}
+
+.react-calendar-heatmap rect {
+    rx: 3px;
+    ry: 3px;
+    transition: fill 0.2s ease;
+}
+
+.react-calendar-heatmap rect:hover {
+    stroke: #818cf8;
+    stroke-width: 1px;
+}
+
+.react-calendar-heatmap .color-empty {
+    fill: rgba(30, 41, 59, 0.8);
+}
+
+.react-calendar-heatmap .color-scale-1 {
+    fill: #4f46e5;
+}
+
+.react-calendar-heatmap .color-scale-2 {
+    fill: #6366f1;
+}
+
+.react-calendar-heatmap .color-scale-3 {
+    fill: #818cf8;
+}
+
+.react-calendar-heatmap .color-scale-4 {
+    fill: #a5b4fc;
+}
+
+.heatmap-legend {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-top: 1.5rem;
+    padding-right: 1rem;
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.legend-color-box {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}

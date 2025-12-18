@@ -1,6 +1,7 @@
 package com.wellnest.app.controller;
 
 import com.wellnest.app.dto.ProfileUpdateRequest;
+import com.wellnest.app.dto.UpdateTargetWeightRequest;
 import com.wellnest.app.dto.UserProfileResponse;
 import com.wellnest.app.model.User;
 import com.wellnest.app.service.UserService;
@@ -33,7 +34,8 @@ public class UserController {
                 user.getHeightCm(),
                 user.getWeightKg(),
                 user.getGender(),
-                user.getFitnessGoal()
+                user.getFitnessGoal(),
+                user.getTargetWeightKg()
         );
         return ResponseEntity.ok(dto);
     }
@@ -63,8 +65,19 @@ public class UserController {
                 user.getHeightCm(),
                 user.getWeightKg(),
                 user.getGender(),
-                user.getFitnessGoal()
+                user.getFitnessGoal(),
+                user.getTargetWeightKg()
         );
         return ResponseEntity.ok(dto);
+    }
+
+    @PutMapping("/me/target-weight")
+    public ResponseEntity<Void> updateTargetWeight(
+            @RequestBody UpdateTargetWeightRequest req,
+            Authentication auth
+    ) {
+        String email = auth.getName();
+        userService.updateTargetWeight(email, req.getTargetWeightKg());
+        return ResponseEntity.ok().build();
     }
 }
