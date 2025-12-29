@@ -1,15 +1,18 @@
 // src/pages/Trackers.jsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   createWorkout,
   createMeal,
   createWater,
   createSleep,
+  createSteps, // NEW
   getWorkouts,
   getMeals,
   getWater,
   getSleep,
+  getSteps, // NEW
 } from "../api/trackerApi";
+
 
 const Trackers = () => {
   const [tab, setTab] = useState("workout");
@@ -44,6 +47,29 @@ const [calculatedCalories, setCalculatedCalories] = useState(0);
     amountLiters: 0.5,
     notes: "",
   });
+
+    // Steps
+  const [steps, setSteps] = useState({
+    count: 0,
+    distance: 0, // Will be calculated automatically
+    caloriesBurned: 0, // Will be calculated automatically
+    notes: "",
+  });
+
+  const [recentSteps, setRecentSteps] = useState([]);
+  const [calculatedStepsData, setCalculatedStepsData] = useState({
+    distance: 0,
+    calories: 0,
+    intensity: "Light"
+  });
+
+  // Step counting sensor states
+  const [isCountingSteps, setIsCountingSteps] = useState(false);
+  const [sensorSupported, setSensorSupported] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState('unknown');
+  const [stepCountingError, setStepCountingError] = useState('');
+  const [dailyStepCount, setDailyStepCount] = useState(0);
+  const [stepThreshold] = useState(1.2); // Acceleration threshold for step detection
 
   // Sleep
   const [sleep, setSleep] = useState({
@@ -99,8 +125,7 @@ useEffect(() => {
         setUserWeight(res.data.weightKg);
       }
     } catch (err) {
-      console.log("Could not fetch user weight, using default 70kg");
-      // Keep default weight of 70kg
+      // Keep default weight of 70kg if user weight fetch fails
     }
   };
   fetchUserWeight();
@@ -113,7 +138,216 @@ useEffect(() => {
     setSleep(prev => ({ ...prev, quality: qualityData.quality }));
     setCalculatedSleepQuality(qualityData);
   }
-}, []); // Run once on mount
+}, [sleep.hours]); // Run when sleep hours change
+
+  // Check for sensor support and permissions on component mount
+  useEffect(() => {
+    const checkSensorSupport = async () => {
+      try {
+        // Check if DeviceMotionEvent is supported
+        if (typeof DeviceMotionEvent !== 'undefined') {
+          setSensorSupported(true);
+          
+          // For iOS 13+ devices, we need to request permission
+          if (typeof DeviceMotionEvent.requestPermission === 'function') {
+            const permission = await DeviceMotionEvent.requestPermission();
+            setPermissionStatus(permission);
+            if (permission !== 'granted') {
+              setStepCountingError('Motion sensor permission denied. Please enable in browser settings.');
+            }
+          } else {
+            setPermissionStatus('granted');
+          }
+        } else {
+          setSensorSupported(false);
+          setStepCountingError('Motion sensors not supported on this device.');
+        }
+      } catch (error) {
+        console.error('Error checking sensor support:', error);
+        setStepCountingError('Error accessing motion sensors: ' + error.message);
+      }
+    };
+
+    const loadTodaysSteps = () => {
+      const today = new Date().toDateString();
+      const savedSteps = localStorage.getItem(`dailySteps_${today}`);
+      if (savedSteps) {
+        const stepCount = parseInt(savedSteps);
+        setDailyStepCount(stepCount);
+        setSteps(prev => ({ ...prev, count: stepCount }));
+        
+        // Calculate and update step data
+        const stepsData = calculateStepsData(stepCount, userWeight);
+        setCalculatedStepsData(stepsData);
+      }
+    };
+
+    checkSensorSupport();
+    loadTodaysSteps();
+  }, [userWeight]);
+
+  // Auto-save steps every 30 seconds when counting
+  useEffect(() => {
+    const autoSaveSteps = async () => {
+      if (dailyStepCount > 0) {
+        try {
+          const stepsData = calculateStepsData(dailyStepCount, userWeight);
+          
+          const payload = {
+            count: dailyStepCount,
+            distance: Number(stepsData.distance),
+            caloriesBurned: stepsData.calories,
+            notes: `Auto-tracked: ${stepsData.intensity} activity level`,
+          };
+          
+          await createSteps(payload);
+        } catch (error) {
+          console.error('Auto-save steps error:', error);
+        }
+      }
+    };
+
+    let interval;
+    if (isCountingSteps && dailyStepCount > 0) {
+      interval = setInterval(() => {
+        autoSaveSteps();
+      }, 30000); // Save every 30 seconds
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isCountingSteps, dailyStepCount, userWeight]);
+
+  // Save today's steps to localStorage
+  const saveTodaysSteps = (stepCount) => {
+    const today = new Date().toDateString();
+    localStorage.setItem(`dailySteps_${today}`, stepCount.toString());
+  };
+
+  // Start step counting using device motion sensors
+  const startStepCounting = () => {
+    if (!sensorSupported || permissionStatus !== 'granted') {
+      setStepCountingError('Cannot start step counting. Sensor not supported or permission denied.');
+      return;
+    }
+
+    setIsCountingSteps(true);
+    setStepCountingError('');
+    
+    let stepCount = dailyStepCount;
+    let lastStepTime = 0;
+    let isStep = false;
+
+    const handleMotion = (event) => {
+      const acceleration = event.accelerationIncludingGravity;
+      if (!acceleration) return;
+
+      const { x, y, z } = acceleration;
+      
+      // Calculate total acceleration magnitude
+      const totalAcceleration = Math.sqrt(x * x + y * y + z * z);
+      
+      // Detect step based on acceleration threshold and timing
+      const currentTime = Date.now();
+      const timeSinceLastStep = currentTime - lastStepTime;
+      
+      // Step detection logic: significant acceleration change + minimum time between steps
+      if (totalAcceleration > stepThreshold && timeSinceLastStep > 300 && !isStep) {
+        stepCount++;
+        setDailyStepCount(stepCount);
+        setSteps(prev => ({ ...prev, count: stepCount }));
+        
+        // Calculate and update step data
+        const stepsData = calculateStepsData(stepCount, userWeight);
+        setCalculatedStepsData(stepsData);
+        
+        // Save to localStorage
+        saveTodaysSteps(stepCount);
+        
+        lastStepTime = currentTime;
+        isStep = true;
+        
+        // Reset step flag after a short delay
+        setTimeout(() => {
+          isStep = false;
+        }, 200);
+      }
+    };
+
+    // Add event listener for device motion
+    window.addEventListener('devicemotion', handleMotion);
+    
+    // Store the event listener reference for cleanup
+    window.stepCountingHandler = handleMotion;
+  };
+
+  // Stop step counting
+  const stopStepCounting = async () => {
+    setIsCountingSteps(false);
+    
+    if (window.stepCountingHandler) {
+      window.removeEventListener('devicemotion', window.stepCountingHandler);
+      window.stepCountingHandler = null;
+    }
+    
+    // Save final count to database
+    if (dailyStepCount > 0) {
+      try {
+        const stepsData = calculateStepsData(dailyStepCount, userWeight);
+        
+        const payload = {
+          count: dailyStepCount,
+          distance: Number(stepsData.distance),
+          caloriesBurned: stepsData.calories,
+          notes: `Auto-tracked: ${stepsData.intensity} activity level`,
+        };
+        
+        await createSteps(payload);
+      } catch (error) {
+        console.error('Final save steps error:', error);
+      }
+    }
+  };
+
+  // Reset daily step count
+  const resetStepCount = () => {
+    setDailyStepCount(0);
+    setSteps(prev => ({ ...prev, count: 0 }));
+    setCalculatedStepsData({ distance: 0, calories: 0, intensity: "Sedentary" });
+    
+    const today = new Date().toDateString();
+    localStorage.removeItem(`dailySteps_${today}`);
+  };
+  // load data when tab changes
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setMessage(""); // clear any previous messages when loading new tab
+        setMessageType("info");
+
+        if (tab === "workout") {
+          const res = await getWorkouts();
+          setRecentWorkouts(res.data || []);
+        } else if (tab === "meal") {
+          const res = await getMeals();
+          setRecentMeals(res.data || []);
+        } else if (tab === "water") {
+          const res = await getWater();
+          setRecentWater(res.data || []);
+        } else if (tab === "sleep") {
+          const res = await getSleep();
+          setRecentSleep(res.data || []);
+        } else if (tab === "steps") { // NEW
+          const res = await getSteps();
+          setRecentSteps(res.data || []);
+        }
+      } catch (err) {
+        // don't spam user with network errors here; show on submit
+        console.error("Load trackers error:", err);
+      }
+    };
+    load();
+  }, [tab]);
 
 
   // helper: show message
@@ -167,6 +401,51 @@ const calculateSleepQuality = (hours) => {
       color: "#ef4444"
     };
   }
+};
+// Calculate distance and calories from step count
+const calculateStepsData = (stepCount, weightKg) => {
+  // Average step length for adults: 0.762 meters (2.5 feet)
+  const averageStepLength = 0.762; // meters
+  
+  // Calculate distance in kilometers
+  const distanceKm = (stepCount * averageStepLength) / 1000;
+  
+  // Calculate calories burned from walking
+  // Formula: Calories = MET × weight (kg) × time (hours)
+  // For walking: MET = 3.5 (moderate pace)
+  // Average walking speed: 5 km/h
+  const walkingMET = 3.5;
+  const averageWalkingSpeed = 5; // km/h
+  const timeHours = distanceKm / averageWalkingSpeed;
+  const caloriesBurned = Math.round(walkingMET * weightKg * timeHours);
+  
+  // Determine activity level based on step count
+  let intensity = "Sedentary";
+  let feedback = "";
+  
+  if (stepCount < 5000) {
+    intensity = "Sedentary";
+    feedback = "Try to increase your daily movement. Aim for at least 10,000 steps!";
+  } else if (stepCount < 7500) {
+    intensity = "Low Active";
+    feedback = "Good start! You're on your way to a more active lifestyle.";
+  } else if (stepCount < 10000) {
+    intensity = "Somewhat Active";
+    feedback = "Great progress! You're close to the recommended 10,000 steps.";
+  } else if (stepCount < 12500) {
+    intensity = "Active";
+    feedback = "Excellent! You've reached the recommended daily step goal.";
+  } else {
+    intensity = "Highly Active";
+    feedback = "Outstanding! You're exceeding daily activity recommendations.";
+  }
+  
+  return {
+    distance: distanceKm.toFixed(2),
+    calories: caloriesBurned,
+    intensity,
+    feedback
+  };
 };
 
 
@@ -357,12 +636,42 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
       setLoading(false);
     }
   };
+ const onSubmitSteps = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setMessage("");
+  try {
+    const stepsData = calculateStepsData(dailyStepCount, userWeight);
+    
+    const payload = {
+      count: dailyStepCount,
+      distance: Number(stepsData.distance),
+      caloriesBurned: stepsData.calories,
+      notes: steps.notes || `Sensor-tracked: ${stepsData.intensity} activity level`,
+    };
+    
+    await createSteps(payload);
+    showMessage(`Steps logged! You walked ${stepsData.distance}km and burned ${stepsData.calories} calories.`, "success");
+    const res = await getSteps();
+    setRecentSteps(res.data || []);
+  } catch (err) {
+    console.error("Save steps error:", err);
+    const errMsg =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      err?.message ||
+      "Failed to save steps";
+    showMessage(errMsg, "error");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="tracker-page container">
       <h2 className="auth-title">Health Trackers</h2>
 
-      <div className="tabs">
+            <div className="tabs">
         <button
           className={tab === "workout" ? "active" : ""}
           onClick={() => {
@@ -399,7 +708,17 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
         >
           Sleep
         </button>
+        <button
+          className={tab === "steps" ? "active" : ""}
+          onClick={() => {
+            setTab("steps");
+            setMessage("");
+          }}
+        >
+          Steps
+        </button>
       </div>
+
 
       <div className="tab-content">
                 {tab === "workout" && (
@@ -781,6 +1100,322 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
                         }}>
                           • {s.quality}
                         </span>
+                      </div>
+                      <div className="small" style={{ color: "#9ca3af" }}>
+                        {s.notes}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+         
+                 {tab === "steps" && (
+          <>
+            <div className="tracker-form">
+              {/* Sensor Status Display */}
+              <div style={{ 
+                marginBottom: "20px",
+                padding: "16px",
+                borderRadius: "8px",
+                backgroundColor: "rgba(15, 23, 42, 0.5)",
+                border: `2px solid ${sensorSupported && permissionStatus === 'granted' ? '#22c55e' : '#ef4444'}`
+              }}>
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "8px",
+                  marginBottom: "8px"
+                }}>
+                  <span style={{ fontSize: "14px", color: "#e5e7eb" }}>Sensor Status:</span>
+                  <span style={{ 
+                    fontSize: "14px", 
+                    fontWeight: "600",
+                    color: sensorSupported && permissionStatus === 'granted' ? '#22c55e' : '#ef4444'
+                  }}>
+                    {sensorSupported && permissionStatus === 'granted' ? 'Ready' : 'Not Available'}
+                  </span>
+                </div>
+                {stepCountingError && (
+                  <div style={{ 
+                    fontSize: "12px", 
+                    color: "#ef4444",
+                    lineHeight: "1.4"
+                  }}>
+                    ⚠️ {stepCountingError}
+                  </div>
+                )}
+                {sensorSupported && permissionStatus === 'granted' && (
+                  <div style={{ 
+                    fontSize: "12px", 
+                    color: "#22c55e",
+                    lineHeight: "1.4"
+                  }}>
+                    ✅ Motion sensors are active and ready to track your steps automatically
+                  </div>
+                )}
+              </div>
+
+              {/* Step Counter Display */}
+              <div style={{ 
+                marginBottom: "20px",
+                padding: "20px",
+                borderRadius: "12px",
+                backgroundColor: "rgba(15, 23, 42, 0.7)",
+                border: "2px solid #3b82f6",
+                textAlign: "center"
+              }}>
+                <div style={{ 
+                  fontSize: "48px", 
+                  fontWeight: "bold",
+                  color: "#3b82f6",
+                  marginBottom: "8px"
+                }}>
+                  {dailyStepCount.toLocaleString()}
+                </div>
+                <div style={{ 
+                  fontSize: "16px", 
+                  color: "#e5e7eb",
+                  marginBottom: "12px"
+                }}>
+                  Steps Today
+                </div>
+                
+                {/* Control Buttons */}
+                <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+                  {sensorSupported && permissionStatus === 'granted' && (
+                    <>
+                      {!isCountingSteps ? (
+                        <button
+                          type="button"
+                          onClick={startStepCounting}
+                          style={{
+                            padding: "10px 20px",
+                            backgroundColor: "#22c55e",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            fontWeight: "500"
+                          }}
+                        >
+                          🚀 Start Tracking
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={stopStepCounting}
+                          style={{
+                            padding: "10px 20px",
+                            backgroundColor: "#ef4444",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            fontWeight: "500"
+                          }}
+                        >
+                          ⏹️ Stop Tracking
+                        </button>
+                      )}
+                      
+                      <button
+                        type="button"
+                        onClick={resetStepCount}
+                        style={{
+                          padding: "10px 20px",
+                          backgroundColor: "#6b7280",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          fontWeight: "500"
+                        }}
+                      >
+                        🔄 Reset
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const { addSampleStepsData } = await import("../utils/sampleStepsData");
+                          const success = await addSampleStepsData();
+                          if (success) {
+                            showMessage("Sample steps data added for analytics testing!", "success");
+                            // Refresh the recent steps list
+                            const res = await getSteps();
+                            setRecentSteps(res.data || []);
+                          } else {
+                            showMessage("Failed to add sample data", "error");
+                          }
+                        }}
+                        style={{
+                          padding: "10px 20px",
+                          backgroundColor: "#8b5cf6",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                          fontWeight: "500"
+                        }}
+                      >
+                        📊 Add Sample Data
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                {isCountingSteps && (
+                  <div style={{ 
+                    marginTop: "12px",
+                    fontSize: "12px", 
+                    color: "#22c55e",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "4px"
+                  }}>
+                    <div style={{
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      backgroundColor: "#22c55e",
+                      animation: "pulse 2s infinite"
+                    }} />
+                    Actively tracking your movement...
+                  </div>
+                )}
+              </div>
+
+              {/* Steps Calculation Display */}
+              {dailyStepCount > 0 && (
+                <div style={{ 
+                  marginTop: "12px", 
+                  marginBottom: "12px",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  backgroundColor: "rgba(15, 23, 42, 0.5)",
+                  border: `2px solid ${
+                    calculatedStepsData.intensity === "Sedentary" ? "#ef4444" :
+                    calculatedStepsData.intensity === "Low Active" ? "#f59e0b" :
+                    calculatedStepsData.intensity === "Somewhat Active" ? "#eab308" :
+                    calculatedStepsData.intensity === "Active" ? "#22c55e" : "#16a34a"
+                  }`
+                }}>
+                  <div style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "16px",
+                    marginBottom: "8px",
+                    flexWrap: "wrap"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <span style={{ fontSize: "12px", color: "#9ca3af" }}>Distance:</span>
+                      <span style={{ fontSize: "14px", fontWeight: "600", color: "#22c55e" }}>
+                        {calculatedStepsData.distance} km
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <span style={{ fontSize: "12px", color: "#9ca3af" }}>Calories:</span>
+                      <span style={{ fontSize: "14px", fontWeight: "600", color: "#f59e0b" }}>
+                        {calculatedStepsData.calories} kcal
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <span style={{ fontSize: "12px", color: "#9ca3af" }}>Activity Level:</span>
+                      <span style={{ 
+                        fontSize: "14px", 
+                        fontWeight: "600",
+                        color: calculatedStepsData.intensity === "Sedentary" ? "#ef4444" :
+                               calculatedStepsData.intensity === "Low Active" ? "#f59e0b" :
+                               calculatedStepsData.intensity === "Somewhat Active" ? "#eab308" :
+                               calculatedStepsData.intensity === "Active" ? "#22c55e" : "#16a34a"
+                      }}>
+                        {calculatedStepsData.intensity}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ 
+                    fontSize: "12px", 
+                    color: "#d1d5db",
+                    lineHeight: "1.4"
+                  }}>
+                    🚶‍♀️ {calculatedStepsData.feedback}
+                  </div>
+                </div>
+              )}
+
+              {/* Manual Save Form */}
+              <form onSubmit={onSubmitSteps} style={{ marginTop: "20px" }}>
+                <label>
+                  Notes (Optional)
+                  <input
+                    type="text"
+                    value={steps.notes}
+                    onChange={(e) => setSteps({ ...steps, notes: e.target.value })}
+                    placeholder="Add notes about your activity..."
+                  />
+                </label>
+
+                <button type="submit" disabled={loading || dailyStepCount === 0}>
+                  {loading ? "Saving..." : "Save Today's Steps"}
+                </button>
+              </form>
+
+              {/* Sensor Information */}
+              {!sensorSupported && (
+                <div style={{ 
+                  marginTop: "20px",
+                  padding: "16px",
+                  borderRadius: "8px",
+                  backgroundColor: "rgba(239, 68, 68, 0.1)",
+                  border: "1px solid #ef4444"
+                }}>
+                  <div style={{ color: "#ef4444", fontSize: "14px", fontWeight: "500", marginBottom: "8px" }}>
+                    📱 Device Not Supported
+                  </div>
+                  <div style={{ color: "#9ca3af", fontSize: "12px", lineHeight: "1.4" }}>
+                    Your device doesn't support motion sensors for automatic step counting. 
+                    This feature works best on mobile devices with accelerometers.
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {recentSteps.length > 0 && (
+              <div className="recent-list">
+                <h4>Recent step logs</h4>
+                {recentSteps.slice(0, 6).map((s) => {
+                  const stepsData = calculateStepsData(s.count, userWeight);
+                  return (
+                    <div className="card" key={s.id || JSON.stringify(s)} style={{
+                      borderLeft: `4px solid ${
+                        stepsData.intensity === "Sedentary" ? "#ef4444" :
+                        stepsData.intensity === "Low Active" ? "#f59e0b" :
+                        stepsData.intensity === "Somewhat Active" ? "#eab308" :
+                        stepsData.intensity === "Active" ? "#22c55e" : "#16a34a"
+                      }`
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: "600" }}>{s.count.toLocaleString()} steps</span>
+                        <span style={{ color: "#22c55e" }}>• {s.distance || stepsData.distance}km</span>
+                        <span style={{ color: "#f59e0b" }}>• {s.caloriesBurned || stepsData.calories} kcal</span>
+                      </div>
+                      <div style={{ 
+                        fontSize: "12px", 
+                        color: stepsData.intensity === "Sedentary" ? "#ef4444" :
+                               stepsData.intensity === "Low Active" ? "#f59e0b" :
+                               stepsData.intensity === "Somewhat Active" ? "#eab308" :
+                               stepsData.intensity === "Active" ? "#22c55e" : "#16a34a",
+                        fontWeight: "500"
+                      }}>
+                        {stepsData.intensity}
                       </div>
                       <div className="small" style={{ color: "#9ca3af" }}>
                         {s.notes}

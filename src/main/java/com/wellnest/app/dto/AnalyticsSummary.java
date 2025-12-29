@@ -11,6 +11,7 @@ public class AnalyticsSummary {
     private NutritionAnalytics nutritionAnalytics;
     private SleepAnalytics sleepAnalytics;
     private WaterIntakeAnalytics waterIntakeAnalytics;
+    private StepsAnalytics stepsAnalytics;
     private GoalProgress goalProgress;
     private HealthMetrics healthMetrics;
     private WorkoutConsistency workoutConsistency;

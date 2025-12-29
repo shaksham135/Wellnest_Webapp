@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from "../api/apiClient";
 import GoalProgress from "../components/dashboard/GoalProgress";
@@ -6,6 +6,7 @@ import WorkoutAnalytics from "../components/dashboard/WorkoutAnalytics";
 import NutritionAnalytics from "../components/dashboard/NutritionAnalytics";
 import SleepAnalytics from "../components/dashboard/SleepAnalytics";
 import WaterIntakeAnalytics from "../components/dashboard/WaterIntakeAnalytics";
+import StepsAnalytics from "../components/dashboard/StepsAnalytics";
 import HealthMetrics from "../components/dashboard/HealthMetrics";
 import WorkoutConsistency from "../components/dashboard/WorkoutConsistency";
 import './AnalyticsPage.css';
@@ -22,7 +23,7 @@ const AnalyticsPage = () => {
             setAnalyticsData(response.data);
         } catch (err) {
             setError('Failed to fetch analytics data.');
-            console.error(err);
+            console.error('Analytics fetch error:', err);
         }
         setLoading(false);
     }, []);
@@ -69,6 +70,10 @@ const AnalyticsPage = () => {
                 <div className="analytics-box">
                     <WaterIntakeAnalytics data={analyticsData.waterIntakeAnalytics} />
                     <Link to="/analytics/water" className="view-details-button">View Details</Link>
+                </div>
+                <div className="analytics-box">
+                    <StepsAnalytics data={analyticsData.stepsAnalytics} />
+                    <Link to="/analytics/steps" className="view-details-button">View Details</Link>
                 </div>
                 {analyticsData.healthMetrics && 
                     <div className="analytics-box">

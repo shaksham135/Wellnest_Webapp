@@ -1841,3 +1841,35 @@ select:-internal-list-box {
   outline-offset: 2px;
   border-radius: 10px;
 }
+/* Pulse animation for step tracking indicator */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 768px) {
+  .tracker-form {
+    padding: 16px;
+  }
+  
+  .step-counter-display {
+    padding: 16px;
+  }
+  
+  .step-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .step-controls button {
+    width: 100%;
+  }
+}

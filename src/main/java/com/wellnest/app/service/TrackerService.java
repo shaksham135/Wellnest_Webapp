@@ -2,14 +2,19 @@ package com.wellnest.app.service;
 
 import com.wellnest.app.dto.MealDto;
 import com.wellnest.app.dto.SleepLogDto;
+import com.wellnest.app.dto.StepsDto;
 import com.wellnest.app.dto.WaterIntakeDto;
 import com.wellnest.app.dto.WorkoutDto;
 import com.wellnest.app.model.Meal;
 import com.wellnest.app.model.SleepLog;
+import com.wellnest.app.model.Steps;
+import com.wellnest.app.model.User;
 import com.wellnest.app.model.WaterIntake;
 import com.wellnest.app.model.Workout;
 import com.wellnest.app.repository.MealRepository;
 import com.wellnest.app.repository.SleepLogRepository;
+import com.wellnest.app.repository.StepsRepository;
+import com.wellnest.app.repository.UserRepository;
 import com.wellnest.app.repository.WaterIntakeRepository;
 import com.wellnest.app.repository.WorkoutRepository;
 import org.springframework.stereotype.Service;
@@ -26,15 +31,21 @@ public class TrackerService {
     private final MealRepository mealRepository;
     private final WaterIntakeRepository waterIntakeRepository;
     private final SleepLogRepository sleepLogRepository;
+    private final StepsRepository stepsRepository;
+    private final UserRepository userRepository;
 
     public TrackerService(WorkoutRepository workoutRepository,
                           MealRepository mealRepository,
                           WaterIntakeRepository waterIntakeRepository,
-                          SleepLogRepository sleepLogRepository) {
+                          SleepLogRepository sleepLogRepository,
+                          StepsRepository stepsRepository,
+                          UserRepository userRepository) {
         this.workoutRepository = workoutRepository;
         this.mealRepository = mealRepository;
         this.waterIntakeRepository = waterIntakeRepository;
         this.sleepLogRepository = sleepLogRepository;
+        this.stepsRepository = stepsRepository;
+        this.userRepository = userRepository;
     }
 
     // -------------------- WORKOUT --------------------
@@ -125,5 +136,31 @@ public class TrackerService {
     public List<SleepLog> getSleepForUser(Long userId) {
         Assert.notNull(userId, "userId is required");
         return sleepLogRepository.findByUserIdOrderBySleepDateDesc(userId);
+    }
+
+    // -------------------- STEPS --------------------
+
+    public Steps createStepsForUser(Long userId, StepsDto dto) {
+        Assert.notNull(userId, "userId is required");
+        Assert.notNull(dto, "steps dto is required");
+
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Steps steps = new Steps();
+        steps.setUser(user);
+        steps.setCount(dto.getCount());
+        steps.setDistance(dto.getDistance());
+        steps.setCaloriesBurned(dto.getCaloriesBurned());
+        steps.setNotes(dto.getNotes());
+
+        return stepsRepository.save(steps);
+    }
+
+    public List<Steps> getStepsForUser(Long userId) {
+        Assert.notNull(userId, "userId is required");
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        return stepsRepository.findByUserOrderByCreatedAtDesc(user);
     }
 }

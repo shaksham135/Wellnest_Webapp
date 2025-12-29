@@ -22,6 +22,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final MealRepository mealRepository;
     private final SleepLogRepository sleepLogRepository;
     private final WaterIntakeRepository waterIntakeRepository;
+    private final StepsRepository stepsRepository;
     private final AppUserService appUserService;
     private final UserRepository userRepository;
     private final WeightLogRepository weightLogRepository;
@@ -30,6 +31,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                               MealRepository mealRepository,
                               SleepLogRepository sleepLogRepository,
                               WaterIntakeRepository waterIntakeRepository,
+                              StepsRepository stepsRepository,
                               AppUserService appUserService,
                               UserRepository userRepository,
                               WeightLogRepository weightLogRepository) {
@@ -37,6 +39,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         this.mealRepository = mealRepository;
         this.sleepLogRepository = sleepLogRepository;
         this.waterIntakeRepository = waterIntakeRepository;
+        this.stepsRepository = stepsRepository;
         this.appUserService = appUserService;
         this.userRepository = userRepository;
         this.weightLogRepository = weightLogRepository;
@@ -66,6 +69,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         summary.setNutritionAnalytics(calculateNutritionAnalytics(userId, startDateTime, endDateTime, days));
         summary.setSleepAnalytics(calculateSleepAnalytics(userId, startDate, endDate)); // Uses LocalDate
         summary.setWaterIntakeAnalytics(calculateWaterIntakeAnalytics(userId, startDateTime, endDateTime));
+        summary.setStepsAnalytics(calculateStepsAnalytics(userId, startDateTime, endDateTime, days));
         summary.setGoalProgress(calculateGoalProgress(user, startDateTime, endDateTime));
         summary.setHealthMetrics(calculateHealthMetrics(user));
         summary.setWorkoutConsistency(calculateWorkoutConsistency(userId));
@@ -334,6 +338,136 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         }
 
         return metrics;
+    }
+
+    private StepsAnalytics calculateStepsAnalytics(Long userId, LocalDateTime startDateTime, LocalDateTime endDateTime, long days) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        List<Steps> steps = stepsRepository.findByUserAndCreatedAtAfterOrderByCreatedAtDesc(user, startDateTime);
+        
+        // Filter steps within the date range
+        steps = steps.stream()
+                .filter(s -> s.getCreatedAt().isBefore(endDateTime) || s.getCreatedAt().isEqual(endDateTime))
+                .collect(Collectors.toList());
+        
+        StepsAnalytics analytics = new StepsAnalytics();
+        
+        if (steps.isEmpty()) {
+            analytics.setTotalSteps(0);
+            analytics.setAvgDailySteps(0);
+            analytics.setTotalDistance(0);
+            analytics.setAvgDailyDistance(0);
+            analytics.setTotalCaloriesBurned(0);
+            analytics.setAvgDailyCalories(0);
+            analytics.setWeeklySteps(Collections.emptyMap());
+            analytics.setWeeklyDistance(Collections.emptyMap());
+            analytics.setWeeklyCalories(Collections.emptyMap());
+            analytics.setActivityLevel("Sedentary");
+            analytics.setDailyGoal(10000); // Default goal
+            analytics.setGoalAchievementRate(0);
+            analytics.setInsights(Collections.emptyList());
+            return analytics;
+        }
+
+        // Calculate totals
+        long totalSteps = steps.stream().mapToLong(Steps::getCount).sum();
+        double totalDistance = steps.stream().mapToDouble(Steps::getDistance).sum();
+        int totalCalories = steps.stream().mapToInt(Steps::getCaloriesBurned).sum();
+
+        analytics.setTotalSteps(totalSteps);
+        analytics.setAvgDailySteps(totalSteps / (double) days);
+        analytics.setTotalDistance(totalDistance);
+        analytics.setAvgDailyDistance(totalDistance / days);
+        analytics.setTotalCaloriesBurned(totalCalories);
+        analytics.setAvgDailyCalories(totalCalories / (double) days);
+
+        // Calculate weekly trends
+        Map<String, Long> weeklySteps = steps.stream()
+                .collect(Collectors.groupingBy(s -> s.getCreatedAt().toLocalDate().toString(),
+                        Collectors.summingLong(Steps::getCount)));
+        analytics.setWeeklySteps(weeklySteps);
+
+        Map<String, Double> weeklyDistance = steps.stream()
+                .collect(Collectors.groupingBy(s -> s.getCreatedAt().toLocalDate().toString(),
+                        Collectors.summingDouble(Steps::getDistance)));
+        analytics.setWeeklyDistance(weeklyDistance);
+
+        Map<String, Integer> weeklyCalories = steps.stream()
+                .collect(Collectors.groupingBy(s -> s.getCreatedAt().toLocalDate().toString(),
+                        Collectors.summingInt(Steps::getCaloriesBurned)));
+        analytics.setWeeklyCalories(weeklyCalories);
+
+        // Determine activity level based on average daily steps
+        double avgDailySteps = analytics.getAvgDailySteps();
+        String activityLevel;
+        if (avgDailySteps >= 12500) {
+            activityLevel = "Highly Active";
+        } else if (avgDailySteps >= 10000) {
+            activityLevel = "Active";
+        } else if (avgDailySteps >= 7500) {
+            activityLevel = "Somewhat Active";
+        } else if (avgDailySteps >= 5000) {
+            activityLevel = "Low Active";
+        } else {
+            activityLevel = "Sedentary";
+        }
+        analytics.setActivityLevel(activityLevel);
+
+        // Set daily goal (could be user-specific in the future)
+        int dailyGoal = 10000;
+        analytics.setDailyGoal(dailyGoal);
+
+        // Calculate goal achievement rate
+        long daysMetGoal = weeklySteps.values().stream()
+                .mapToLong(Long::longValue)
+                .filter(stepCount -> stepCount >= dailyGoal)
+                .count();
+        analytics.setGoalAchievementRate((daysMetGoal / (double) days) * 100);
+
+        // Generate insights
+        List<String> insights = generateStepsInsights(analytics, weeklySteps, days);
+        analytics.setInsights(insights);
+
+        return analytics;
+    }
+
+    private List<String> generateStepsInsights(StepsAnalytics analytics, Map<String, Long> weeklySteps, long days) {
+        List<String> insights = new ArrayList<>();
+        
+        double avgDailySteps = analytics.getAvgDailySteps();
+        
+        if (avgDailySteps >= 10000) {
+            insights.add("Excellent! You're consistently meeting the recommended 10,000 steps per day.");
+        } else if (avgDailySteps >= 7500) {
+            insights.add("Good progress! You're close to the 10,000 daily step goal.");
+        } else {
+            insights.add("Try to increase your daily activity to reach 10,000 steps per day.");
+        }
+
+        // Find best and worst days
+        if (!weeklySteps.isEmpty()) {
+            String bestDay = weeklySteps.entrySet().stream()
+                    .max(Map.Entry.comparingByValue())
+                    .map(entry -> entry.getKey() + " (" + entry.getValue().toString() + " steps)")
+                    .orElse("N/A");
+            insights.add("Your most active day was " + bestDay + ".");
+
+            long minSteps = weeklySteps.values().stream().mapToLong(Long::longValue).min().orElse(0);
+            long maxSteps = weeklySteps.values().stream().mapToLong(Long::longValue).max().orElse(0);
+            
+            if (maxSteps - minSteps > 5000) {
+                insights.add("Your daily step count varies significantly. Try to maintain more consistency.");
+            } else {
+                insights.add("Good consistency in your daily step count!");
+            }
+        }
+
+        // Distance insights
+        if (analytics.getTotalDistance() > 0) {
+            insights.add(String.format("You walked a total of %.1f km this week, burning %d calories.",
+                    analytics.getTotalDistance(), analytics.getTotalCaloriesBurned()));
+        }
+
+        return insights;
     }
 
     private WorkoutConsistency calculateWorkoutConsistency(Long userId) {

@@ -17,3 +17,6 @@ export const getWater = () => apiClient.get("/trackers/water");
 
 export const createSleep = (data) => apiClient.post("/trackers/sleep", data);
 export const getSleep = () => apiClient.get("/trackers/sleep");
+
+export const createSteps = (data) => apiClient.post("/trackers/steps", data);
+export const getSteps = () => apiClient.get("/trackers/steps");

@@ -23,6 +23,7 @@ import WorkoutAnalyticsDetail from "./pages/detailed-analytics/WorkoutAnalyticsD
 import NutritionAnalyticsDetail from "./pages/detailed-analytics/NutritionAnalyticsDetail";
 import SleepAnalyticsDetail from "./pages/detailed-analytics/SleepAnalyticsDetail";
 import WaterIntakeAnalyticsDetail from "./pages/detailed-analytics/WaterIntakeAnalyticsDetail";
+import StepsAnalyticsDetail from "./pages/detailed-analytics/StepsAnalyticsDetail";
 import GoalProgressDetail from "./pages/detailed-analytics/GoalProgressDetail";
 import HealthMetricsDetail from "./pages/detailed-analytics/HealthMetricsDetail";
 
@@ -163,6 +164,7 @@ const App = () => {
           <Route path="/analytics/nutrition" element={<ProtectedRoute><NutritionAnalyticsDetail /></ProtectedRoute>} />
           <Route path="/analytics/sleep" element={<ProtectedRoute><SleepAnalyticsDetail /></ProtectedRoute>} />
           <Route path="/analytics/water" element={<ProtectedRoute><WaterIntakeAnalyticsDetail /></ProtectedRoute>} />
+          <Route path="/analytics/steps" element={<ProtectedRoute><StepsAnalyticsDetail /></ProtectedRoute>} />
           <Route path="/analytics/goals" element={<ProtectedRoute><GoalProgressDetail /></ProtectedRoute>} />
           <Route path="/analytics/health" element={<ProtectedRoute><HealthMetricsDetail /></ProtectedRoute>} />
         </Routes>

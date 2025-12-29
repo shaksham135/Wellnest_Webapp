@@ -2,10 +2,12 @@ package com.wellnest.app.controller;
 
 import com.wellnest.app.dto.MealDto;
 import com.wellnest.app.dto.SleepLogDto;
+import com.wellnest.app.dto.StepsDto;
 import com.wellnest.app.dto.WaterIntakeDto;
 import com.wellnest.app.dto.WorkoutDto;
 import com.wellnest.app.model.Meal;
 import com.wellnest.app.model.SleepLog;
+import com.wellnest.app.model.Steps;
 import com.wellnest.app.model.WaterIntake;
 import com.wellnest.app.model.Workout;
 import com.wellnest.app.service.AppUserService;
@@ -100,6 +102,23 @@ public class TrackerController {
     public ResponseEntity<List<SleepLog>> getSleep(Authentication authentication) {
         Long userId = appUserService.getUserIdFromAuthentication(authentication);
         List<SleepLog> list = trackerService.getSleepForUser(userId);
+        return ResponseEntity.ok(list);
+    }
+
+    // -------------------- STEPS --------------------
+
+    @PostMapping("/steps")
+    public ResponseEntity<Steps> createSteps(@Valid @RequestBody StepsDto dto,
+                                             Authentication authentication) {
+        Long userId = appUserService.getUserIdFromAuthentication(authentication);
+        Steps created = trackerService.createStepsForUser(userId, dto);
+        return ResponseEntity.ok(created);
+    }
+
+    @GetMapping("/steps")
+    public ResponseEntity<List<Steps>> getSteps(Authentication authentication) {
+        Long userId = appUserService.getUserIdFromAuthentication(authentication);
+        List<Steps> list = trackerService.getStepsForUser(userId);
         return ResponseEntity.ok(list);
     }
 }
