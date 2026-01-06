@@ -9,6 +9,7 @@ import java.util.List;
 @Setter
 public class TrainerResponse {
     private Long id;
+    private Long userId;
     private String name;
     private List<String> specialties;
     private Integer experience;
@@ -23,10 +24,11 @@ public class TrainerResponse {
     public TrainerResponse() {
     }
 
-    public TrainerResponse(Long id, String name, List<String> specialties, Integer experience,
+    public TrainerResponse(Long id, Long userId, String name, List<String> specialties, Integer experience,
             Double rating, String location, List<String> availability, String bio,
             String image, String email, String phone) {
         this.id = id;
+        this.userId = userId;
         this.name = name;
         this.specialties = specialties;
         this.experience = experience;

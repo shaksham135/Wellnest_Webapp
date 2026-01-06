@@ -20,71 +20,7 @@ public class TrainerService {
         this.trainerRepository = trainerRepository;
     }
 
-    // Initialize default trainers if database is empty
-    @PostConstruct
-    @Transactional
-    public void initializeDefaultTrainers() {
-        if (trainerRepository.count() == 0) {
-            List<Trainer> defaultTrainers = Arrays.asList(
-                    new Trainer(
-                            "Alex Johnson",
-                            Arrays.asList("Muscle Gain", "Strength Training"),
-                            8,
-                            4.9,
-                            "New York",
-                            Arrays.asList("Mon", "Wed", "Fri"),
-                            "Certified strength coach helping you build muscle and confidence.",
-                            "https://images.unsplash.com/photo-1567013127542-490d757e51fc?q=80&w=1887&auto=format&fit=crop",
-                            "alex.j@wellnest_trainers.com",
-                            "+1 (555) 012-3456"),
-                    new Trainer(
-                            "Sarah Lee",
-                            Arrays.asList("Yoga", "Flexibility", "Mental Wellness"),
-                            5,
-                            4.8,
-                            "Online",
-                            Arrays.asList("Tue", "Thu", "Sat"),
-                            "Yoga instructor focused on holistic health and mindfulness.",
-                            "https://images.unsplash.com/photo-1518611012118-696072aa579a?q=80&w=2070&auto=format&fit=crop",
-                            "sarah.yoga@wellnest_trainers.com",
-                            "+1 (555) 012-7890"),
-                    new Trainer(
-                            "Mike Chen",
-                            Arrays.asList("Weight Loss", "HIIT", "Cardio"),
-                            6,
-                            4.7,
-                            "San Francisco",
-                            Arrays.asList("Mon", "Tue", "Thu", "Fri"),
-                            "High energy trainer specialized in fat loss and metabolic conditioning.",
-                            "https://images.unsplash.com/photo-1627931105822-6b99d5543c3a?u=4r&q=80&w=2000&auto=format&fit=crop",
-                            "mike.chen@wellnest_trainers.com",
-                            "+1 (555) 012-4567"),
-                    new Trainer(
-                            "Jessica Davis",
-                            Arrays.asList("Rehabilitation", "Mobility", "Senior Fitness"),
-                            12,
-                            5.0,
-                            "Chicago",
-                            Arrays.asList("Wed", "Fri"),
-                            "Helping you recover from injuries and move pain-free.",
-                            "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?q=80&w=2070&auto=format&fit=crop",
-                            "jessica.rehab@wellnest_trainers.com",
-                            "+1 (555) 012-8901"),
-                    new Trainer(
-                            "David Kim",
-                            Arrays.asList("CrossFit", "Endurance", "Muscle Gain"),
-                            4,
-                            4.6,
-                            "Online",
-                            Arrays.asList("Sat", "Sun"),
-                            "Pushing your limits with functional fitness and endurance training.",
-                            "https://images.unsplash.com/photo-1594381898411-846e7d193883?q=80&w=1887&auto=format&fit=crop",
-                            "david.fit@wellnest_trainers.com",
-                            "+1 (555) 012-2345"));
-
-            trainerRepository.saveAll(defaultTrainers);
-        }
-    }
+    // Initialize default trainers method removed to support real user data only.
 
     public List<TrainerResponse> getAllTrainers() {
         return trainerRepository.findAllByOrderByRatingDesc()
@@ -145,6 +81,7 @@ public class TrainerService {
     private TrainerResponse toResponse(Trainer trainer) {
         return new TrainerResponse(
                 trainer.getId(),
+                trainer.getUser().getId(),
                 trainer.getName(),
                 trainer.getSpecialties(),
                 trainer.getExperience(),

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import TrainerCard from '../components/TrainerCard';
-import { getAllTrainers, matchTrainers } from '../api/trainerApi';
+import { getAllTrainers, matchTrainers, getClientRequests } from '../api/trainerApi';
 import { FiFilter, FiRefreshCw } from 'react-icons/fi';
 
 const TrainerMatching = () => {
@@ -11,6 +11,9 @@ const TrainerMatching = () => {
     const [trainers, setTrainers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    // Store connection status by trainerId: { 1: 'PENDING', 2: 'ACTIVE' }
+    const [clientRequests, setClientRequests] = useState({});
 
     const fetchTrainers = async () => {
         setLoading(true);
@@ -31,9 +34,26 @@ const TrainerMatching = () => {
         }
     };
 
+    const fetchClientRequests = async () => {
+        try {
+            const res = await getClientRequests();
+            // Map array to object: { trainerId: status }
+            const requestsMap = {};
+            if (res.data) {
+                res.data.forEach(req => {
+                    requestsMap[req.trainerId] = req.status;
+                });
+            }
+            setClientRequests(requestsMap);
+        } catch (err) {
+            console.error("Error fetching client requests", err);
+        }
+    };
+
     // Initial load
     useEffect(() => {
         fetchTrainers();
+        fetchClientRequests();
     }, []);
 
     // Filter whenever filters change
@@ -50,7 +70,7 @@ const TrainerMatching = () => {
     };
 
     return (
-        <div className="blog-page"> 
+        <div className="blog-page">
             <div className="blog-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                     <div>
@@ -61,7 +81,7 @@ const TrainerMatching = () => {
                     </div>
                     <button
                         className="ghost-btn"
-                        onClick={fetchTrainers}
+                        onClick={() => { fetchTrainers(); fetchClientRequests(); }}
                         disabled={loading}
                         title="Refresh trainers"
                     >
@@ -149,7 +169,12 @@ const TrainerMatching = () => {
             {!loading && trainers.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
                     {trainers.map(trainer => (
-                        <TrainerCard key={trainer.id} trainer={trainer} />
+                        <TrainerCard
+                            key={trainer.id}
+                            trainer={trainer}
+                            connectionStatus={clientRequests[trainer.id]}
+                            onConnectRefresh={fetchClientRequests}
+                        />
                     ))}
                 </div>
             ) : !loading && !error ? (
@@ -170,3 +195,4 @@ const TrainerMatching = () => {
 };
 
 export default TrainerMatching;
+

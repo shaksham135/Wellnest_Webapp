@@ -29,17 +29,20 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final EmailService emailService;
+    private final com.wellnest.app.repository.TrainerRepository trainerRepository;
 
     public AuthController(UserService userService,
-                          PasswordEncoder passwordEncoder,
-                          AuthenticationManager authenticationManager,
-                          JwtService jwtService,
-                          EmailService emailService) {
+            PasswordEncoder passwordEncoder,
+            AuthenticationManager authenticationManager,
+            JwtService jwtService,
+            EmailService emailService,
+            com.wellnest.app.repository.TrainerRepository trainerRepository) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.emailService = emailService;
+        this.trainerRepository = trainerRepository;
     }
 
     // ---------- REGISTER ----------
@@ -71,8 +74,30 @@ public class AuthController {
         user.setEmail(req.getEmail());
         user.setPassword(hashedPassword);
         user.setRole(finalRole);
+        user.setPhone(req.getPhone());
 
-        userService.save(user);
+        User savedUser = userService.save(user);
+
+        // If newly registered user is a TRAINER, create a Trainer profile
+        if ("ROLE_TRAINER".equals(finalRole)) {
+            com.wellnest.app.model.Trainer trainer = new com.wellnest.app.model.Trainer();
+            trainer.setName(savedUser.getName());
+            trainer.setEmail(savedUser.getEmail());
+            trainer.setPhone(savedUser.getPhone());
+            trainer.setUser(savedUser);
+            // Default placeholder values, user can update profile later
+            String specialty = (req.getFitnessGoal() != null && !req.getFitnessGoal().isEmpty()) ? req.getFitnessGoal()
+                    : "General Fitness";
+            trainer.setSpecialties(java.util.List.of(specialty));
+            trainer.setExperience(0);
+            trainer.setRating(5.0); // New trainers start with 5.0 or 0.0? Let's give them a boost.
+            trainer.setLocation("Online");
+            trainer.setAvailability(java.util.List.of("Mon", "Wed", "Fri"));
+            trainer.setBio("Certified fitness trainer eager to help you reach your goals.");
+            trainer.setImage("https://via.placeholder.com/150"); // Placeholder image
+
+            trainerRepository.save(trainer);
+        }
 
         return ResponseEntity.ok("User registered successfully");
     }
@@ -85,35 +110,28 @@ public class AuthController {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             req.getEmail(),
-                            req.getPassword()
-                    )
-            );
+                            req.getPassword()));
 
             User user = userService.findByEmail(req.getEmail()).orElseThrow();
 
-            UserDetails userDetails =
-                    new org.springframework.security.core.userdetails.User(
-                            user.getEmail(),
-                            user.getPassword(),
-                            java.util.List.of(
-                                    new org.springframework.security.core.authority.SimpleGrantedAuthority(user.getRole())
-                            )
-                    );
+            UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+                    user.getEmail(),
+                    user.getPassword(),
+                    java.util.List.of(
+                            new org.springframework.security.core.authority.SimpleGrantedAuthority(user.getRole())));
 
             String jwtToken = jwtService.generateToken(userDetails);
 
-            boolean profileComplete =
-                    user.getAge() != null &&
-                            user.getHeightCm() != null &&
-                            user.getWeightKg() != null &&
-                            user.getFitnessGoal() != null;
+            boolean profileComplete = user.getAge() != null &&
+                    user.getHeightCm() != null &&
+                    user.getWeightKg() != null &&
+                    user.getFitnessGoal() != null;
 
             AuthResponse response = new AuthResponse(
                     jwtToken,
                     "Login successful",
                     user.getRole(),
-                    profileComplete
-            );
+                    profileComplete);
 
             return ResponseEntity.ok(response);
 
@@ -149,7 +167,7 @@ public class AuthController {
     // ---------- RESET PASSWORD ----------
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestParam String token,
-                                           @RequestParam String newPassword) {
+            @RequestParam String newPassword) {
         Optional<User> optionalUser = userService.findByResetToken(token);
 
         if (optionalUser.isEmpty()) {
