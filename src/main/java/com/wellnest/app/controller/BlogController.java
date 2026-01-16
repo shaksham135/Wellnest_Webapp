@@ -26,15 +26,17 @@ public class BlogController {
     // GET /api/blog/posts - Get all blog posts (optionally filtered by category)
     @GetMapping("/posts")
     public ResponseEntity<List<BlogPostResponse>> getPosts(
-            @RequestParam(required = false) String category) {
-        List<BlogPostResponse> posts = blogService.getPostsByCategory(category);
+            @RequestParam(required = false) String category, Authentication authentication) {
+        String email = authentication != null ? authentication.getName() : null;
+        List<BlogPostResponse> posts = blogService.getPostsByCategory(category, email);
         return ResponseEntity.ok(posts);
     }
 
     // GET /api/blog/posts/{id} - Get a single blog post by ID
     @GetMapping("/posts/{id}")
-    public ResponseEntity<BlogPostResponse> getPostById(@PathVariable Long id) {
-        return blogService.getPostById(id)
+    public ResponseEntity<BlogPostResponse> getPostById(@PathVariable Long id, Authentication authentication) {
+        String email = authentication != null ? authentication.getName() : null;
+        return blogService.getPostById(id, email)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -61,15 +63,23 @@ public class BlogController {
 
     // DELETE /api/blog/posts/{id} - Delete a blog post
     @DeleteMapping("/posts/{id}")
-    public ResponseEntity<Void> deletePost(@PathVariable Long id) {
-        blogService.deletePost(id);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Void> deletePost(@PathVariable Long id, Authentication authentication) {
+        String email = authentication != null ? authentication.getName() : null;
+        try {
+            blogService.deletePost(id, email);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(403).build();
+        }
     }
 
     // POST /api/blog/posts/{id}/like - Toggle like on a post
     @PostMapping("/posts/{id}/like")
-    public ResponseEntity<BlogPostResponse> toggleLike(@PathVariable Long id) {
-        return blogService.toggleLike(id)
+    public ResponseEntity<BlogPostResponse> toggleLike(@PathVariable Long id, Authentication authentication) {
+        String email = authentication != null ? authentication.getName() : null;
+        if (email == null)
+            return ResponseEntity.status(401).build();
+        return blogService.toggleLike(id, email)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -90,5 +100,19 @@ public class BlogController {
         String email = authentication != null ? authentication.getName() : null;
         List<CommentResponse> comments = blogService.addComment(id, dto, email);
         return ResponseEntity.ok(comments);
+    }
+
+    // DELETE /api/blog/comments/{id} - Delete a comment
+    @DeleteMapping("/comments/{id}")
+    public ResponseEntity<Void> deleteComment(@PathVariable Long id, Authentication authentication) {
+        String email = authentication != null ? authentication.getName() : null;
+        if (email == null)
+            return ResponseEntity.status(401).build();
+        try {
+            blogService.deleteComment(id, email);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(403).build();
+        }
     }
 }

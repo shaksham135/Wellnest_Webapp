@@ -31,9 +31,12 @@ const Login = ({ onLoginSuccess }) => {
 
     try {
       const res = await apiClient.post("/auth/login", form);
-      const { token, profileComplete } = res.data;
+      const { token, profileComplete, userId } = res.data;
 
-      if (token) localStorage.setItem("token", token);
+      if (token) {
+        localStorage.setItem("token", token);
+        if (userId) localStorage.setItem("userId", userId);
+      }
       onLoginSuccess?.();
 
       setTimeout(() => {

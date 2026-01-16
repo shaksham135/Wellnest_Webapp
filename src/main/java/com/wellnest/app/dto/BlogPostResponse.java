@@ -19,6 +19,8 @@ public class BlogPostResponse {
     private String category;
     private String image;
     private Integer likes;
+    private Boolean isLiked = false;
+    private Long authorId;
     private String date;
     private List<CommentResponse> comments = new ArrayList<>();
 

@@ -12,14 +12,16 @@ public class CommentResponse {
     private String text;
     private String user;
     private String date;
+    private Long userId;
 
     public CommentResponse() {
     }
 
-    public CommentResponse(Long id, String text, String userName, LocalDateTime createdAt) {
+    public CommentResponse(Long id, String text, String userName, LocalDateTime createdAt, Long userId) {
         this.id = id;
         this.text = text;
         this.user = userName;
         this.date = createdAt != null ? createdAt.toLocalDate().toString() : null;
+        this.userId = userId;
     }
 }

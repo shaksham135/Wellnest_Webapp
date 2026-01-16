@@ -131,7 +131,8 @@ public class AuthController {
                     jwtToken,
                     "Login successful",
                     user.getRole(),
-                    profileComplete);
+                    profileComplete,
+                    user.getId());
 
             return ResponseEntity.ok(response);
 

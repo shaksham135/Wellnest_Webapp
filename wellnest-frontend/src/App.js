@@ -51,6 +51,7 @@ import ThemeToggle from "./components/ThemeToggle";
 
 // Styles
 import "./index.css";
+import "./trainer.css";
 
 const getUserRole = () => {
   const token = localStorage.getItem("token");

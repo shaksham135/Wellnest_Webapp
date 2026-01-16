@@ -1,32 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { getClientRequests, getAllTrainers } from '../api/trainerApi';
+import { getClientRequests, getAllTrainers, getDietPlanForTrainer } from '../api/trainerApi';
 import TrainerCard from '../components/TrainerCard';
-import { FiUsers } from 'react-icons/fi';
+import { FiUsers, FiX } from 'react-icons/fi';
 
 const MyTrainers = () => {
     const [trainers, setTrainers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [requestsMap, setRequestsMap] = useState({});
 
-    // We fetch connected trainers by:
-    // 1. Fetching user's requests.
-    // 2. Identifying ACTIVE requests.
-    // 3. Fetching full trainer details for those.
-    // Efficiently: fetch all trainers (or specific ones if API supported) and client requests.
-    // Since we don't have 'getTrainersByIds' endpoint yet, we might rely on 'getAllTrainers' and filter. 
-    // Optimization: Add 'getConnectedTrainers' endpoint that returns list of TrainerResponse. 
-    // But for now, let's use what we have or filtering. 
-    // Actually, I can update 'getConnectedTrainers' on backend to return TrainerResponse, but currently it returns ConnectionResponseDto.
-    // The previous prompt's Plan Part 2 mentioned "Add getConnectedTrainers for User (returns List<TrainerResponse>)". I didn't enforce valid endpoint yet.
-    // To match user's request quickly without extra backend cycle if possible: 
-    // Let's stick to client-side filtering for now IF list is small, or use ConnectionResponse and extra fetch.
+    // Diet Plan View State
+    const [showDietModal, setShowDietModal] = useState(false);
+    const [viewDietData, setViewDietData] = useState(null);
+    const [viewDietLoading, setViewDietLoading] = useState(false);
 
-    // Better approach:
-    // User sees "My Trainers".
-    // We call `getClientRequests`.
-    // We filter `status === 'ACTIVE'`.
-    // For each active request, we have `trainerId`.
-    // We fetch trainer details. We have `getTrainerById(id)`.
+    // ... (existing fetchData)
 
     const fetchData = async () => {
         setLoading(true);
@@ -40,10 +27,7 @@ const MyTrainers = () => {
             setRequestsMap(map);
 
             // Fetch trainer details for active ones
-            // Parallel fetch
             const trainerPromises = activeReqs.map(r =>
-                // We need to fetch trainer by ID. The previous TrainerApi didn't have getTrainerById exported?
-                // Let's check. Yes `getTrainerById` is there.
                 import('../api/trainerApi').then(module => module.getTrainerById(r.trainerId))
             );
 
@@ -61,11 +45,25 @@ const MyTrainers = () => {
         fetchData();
     }, []);
 
+    const handleViewDiet = async (trainerId) => {
+        setViewDietLoading(true);
+        setShowDietModal(true);
+        setViewDietData(null);
+        try {
+            const res = await getDietPlanForTrainer(trainerId);
+            setViewDietData(res.data);
+        } catch (error) {
+            console.error("Failed to load diet plan", error);
+        } finally {
+            setViewDietLoading(false);
+        }
+    };
+
     return (
         <div className="blog-page">
             <div className="blog-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-                <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a' }}>My Trainers</h1>
-                <p style={{ color: '#64748b', maxWidth: '600px', fontSize: '15px' }}>
+                <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)' }}>My Trainers</h1>
+                <p style={{ color: 'var(--text-muted)', maxWidth: '600px', fontSize: '15px' }}>
                     Your connected fitness coaches. Chat and track your progress here.
                 </p>
             </div>
@@ -73,9 +71,9 @@ const MyTrainers = () => {
             {loading ? (
                 <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
             ) : trainers.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
-                    <FiUsers size={48} style={{ marginBottom: '16px', color: '#cbd5e1' }} />
-                    <h3 style={{ color: '#0f172a' }}>No connected trainers yet</h3>
+                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
+                    <FiUsers size={48} style={{ marginBottom: '16px', color: 'var(--text-muted)', opacity: 0.5 }} />
+                    <h3 style={{ color: 'var(--text-main)' }}>No connected trainers yet</h3>
                     <p>Go to Trainer Matching to find a coach!</p>
                 </div>
             ) : (
@@ -86,8 +84,53 @@ const MyTrainers = () => {
                             trainer={trainer}
                             connectionStatus={requestsMap[trainer.id]}
                             onConnectRefresh={fetchData}
+                            onViewDiet={() => handleViewDiet(trainer.id)}
                         />
                     ))}
+                </div>
+            )}
+
+            {/* View Diet Plan Modal */}
+            {showDietModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '600px' }}>
+                        <div className="modal-header">
+                            <div>Diet Plan</div>
+                            <button className="modal-close-btn" onClick={() => setShowDietModal(false)}>
+                                <FiX size={24} />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            {viewDietLoading ? (
+                                <p>Loading diet plan...</p>
+                            ) : !viewDietData ? (
+                                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
+                                    <p>No diet plan assigned by this trainer yet.</p>
+                                </div>
+                            ) : (
+                                <div className="detail-grid" style={{ gridTemplateColumns: '1fr' }}>
+                                    {['breakfast', 'lunch', 'dinner', 'snacks', 'additionalNotes'].map(meal => (
+                                        viewDietData[meal] && (
+                                            <div key={meal} className="detail-box" style={{ alignItems: 'flex-start' }}>
+                                                <label className="detail-label" style={{ textTransform: 'capitalize' }}>
+                                                    {meal.replace(/([A-Z])/g, ' $1').trim()}
+                                                </label>
+                                                <div className="detail-value" style={{ fontSize: '16px', fontWeight: 400, marginTop: '4px', whiteSpace: 'pre-wrap' }}>
+                                                    {viewDietData[meal]}
+                                                </div>
+                                            </div>
+                                        )
+                                    ))}
+                                    {Object.values(viewDietData).every(v => !v || typeof v !== 'string' || !v.trim()) && (
+                                        <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Empty diet plan.</p>
+                                    )}
+                                </div>
+                            )}
+                            <button className="secondary-btn" style={{ width: '100%', marginTop: '24px' }} onClick={() => setShowDietModal(false)}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

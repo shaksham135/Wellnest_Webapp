@@ -34,7 +34,7 @@ const CreatePostModal = ({ onClose, onCreate, error }) => {
         // In a real app, author would come from authenticated user context
         const newPost = {
             ...formData,
-            author: 'You', 
+            author: 'You',
             image: formData.image || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=2000&auto=format&fit=crop'
         };
 
@@ -43,7 +43,7 @@ const CreatePostModal = ({ onClose, onCreate, error }) => {
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                 <div className="modal-header">
                     <h2 className="auth-title" style={{ margin: 0, fontSize: 24 }}>Create New Post</h2>
                     <button className="modal-close" onClick={onClose}>

@@ -64,8 +64,8 @@ const Blog = () => {
         <div className="blog-page">
             <div className="blog-header">
                 <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a' }}>Health Blog</h1>
-                    <p style={{ color: '#64748b', marginTop: 8 }}>
+                    <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)' }}>Health Blog</h1>
+                    <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>
                         Community insights on nutrition, fitness, and wellness.
                     </p>
                 </div>
@@ -92,7 +92,7 @@ const Blog = () => {
 
             {/* Filter Dropdown */}
             <div style={{ marginBottom: 24 }}>
-                <label style={{ marginRight: 10, color: '#475569', fontSize: 14 }}>Filter by Topic:</label>
+                <label style={{ marginRight: 10, color: 'var(--text-muted)', fontSize: 14 }}>Filter by Topic:</label>
                 <select
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
@@ -126,15 +126,15 @@ const Blog = () => {
 
             {/* Loading State */}
             {loading && posts.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
+                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
                     <p>Loading blog posts...</p>
                 </div>
             )}
 
             {/* Posts Grid */}
             {!loading && posts.length === 0 && !error && (
-                <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
-                    <h3 style={{ color: '#0f172a' }}>No posts found</h3>
+                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
+                    <h3 style={{ color: 'var(--text-main)' }}>No posts found</h3>
                     <p>Be the first to share your health insights!</p>
                 </div>
             )}

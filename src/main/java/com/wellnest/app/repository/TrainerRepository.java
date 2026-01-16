@@ -28,4 +28,6 @@ public interface TrainerRepository extends JpaRepository<Trainer, Long> {
     List<Trainer> findByGoalAndLocation(@Param("goal") String goal, @Param("location") String location);
 
     Optional<Trainer> findByUserId(Long userId);
+
+    Optional<Trainer> findByEmail(String email);
 }
