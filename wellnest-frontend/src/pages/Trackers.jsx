@@ -9,7 +9,12 @@ import {
   getMeals,
   getWater,
   getSleep,
+  deleteWorkout,
+  deleteMeal,
+  deleteWater,
+  deleteSleep,
 } from "../api/trackerApi";
+import { FiTrash2 } from "react-icons/fi";
 
 const Trackers = () => {
   const [tab, setTab] = useState("workout");
@@ -17,7 +22,7 @@ const Trackers = () => {
   const [message, setMessage] = useState(""); // success or error messages
   const [messageType, setMessageType] = useState("info"); // "info" | "error" | "success"
 
-    // Workout
+  // Workout
   const [workout, setWorkout] = useState({
     type: "cardio",
     durationMinutes: 30,
@@ -26,7 +31,7 @@ const Trackers = () => {
   });
 
   const [userWeight, setUserWeight] = useState(70); // Default 70kg, will be fetched from user profile
-const [calculatedCalories, setCalculatedCalories] = useState(0);
+  const [calculatedCalories, setCalculatedCalories] = useState(0);
 
 
   // Meal
@@ -52,10 +57,10 @@ const [calculatedCalories, setCalculatedCalories] = useState(0);
     notes: "",
   });
   const [calculatedSleepQuality, setCalculatedSleepQuality] = useState({
-  quality: "good",
-  feedback: "",
-  color: "#22c55e"
-});
+    quality: "good",
+    feedback: "",
+    color: "#22c55e"
+  });
 
   const [recentWorkouts, setRecentWorkouts] = useState([]);
   const [recentMeals, setRecentMeals] = useState([]);
@@ -90,30 +95,30 @@ const [calculatedCalories, setCalculatedCalories] = useState(0);
     load();
   }, [tab]);
   // Fetch user weight from profile
-useEffect(() => {
-  const fetchUserWeight = async () => {
-    try {
-      const { fetchCurrentUser } = await import("../api/userApi");
-      const res = await fetchCurrentUser();
-      if (res.data && res.data.weightKg) {
-        setUserWeight(res.data.weightKg);
+  useEffect(() => {
+    const fetchUserWeight = async () => {
+      try {
+        const { fetchCurrentUser } = await import("../api/userApi");
+        const res = await fetchCurrentUser();
+        if (res.data && res.data.weightKg) {
+          setUserWeight(res.data.weightKg);
+        }
+      } catch (err) {
+        console.log("Could not fetch user weight, using default 70kg");
+        // Keep default weight of 70kg
       }
-    } catch (err) {
-      console.log("Could not fetch user weight, using default 70kg");
-      // Keep default weight of 70kg
-    }
-  };
-  fetchUserWeight();
-}, []);
+    };
+    fetchUserWeight();
+  }, []);
 
   // Initialize sleep quality calculation
-useEffect(() => {
-  if (sleep.hours > 0) {
-    const qualityData = calculateSleepQuality(sleep.hours);
-    setSleep(prev => ({ ...prev, quality: qualityData.quality }));
-    setCalculatedSleepQuality(qualityData);
-  }
-}, []); // Run once on mount
+  useEffect(() => {
+    if (sleep.hours > 0) {
+      const qualityData = calculateSleepQuality(sleep.hours);
+      setSleep(prev => ({ ...prev, quality: qualityData.quality }));
+      setCalculatedSleepQuality(qualityData);
+    }
+  }, []); // Run once on mount
 
 
   // helper: show message
@@ -128,142 +133,167 @@ useEffect(() => {
       }, 3500);
     }
   };
-  // Calculate sleep quality based on hours
-const calculateSleepQuality = (hours) => {
-  if (hours < 4) {
-    return {
-      quality: "poor",
-      feedback: "Severely insufficient sleep. This can seriously impact your health and cognitive function.",
-      color: "#ef4444"
-    };
-  } else if (hours < 6) {
-    return {
-      quality: "poor", 
-      feedback: "Insufficient sleep. You need more rest for optimal health and performance.",
-      color: "#ef4444"
-    };
-  } else if (hours < 7) {
-    return {
-      quality: "average",
-      feedback: "Below recommended sleep. Try to get at least 7-9 hours for better health.",
-      color: "#f59e0b"
-    };
-  } else if (hours <= 9) {
-    return {
-      quality: "good",
-      feedback: "Excellent! You're getting the recommended amount of sleep for optimal health.",
-      color: "#22c55e"
-    };
-  } else if (hours <= 10) {
-    return {
-      quality: "average",
-      feedback: "Slightly more than recommended. This might be fine if you're recovering or have higher sleep needs.",
-      color: "#f59e0b"
-    };
-  } else {
-    return {
-      quality: "poor",
-      feedback: "Excessive sleep. This might indicate underlying health issues or poor sleep quality.",
-      color: "#ef4444"
-    };
-  }
-};
 
-
-// Calculate calories burned based on exercise type, duration, and body weight
-const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
-  // MET (Metabolic Equivalent of Task) values for different exercises
-  const metValues = {
-    cardio: {
-      walking: 3.5,
-      jogging: 7.0,
-      running: 9.8,
-      cycling: 8.0,
-      swimming: 8.3,
-      dancing: 4.8,
-      aerobics: 6.6,
-      default: 6.0 // General cardio
-    },
-    strength: {
-      weightlifting: 6.0,
-      bodyweight: 4.0,
-      resistance: 5.0,
-      powerlifting: 6.0,
-      default: 5.0 // General strength training
-    },
-    yoga: {
-      hatha: 2.5,
-      vinyasa: 4.0,
-      power: 4.0,
-      hot: 5.0,
-      default: 3.0 // General yoga
-    },
-    pilates: {
-      default: 3.0 // Pilates
-    },
-    sports: {
-      basketball: 8.0,
-      tennis: 7.3,
-      soccer: 7.0,
-      badminton: 5.5,
-      default: 6.5 // General sports
-    },
-    flexibility: {
-      stretching: 2.3,
-      mobility: 2.5,
-      default: 2.3 // General flexibility work
+  const handleDelete = async (id, type) => {
+    if (!window.confirm("Are you sure you want to delete this entry?")) return;
+    try {
+      if (type === 'workout') {
+        await deleteWorkout(id);
+        setRecentWorkouts(prev => prev.filter(i => i.id !== id));
+      } else if (type === 'meal') {
+        await deleteMeal(id);
+        setRecentMeals(prev => prev.filter(i => i.id !== id));
+      } else if (type === 'water') {
+        await deleteWater(id);
+        setRecentWater(prev => prev.filter(i => i.id !== id));
+      } else if (type === 'sleep') {
+        await deleteSleep(id);
+        setRecentSleep(prev => prev.filter(i => i.id !== id));
+      }
+      showMessage("Deleted successfully", "success");
+    } catch (err) {
+      console.error(err);
+      showMessage("Failed to delete", "error");
     }
   };
 
-  // Get MET value for the exercise type
-  let met = metValues[exerciseType]?.default || 4.0;
-  
-  // Formula: Calories = MET × weight (kg) × time (hours)
-  const hours = durationMinutes / 60;
-  const calories = Math.round(met * weightKg * hours);
-  
-  return {
-    calories,
-    met,
-    intensity: met < 3 ? "Light" : met < 6 ? "Moderate" : "Vigorous"
+  // Calculate sleep quality based on hours
+  // Calculate sleep quality based on hours
+  const calculateSleepQuality = (hours) => {
+    if (hours < 4) {
+      return {
+        quality: "poor",
+        feedback: "Severely insufficient sleep. This can seriously impact your health and cognitive function.",
+        color: "#ef4444"
+      };
+    } else if (hours < 6) {
+      return {
+        quality: "poor",
+        feedback: "Insufficient sleep. You need more rest for optimal health and performance.",
+        color: "#ef4444"
+      };
+    } else if (hours < 7) {
+      return {
+        quality: "average",
+        feedback: "Below recommended sleep. Try to get at least 7-9 hours for better health.",
+        color: "#f59e0b"
+      };
+    } else if (hours <= 9) {
+      return {
+        quality: "good",
+        feedback: "Excellent! You're getting the recommended amount of sleep for optimal health.",
+        color: "#22c55e"
+      };
+    } else if (hours <= 10) {
+      return {
+        quality: "average",
+        feedback: "Slightly more than recommended. This might be fine if you're recovering or have higher sleep needs.",
+        color: "#f59e0b"
+      };
+    } else {
+      return {
+        quality: "poor",
+        feedback: "Excessive sleep. This might indicate underlying health issues or poor sleep quality.",
+        color: "#ef4444"
+      };
+    }
   };
-};
+
+
+  // Calculate calories burned based on exercise type, duration, and body weight
+  const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
+    // MET (Metabolic Equivalent of Task) values for different exercises
+    const metValues = {
+      cardio: {
+        walking: 3.5,
+        jogging: 7.0,
+        running: 9.8,
+        cycling: 8.0,
+        swimming: 8.3,
+        dancing: 4.8,
+        aerobics: 6.6,
+        default: 6.0 // General cardio
+      },
+      strength: {
+        weightlifting: 6.0,
+        bodyweight: 4.0,
+        resistance: 5.0,
+        powerlifting: 6.0,
+        default: 5.0 // General strength training
+      },
+      yoga: {
+        hatha: 2.5,
+        vinyasa: 4.0,
+        power: 4.0,
+        hot: 5.0,
+        default: 3.0 // General yoga
+      },
+      pilates: {
+        default: 3.0 // Pilates
+      },
+      sports: {
+        basketball: 8.0,
+        tennis: 7.3,
+        soccer: 7.0,
+        badminton: 5.5,
+        default: 6.5 // General sports
+      },
+      flexibility: {
+        stretching: 2.3,
+        mobility: 2.5,
+        default: 2.3 // General flexibility work
+      }
+    };
+
+    // Get MET value for the exercise type
+    let met = metValues[exerciseType]?.default || 4.0;
+
+    // Formula: Calories = MET × weight (kg) × time (hours)
+    const hours = durationMinutes / 60;
+    const calories = Math.round(met * weightKg * hours);
+
+    return {
+      calories,
+      met,
+      intensity: met < 3 ? "Light" : met < 6 ? "Moderate" : "Vigorous"
+    };
+  };
 
 
   const onSubmitWorkout = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setMessage("");
-  try {
-    // Calculate calories if not already calculated
-    let finalCalories = workout.caloriesBurned;
-    if (!finalCalories && workout.durationMinutes > 0) {
-      const calorieData = calculateCaloriesBurned(workout.type, workout.durationMinutes, userWeight);
-      finalCalories = calorieData.calories;
-    }
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+    try {
+      // Calculate calories if not already calculated
+      let finalCalories = workout.caloriesBurned;
+      if (!finalCalories && workout.durationMinutes > 0) {
+        const calorieData = calculateCaloriesBurned(workout.type, workout.durationMinutes, userWeight);
+        finalCalories = calorieData.calories;
+      }
 
-    const payload = {
-      type: workout.type,
-      durationMinutes: workout.durationMinutes,
-      caloriesBurned: finalCalories,
-      notes: workout.notes,
-    };
-    await createWorkout(payload);
-    showMessage(`Workout logged! Burned ${finalCalories} calories.`, "success");
-    const res = await getWorkouts();
-    setRecentWorkouts(res.data || []);
-  } catch (err) {
-    console.error("Save workout error:", err);
-    const errMsg =
-      err?.response?.data?.message ||
-      err?.response?.data?.error ||
-      err?.message ||
-      "Failed to save workout";
-    showMessage(errMsg, "error");
-  } finally {
-    setLoading(false);
-  }
-};
+      const payload = {
+        type: workout.type,
+        durationMinutes: workout.durationMinutes,
+        caloriesBurned: finalCalories,
+        notes: workout.notes,
+      };
+      await createWorkout(payload);
+      showMessage(`Workout logged! Burned ${finalCalories} calories.`, "success");
+      const res = await getWorkouts();
+      setRecentWorkouts(res.data || []);
+    } catch (err) {
+      console.error("Save workout error:", err);
+      const errMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Failed to save workout";
+      showMessage(errMsg, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   const onSubmitMeal = async (e) => {
@@ -402,7 +432,7 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
       </div>
 
       <div className="tab-content">
-                {tab === "workout" && (
+        {tab === "workout" && (
           <>
             <form onSubmit={onSubmitWorkout} className="tracker-form">
               <label>
@@ -426,7 +456,7 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
                 />
               </label>
 
-                            <label>
+              <label>
                 Exercise type
                 <select
                   value={workout.type}
@@ -473,31 +503,31 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
 
               {/* Calorie Calculation Display */}
               {workout.durationMinutes > 0 && (
-                <div style={{ 
-                  marginTop: "12px", 
+                <div style={{
+                  marginTop: "12px",
                   marginBottom: "12px",
                   padding: "12px",
                   borderRadius: "8px",
                   backgroundColor: "rgba(15, 23, 42, 0.5)",
                   border: "2px solid #22c55e"
                 }}>
-                  <div style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
                     gap: "8px",
                     marginBottom: "8px"
                   }}>
                     <span style={{ fontSize: "14px", color: "#e5e7eb" }}>Estimated Calories Burned:</span>
-                    <span style={{ 
-                      fontSize: "16px", 
+                    <span style={{
+                      fontSize: "16px",
                       fontWeight: "600",
                       color: "#22c55e"
                     }}>
                       {calculatedCalories} kcal
                     </span>
                   </div>
-                  <div style={{ 
-                    fontSize: "12px", 
+                  <div style={{
+                    fontSize: "12px",
                     color: "#d1d5db",
                     lineHeight: "1.4"
                   }}>
@@ -529,18 +559,24 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
                   const calorieData = calculateCaloriesBurned(w.type, w.durationMinutes || w.duration, userWeight);
                   return (
                     <div className="card" key={w.id || JSON.stringify(w)} style={{
-                      borderLeft: `4px solid #22c55e`
+                      borderLeft: `4px solid #22c55e`,
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                     }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <strong style={{ textTransform: "capitalize" }}>{w.type}</strong>
-                        <span>• {w.durationMinutes || w.duration} min</span>
-                        <span style={{ color: "#22c55e", fontWeight: "500" }}>
-                          • {w.caloriesBurned || calorieData.calories} kcal
-                        </span>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <strong style={{ textTransform: "capitalize" }}>{w.type}</strong>
+                          <span>• {w.durationMinutes || w.duration} min</span>
+                          <span style={{ color: "#22c55e", fontWeight: "500" }}>
+                            • {w.caloriesBurned || calorieData.calories} kcal
+                          </span>
+                        </div>
+                        <div className="small" style={{ color: "#9ca3af" }}>
+                          {w.notes}
+                        </div>
                       </div>
-                      <div className="small" style={{ color: "#9ca3af" }}>
-                        {w.notes}
-                      </div>
+                      <button className="ghost-btn icon-btn" onClick={() => handleDelete(w.id, 'workout')} style={{ color: '#ef4444' }}>
+                        <FiTrash2 />
+                      </button>
                     </div>
                   );
                 })}
@@ -624,14 +660,19 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
               <div className="recent-list">
                 <h4>Recent meals</h4>
                 {recentMeals.slice(0, 6).map((m) => (
-                  <div className="card" key={m.id || JSON.stringify(m)}>
+                  <div className="card" key={m.id || JSON.stringify(m)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <strong>{m.mealType}</strong> — {m.calories} kcal
+                      <div>
+                        <strong>{m.mealType}</strong> — {m.calories} kcal
+                      </div>
+                      <div>
+                        Protein {m.protein || "-"}g • Carbs {m.carbs || "-"}g • Fats {m.fats || "-"}g
+                      </div>
+                      <div className="small">{m.notes}</div>
                     </div>
-                    <div>
-                      Protein {m.protein || "-"}g • Carbs {m.carbs || "-"}g • Fats {m.fats || "-"}g
-                    </div>
-                    <div className="small">{m.notes}</div>
+                    <button className="ghost-btn icon-btn" onClick={() => handleDelete(m.id, 'meal')} style={{ color: '#ef4444' }}>
+                      <FiTrash2 />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -671,10 +712,15 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
               <div className="recent-list">
                 <h4>Recent water logs</h4>
                 {recentWater.slice(0, 6).map((w) => (
-                  <div className="card" key={w.id || JSON.stringify(w)}>
-                    {/* backend may return liters, amountLiters, or amount - prefer liters */}
-                    <div>{(w.liters ?? w.amountLiters ?? w.amount ?? "-")} L</div>
-                    <div className="small">{w.notes}</div>
+                  <div className="card" key={w.id || JSON.stringify(w)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      {/* backend may return liters, amountLiters, or amount - prefer liters */}
+                      <div>{(w.liters ?? w.amountLiters ?? w.amount ?? "-")} L</div>
+                      <div className="small">{w.notes}</div>
+                    </div>
+                    <button className="ghost-btn icon-btn" onClick={() => handleDelete(w.id, 'water')} style={{ color: '#ef4444' }}>
+                      <FiTrash2 />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -682,7 +728,7 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
           </>
         )}
 
-                {tab === "sleep" && (
+        {tab === "sleep" && (
           <>
             <form onSubmit={onSubmitSleep} className="tracker-form">
               <label>
@@ -694,10 +740,10 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
                   onChange={(e) => {
                     const hours = parseFloat(e.target.value || 0);
                     const qualityData = calculateSleepQuality(hours);
-                    setSleep({ 
-                      ...sleep, 
+                    setSleep({
+                      ...sleep,
                       hours: hours,
-                      quality: qualityData.quality 
+                      quality: qualityData.quality
                     });
                     setCalculatedSleepQuality(qualityData);
                   }}
@@ -708,23 +754,23 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
 
               {/* Sleep Quality Display - Auto-calculated */}
               {sleep.hours > 0 && (
-                <div style={{ 
-                  marginTop: "12px", 
+                <div style={{
+                  marginTop: "12px",
                   marginBottom: "12px",
                   padding: "12px",
                   borderRadius: "8px",
                   backgroundColor: "rgba(15, 23, 42, 0.5)",
                   border: `2px solid ${calculatedSleepQuality.color}`
                 }}>
-                  <div style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
                     gap: "8px",
                     marginBottom: "8px"
                   }}>
                     <span style={{ fontSize: "14px", color: "#e5e7eb" }}>Sleep Quality:</span>
-                    <span style={{ 
-                      fontSize: "14px", 
+                    <span style={{
+                      fontSize: "14px",
                       fontWeight: "600",
                       color: calculatedSleepQuality.color,
                       textTransform: "capitalize"
@@ -738,8 +784,8 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
                       backgroundColor: calculatedSleepQuality.color
                     }} />
                   </div>
-                  <div style={{ 
-                    fontSize: "12px", 
+                  <div style={{
+                    fontSize: "12px",
                     color: "#d1d5db",
                     lineHeight: "1.4"
                   }}>
@@ -750,10 +796,10 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
 
               <label>
                 Notes
-                <input 
-                  type="text" 
-                  value={sleep.notes} 
-                  onChange={(e) => setSleep({ ...sleep, notes: e.target.value })} 
+                <input
+                  type="text"
+                  value={sleep.notes}
+                  onChange={(e) => setSleep({ ...sleep, notes: e.target.value })}
                   placeholder="How did you feel? Any sleep disturbances?"
                 />
               </label>
@@ -770,21 +816,27 @@ const calculateCaloriesBurned = (exerciseType, durationMinutes, weightKg) => {
                   const qualityData = calculateSleepQuality(s.hours);
                   return (
                     <div className="card" key={s.id || JSON.stringify(s)} style={{
-                      borderLeft: `4px solid ${qualityData.color}`
+                      borderLeft: `4px solid ${qualityData.color}`,
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                     }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span>{s.hours} hours</span>
-                        <span style={{ 
-                          color: qualityData.color,
-                          fontWeight: "500",
-                          textTransform: "capitalize"
-                        }}>
-                          • {s.quality}
-                        </span>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span>{s.hours} hours</span>
+                          <span style={{
+                            color: qualityData.color,
+                            fontWeight: "500",
+                            textTransform: "capitalize"
+                          }}>
+                            • {s.quality}
+                          </span>
+                        </div>
+                        <div className="small" style={{ color: "#9ca3af" }}>
+                          {s.notes}
+                        </div>
                       </div>
-                      <div className="small" style={{ color: "#9ca3af" }}>
-                        {s.notes}
-                      </div>
+                      <button className="ghost-btn icon-btn" onClick={() => handleDelete(s.id, 'sleep')} style={{ color: '#ef4444' }}>
+                        <FiTrash2 />
+                      </button>
                     </div>
                   );
                 })}

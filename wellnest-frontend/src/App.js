@@ -37,10 +37,12 @@ import MyTrainers from "./pages/MyTrainers"; // Import MyTrainers
 import Trackers from "./pages/Trackers";
 import BmiCalculator from "./pages/BmiCalculator";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import Notifications from "./pages/Notifications";
 
 // Analytics Detail Pages
 import WorkoutAnalyticsDetail from "./pages/detailed-analytics/WorkoutAnalyticsDetail";
 import NutritionAnalyticsDetail from "./pages/detailed-analytics/NutritionAnalyticsDetail";
+import ClientAnalyticsPage from "./pages/ClientAnalyticsPage";
 import SleepAnalyticsDetail from "./pages/detailed-analytics/SleepAnalyticsDetail";
 import WaterIntakeAnalyticsDetail from "./pages/detailed-analytics/WaterIntakeAnalyticsDetail";
 import GoalProgressDetail from "./pages/detailed-analytics/GoalProgressDetail";
@@ -275,6 +277,15 @@ const App = () => {
           />
 
           <Route
+            path="/trainers/client/:clientId/analytics"
+            element={
+              <ProtectedRoute>
+                <ClientAnalyticsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/my-trainers"
             element={
               <ProtectedRoute>
@@ -301,6 +312,14 @@ const App = () => {
             }
           />
 
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/bmi-calculator"
             element={

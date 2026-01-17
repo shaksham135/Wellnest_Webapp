@@ -28,9 +28,9 @@ public class TrackerService {
     private final SleepLogRepository sleepLogRepository;
 
     public TrackerService(WorkoutRepository workoutRepository,
-                          MealRepository mealRepository,
-                          WaterIntakeRepository waterIntakeRepository,
-                          SleepLogRepository sleepLogRepository) {
+            MealRepository mealRepository,
+            WaterIntakeRepository waterIntakeRepository,
+            SleepLogRepository sleepLogRepository) {
         this.workoutRepository = workoutRepository;
         this.mealRepository = mealRepository;
         this.waterIntakeRepository = waterIntakeRepository;
@@ -62,6 +62,17 @@ public class TrackerService {
         return workoutRepository.findByUserIdOrderByPerformedAtDesc(userId);
     }
 
+    public void deleteWorkout(Long userId, Long workoutId) {
+        Assert.notNull(userId, "userId is required");
+        Assert.notNull(workoutId, "workoutId is required");
+        Workout w = workoutRepository.findById(workoutId)
+                .orElseThrow(() -> new RuntimeException("Workout not found"));
+        if (!w.getUserId().equals(userId)) {
+            throw new RuntimeException("Not authorized to delete this workout");
+        }
+        workoutRepository.delete(w);
+    }
+
     // -------------------- MEAL --------------------
 
     public Meal createMealForUser(Long userId, MealDto dto) {
@@ -86,6 +97,17 @@ public class TrackerService {
         return mealRepository.findByUserIdOrderByLoggedAtDesc(userId);
     }
 
+    public void deleteMeal(Long userId, Long mealId) {
+        Assert.notNull(userId, "userId is required");
+        Assert.notNull(mealId, "mealId is required");
+        Meal m = mealRepository.findById(mealId)
+                .orElseThrow(() -> new RuntimeException("Meal not found"));
+        if (!m.getUserId().equals(userId)) {
+            throw new RuntimeException("Not authorized to delete this meal");
+        }
+        mealRepository.delete(m);
+    }
+
     // -------------------- WATER --------------------
 
     public WaterIntake createWaterForUser(Long userId, WaterIntakeDto dto) {
@@ -104,6 +126,17 @@ public class TrackerService {
     public List<WaterIntake> getWaterForUser(Long userId) {
         Assert.notNull(userId, "userId is required");
         return waterIntakeRepository.findByUserIdOrderByLoggedAtDesc(userId);
+    }
+
+    public void deleteWater(Long userId, Long waterId) {
+        Assert.notNull(userId, "userId is required");
+        Assert.notNull(waterId, "waterId is required");
+        WaterIntake w = waterIntakeRepository.findById(waterId)
+                .orElseThrow(() -> new RuntimeException("Water log not found"));
+        if (!w.getUserId().equals(userId)) {
+            throw new RuntimeException("Not authorized to delete this water log");
+        }
+        waterIntakeRepository.delete(w);
     }
 
     // -------------------- SLEEP --------------------
@@ -125,5 +158,16 @@ public class TrackerService {
     public List<SleepLog> getSleepForUser(Long userId) {
         Assert.notNull(userId, "userId is required");
         return sleepLogRepository.findByUserIdOrderBySleepDateDesc(userId);
+    }
+
+    public void deleteSleep(Long userId, Long sleepLogId) {
+        Assert.notNull(userId, "userId is required");
+        Assert.notNull(sleepLogId, "sleepLogId is required");
+        SleepLog s = sleepLogRepository.findById(sleepLogId)
+                .orElseThrow(() -> new RuntimeException("Sleep log not found"));
+        if (!s.getUserId().equals(userId)) {
+            throw new RuntimeException("Not authorized to delete this sleep log");
+        }
+        sleepLogRepository.delete(s);
     }
 }

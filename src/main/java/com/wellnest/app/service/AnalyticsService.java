@@ -6,5 +6,8 @@ import java.time.LocalDate;
 
 public interface AnalyticsService {
     AnalyticsSummary getUserAnalytics(Authentication authentication, LocalDate startDate, LocalDate endDate);
+
     AnalyticsSummary getUserAnalytics(Authentication authentication);
+
+    AnalyticsSummary getClientAnalytics(Long clientId, Authentication trainerAuth);
 }

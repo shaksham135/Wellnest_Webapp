@@ -50,4 +50,6 @@ export const saveDietPlan = (data) => apiClient.post("/trainers/diet-plan", data
 export const getDietPlanForClient = (clientId) => apiClient.get(`/trainers/diet-plan/client/${clientId}`);
 export const getDietPlanForTrainer = (trainerId) => apiClient.get(`/trainers/diet-plan/trainer/${trainerId}`);
 
+export const getClientAnalytics = (clientId) => apiClient.get(`/analytics/client/${clientId}`);
+
 

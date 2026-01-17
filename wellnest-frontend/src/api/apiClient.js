@@ -28,11 +28,11 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       // Token invalid or expired
-      localStorage.removeItem("token");
-      // Optional: Redirect to login if not already there
-      if (!window.location.pathname.includes("/login")) {
-        window.location.href = "/";
-      }
+      // localStorage.removeItem("token"); 
+      console.warn("API 401/403 Error:", error.response.data);
+      // if (!window.location.pathname.includes("/login")) {
+      //   window.location.href = "/";
+      // }
     }
     return Promise.reject(error);
   }

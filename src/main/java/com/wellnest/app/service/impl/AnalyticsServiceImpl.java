@@ -27,12 +27,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final WeightLogRepository weightLogRepository;
 
     public AnalyticsServiceImpl(WorkoutRepository workoutRepository,
-                              MealRepository mealRepository,
-                              SleepLogRepository sleepLogRepository,
-                              WaterIntakeRepository waterIntakeRepository,
-                              AppUserService appUserService,
-                              UserRepository userRepository,
-                              WeightLogRepository weightLogRepository) {
+            MealRepository mealRepository,
+            SleepLogRepository sleepLogRepository,
+            WaterIntakeRepository waterIntakeRepository,
+            AppUserService appUserService,
+            UserRepository userRepository,
+            WeightLogRepository weightLogRepository) {
         this.workoutRepository = workoutRepository;
         this.mealRepository = mealRepository;
         this.sleepLogRepository = sleepLogRepository;
@@ -52,10 +52,29 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Override
     public AnalyticsSummary getUserAnalytics(Authentication authentication, LocalDate startDate, LocalDate endDate) {
         Long userId = appUserService.getUserIdFromAuthentication(authentication);
+        return generateSummary(userId, startDate, endDate);
+    }
+
+    @Override
+    public AnalyticsSummary getClientAnalytics(Long clientId, Authentication trainerAuth) {
+        // Validation of trainer-client relationship should be done by the
+        // caller/controller
+        // or by injecting TrainerInteractionService.
+        // For simplicity/safety, we assume the Controller ensures the trainer is
+        // authorized.
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(6);
+        return generateSummary(clientId, startDate, endDate);
+    }
+
+    private AnalyticsSummary generateSummary(Long userId, LocalDate startDate, LocalDate endDate) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+
+        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, startDateTime,
+                endDateTime);
 
         AnalyticsSummary summary = new AnalyticsSummary();
         summary.setStartDate(startDate);
@@ -73,8 +92,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return summary;
     }
 
-    private WorkoutAnalytics calculateWorkoutAnalytics(Long userId, LocalDateTime startDateTime, LocalDateTime endDateTime) {
-        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, startDateTime, endDateTime);
+    private WorkoutAnalytics calculateWorkoutAnalytics(Long userId, LocalDateTime startDateTime,
+            LocalDateTime endDateTime) {
+        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, startDateTime,
+                endDateTime);
         WorkoutAnalytics analytics = new WorkoutAnalytics();
 
         if (workouts.isEmpty()) {
@@ -100,10 +121,16 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                         Collectors.summingDouble(Workout::getDurationMinutes)));
         analytics.setWeeklyTrend(weeklyTrend);
 
+        Map<String, Double> dailyCaloriesBurned = workouts.stream()
+                .collect(Collectors.groupingBy(w -> w.getPerformedAt().toLocalDate().toString(),
+                        Collectors.summingDouble(w -> w.getCaloriesBurned() != null ? w.getCaloriesBurned() : 0.0)));
+        analytics.setDailyCaloriesBurned(dailyCaloriesBurned);
+
         return analytics;
     }
 
-    private NutritionAnalytics calculateNutritionAnalytics(Long userId, LocalDateTime startDateTime, LocalDateTime endDateTime, long days) {
+    private NutritionAnalytics calculateNutritionAnalytics(Long userId, LocalDateTime startDateTime,
+            LocalDateTime endDateTime, long days) {
         List<Meal> meals = mealRepository.findByUserIdAndLoggedAtBetween(userId, startDateTime, endDateTime);
         NutritionAnalytics analytics = new NutritionAnalytics();
 
@@ -160,10 +187,14 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         double avgQuality = sleepLogs.stream()
                 .mapToDouble(s -> {
                     switch (s.getQuality() != null ? s.getQuality().toLowerCase() : "") {
-                        case "good": return 5.0;
-                        case "fair": return 3.0;
-                        case "poor": return 1.0;
-                        default: return 0.0; // Or some other default
+                        case "good":
+                            return 5.0;
+                        case "fair":
+                            return 3.0;
+                        case "poor":
+                            return 1.0;
+                        default:
+                            return 0.0; // Or some other default
                     }
                 })
                 .filter(q -> q > 0) // Exclude logs without quality
@@ -171,20 +202,27 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         analytics.setAvgSleepQuality(avgQuality);
 
         Map<String, Double> weeklyTrend = sleepLogs.stream()
-                .collect(Collectors.toMap(s -> s.getSleepDate().toString(), SleepLog::getHours, (oldValue, newValue) -> newValue));
+                .collect(Collectors.toMap(s -> s.getSleepDate().toString(), SleepLog::getHours,
+                        (oldValue, newValue) -> newValue));
         analytics.setWeeklySleepTrend(weeklyTrend);
 
         // Basic consistency logic
-        double stdDev = calculateStandardDeviation(sleepLogs.stream().map(SleepLog::getHours).collect(Collectors.toList()));
-        if (stdDev < 1.0) analytics.setSleepConsistency("Good");
-        else if (stdDev < 2.0) analytics.setSleepConsistency("Fair");
-        else analytics.setSleepConsistency("Poor");
+        double stdDev = calculateStandardDeviation(
+                sleepLogs.stream().map(SleepLog::getHours).collect(Collectors.toList()));
+        if (stdDev < 1.0)
+            analytics.setSleepConsistency("Good");
+        else if (stdDev < 2.0)
+            analytics.setSleepConsistency("Fair");
+        else
+            analytics.setSleepConsistency("Poor");
 
         return analytics;
     }
 
-    private WaterIntakeAnalytics calculateWaterIntakeAnalytics(Long userId, LocalDateTime startDateTime, LocalDateTime endDateTime) {
-        List<WaterIntake> waterIntakes = waterIntakeRepository.findByUserIdAndLoggedAtBetween(userId, startDateTime, endDateTime);
+    private WaterIntakeAnalytics calculateWaterIntakeAnalytics(Long userId, LocalDateTime startDateTime,
+            LocalDateTime endDateTime) {
+        List<WaterIntake> waterIntakes = waterIntakeRepository.findByUserIdAndLoggedAtBetween(userId, startDateTime,
+                endDateTime);
         WaterIntakeAnalytics analytics = new WaterIntakeAnalytics();
         // Assuming a default target, this could be user-specific in the future
         double targetIntake = 2000; // ml
@@ -213,103 +251,122 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     private GoalProgress calculateGoalProgress(User user, LocalDateTime startDateTime, LocalDateTime endDateTime) {
-    GoalProgress progress = new GoalProgress();
-    String goal = user.getFitnessGoal();
-    if (goal == null || goal.isEmpty()) {
-        return null; // No goal set
-    }
-
-    progress.setGoalType(goal);
-
-    if ("WEIGHT_LOSS".equalsIgnoreCase(goal)) {
-        Double targetWeight = user.getTargetWeightKg();
-        if (targetWeight == null) {
-            return null; // No target weight set
-        }
-        
-        Double currentWeight = user.getWeightKg();
-        if (currentWeight == null) {
-            return null; // Current weight not set
+        GoalProgress progress = new GoalProgress();
+        String goal = user.getFitnessGoal();
+        if (goal == null || goal.isEmpty()) {
+            return null; // No goal set
         }
 
-        progress.setCurrentValue(currentWeight);
-        progress.setTargetValue(targetWeight);
-        progress.setUnit("kg");
+        progress.setGoalType(goal);
 
-        // Get the initial weight from the weight logs or use current weight as fallback
-        List<WeightLog> allWeightLogs = weightLogRepository.findByUserIdOrderByLogDateAsc(user.getId());
-        double initialWeight = allWeightLogs.isEmpty() ? currentWeight : allWeightLogs.get(0).getWeightKg();
-        
-        double weightLost = initialWeight - currentWeight;
-        double totalToLose = initialWeight - targetWeight;
+        // Normalize goal string for comparison
+        String normalizedGoal = goal.trim().replace(" ", "_").toUpperCase();
 
-        int percentage = 0;
-        if (totalToLose > 0) {
-            percentage = (int) ((weightLost / totalToLose) * 100);
-            percentage = Math.max(0, Math.min(100, percentage));
-        }
-        progress.setPercentageComplete(percentage);
-
-        if (totalToLose > 0) {
-            if (percentage >= 75) {
-                progress.setStatus("On Track");
-                progress.setRecommendation("Great progress! Keep up the good work with your diet and exercise routine.");
-            } else if (percentage >= 40) {
-                progress.setStatus("Needs Improvement");
-                progress.setRecommendation("You're making progress, but let's try to be more consistent with your goals.");
-            } else {
-                progress.setStatus("At Risk");
-                progress.setRecommendation("Let's adjust your plan. Consider reviewing your diet and exercise routine.");
+        if ("WEIGHT_LOSS".equals(normalizedGoal) || "MUSCLE_GAIN".equals(normalizedGoal)) {
+            Double targetWeight = user.getTargetWeightKg();
+            if (targetWeight == null) {
+                return null; // No target weight set
             }
-        } else {
-            progress.setStatus("Target Reached");
-            progress.setRecommendation("Congratulations! You've reached your target weight. Consider setting a new goal.");
+
+            Double currentWeight = user.getWeightKg();
+            if (currentWeight == null) {
+                return null; // Current weight not set
+            }
+
+            progress.setCurrentValue(currentWeight);
+            progress.setTargetValue(targetWeight);
+            progress.setUnit("kg");
+
+            // Get the initial weight from the weight logs or use current weight as fallback
+            List<WeightLog> allWeightLogs = weightLogRepository.findByUserIdOrderByLogDateAsc(user.getId());
+            double initialWeight = allWeightLogs.isEmpty() ? currentWeight : allWeightLogs.get(0).getWeightKg();
+
+            double weightDiff = Math.abs(currentWeight - initialWeight);
+            double totalToChange = Math.abs(targetWeight - initialWeight);
+
+            // Handle case where initial equals target (avoid divide by zero)
+            int percentage = 0;
+            if (totalToChange > 0) {
+                // Basic progress logic: how much of the gap have we closed?
+                // Note: This is a simplified calculation. Real-world might need directional
+                // checks.
+                double progressMade = 0;
+                if ("WEIGHT_LOSS".equals(normalizedGoal)) {
+                    progressMade = initialWeight - currentWeight;
+                } else {
+                    // Muscle gain
+                    progressMade = currentWeight - initialWeight;
+                }
+
+                // Ensure we don't have negative progress if they went the wrong way
+                progressMade = Math.max(0, progressMade);
+
+                percentage = (int) ((progressMade / totalToChange) * 100);
+                percentage = Math.max(0, Math.min(100, percentage));
+            }
+            progress.setPercentageComplete(percentage);
+
+            // Status logic
+            if (Math.abs(currentWeight - targetWeight) < 0.5) {
+                progress.setStatus("Target Reached");
+                progress.setRecommendation("Congratulations! You've reached your target weight.");
+            } else if (percentage >= 50) {
+                progress.setStatus("On Track");
+                progress.setRecommendation("Great job! You're more than halfway there.");
+            } else if (percentage >= 10) {
+                progress.setStatus("In Progress");
+                progress.setRecommendation("Keep going, consistency is key.");
+            } else {
+                progress.setStatus("Just Started");
+                progress.setRecommendation("Every journey begins with a single step.");
+            }
+
+            // Get weight logs for the specified date range
+            List<WeightLog> weightLogs = weightLogRepository.findByUserIdAndLogDateBetween(
+                    user.getId(),
+                    startDateTime.toLocalDate(),
+                    endDateTime.toLocalDate());
+
+            // Create a map of log date to weight
+            Map<String, Double> weeklyTrend = weightLogs.stream()
+                    .collect(Collectors.toMap(
+                            w -> w.getLogDate().toString(),
+                            WeightLog::getWeightKg,
+                            (oldValue, newValue) -> newValue));
+            progress.setWeeklyProgressTrend(weeklyTrend);
+        } else if ("WORKOUT_FREQUENCY".equalsIgnoreCase(normalizedGoal) || "FITNESS".equalsIgnoreCase(normalizedGoal)) {
+            // Existing workout frequency logic remains the same
+            List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(user.getId(), startDateTime,
+                    endDateTime);
+            // Assume goal is 4 workouts per week
+            long days = ChronoUnit.DAYS.between(startDateTime.toLocalDate(), endDateTime.toLocalDate()) + 1;
+            double weeks = days / 7.0;
+            double targetWorkouts = 4 * weeks;
+
+            progress.setCurrentValue(workouts.size());
+            progress.setTargetValue(targetWorkouts);
+            progress.setUnit("workouts");
+
+            int percentage = (int) ((workouts.size() / targetWorkouts) * 100);
+            progress.setPercentageComplete(Math.max(0, Math.min(100, percentage)));
+
+            if (percentage >= 90)
+                progress.setStatus("On Track");
+            else if (percentage >= 60)
+                progress.setStatus("Needs Improvement");
+            else
+                progress.setStatus("At Risk");
+
+            progress.setRecommendation("Try to schedule your workouts in advance to stay consistent.");
+
+            Map<String, Double> weeklyTrend = workouts.stream()
+                    .collect(Collectors.groupingBy(w -> w.getPerformedAt().toLocalDate().toString(),
+                            Collectors.collectingAndThen(Collectors.counting(), Long::doubleValue)));
+            progress.setWeeklyProgressTrend(weeklyTrend);
         }
 
-        // Get weight logs for the specified date range
-        List<WeightLog> weightLogs = weightLogRepository.findByUserIdAndLogDateBetween(
-            user.getId(), 
-            startDateTime.toLocalDate(), 
-            endDateTime.toLocalDate()
-        );
-        
-        // Create a map of log date to weight
-        Map<String, Double> weeklyTrend = weightLogs.stream()
-                .collect(Collectors.toMap(
-                    w -> w.getLogDate().toString(), 
-                    WeightLog::getWeightKg, 
-                    (oldValue, newValue) -> newValue
-                ));
-        progress.setWeeklyProgressTrend(weeklyTrend);
-    } else if ("WORKOUT_FREQUENCY".equalsIgnoreCase(goal)) {
-        // Existing workout frequency logic remains the same
-        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(user.getId(), startDateTime, endDateTime);
-        // Assume goal is 4 workouts per week
-        long days = ChronoUnit.DAYS.between(startDateTime.toLocalDate(), endDateTime.toLocalDate()) + 1;
-        double weeks = days / 7.0;
-        double targetWorkouts = 4 * weeks;
-
-        progress.setCurrentValue(workouts.size());
-        progress.setTargetValue(targetWorkouts);
-        progress.setUnit("workouts");
-
-        int percentage = (int) ((workouts.size() / targetWorkouts) * 100);
-        progress.setPercentageComplete(Math.max(0, Math.min(100, percentage)));
-
-        if (percentage >= 90) progress.setStatus("On Track");
-        else if (percentage >= 60) progress.setStatus("Needs Improvement");
-        else progress.setStatus("At Risk");
-        
-        progress.setRecommendation("Try to schedule your workouts in advance to stay consistent.");
-
-        Map<String, Double> weeklyTrend = workouts.stream()
-            .collect(Collectors.groupingBy(w -> w.getPerformedAt().toLocalDate().toString(),
-                    Collectors.collectingAndThen(Collectors.counting(), Long::doubleValue)));
-        progress.setWeeklyProgressTrend(weeklyTrend);
+        return progress;
     }
-
-    return progress;
-}
 
     private HealthMetrics calculateHealthMetrics(User user) {
         HealthMetrics metrics = new HealthMetrics();
@@ -340,7 +397,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(89); // Approx 3 months
 
-        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, startDate.atStartOfDay(), endDate.atTime(LocalTime.MAX));
+        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, startDate.atStartOfDay(),
+                endDate.atTime(LocalTime.MAX));
 
         Map<LocalDate, Integer> workoutCounts = workouts.stream()
                 .collect(Collectors.groupingBy(w -> w.getPerformedAt().toLocalDate(), Collectors.summingInt(w -> 1)));
@@ -354,7 +412,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     private double calculateStandardDeviation(List<Double> values) {
-        if (values.size() < 2) return 0.0;
+        if (values.size() < 2)
+            return 0.0;
         double mean = values.stream().mapToDouble(v -> v).average().orElse(0.0);
         double variance = values.stream().mapToDouble(v -> Math.pow(v - mean, 2)).sum() / (values.size() - 1);
         return Math.sqrt(variance);

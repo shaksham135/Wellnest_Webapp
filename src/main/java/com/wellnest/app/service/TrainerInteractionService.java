@@ -22,15 +22,18 @@ public class TrainerInteractionService {
         private final ChatMessageRepository chatMessageRepository;
         private final TrainerRepository trainerRepository;
         private final UserRepository userRepository;
+        private final NotificationService notificationService;
 
         public TrainerInteractionService(TrainerClientRepository trainerClientRepository,
                         ChatMessageRepository chatMessageRepository,
                         TrainerRepository trainerRepository,
-                        UserRepository userRepository) {
+                        UserRepository userRepository,
+                        NotificationService notificationService) {
                 this.trainerClientRepository = trainerClientRepository;
                 this.chatMessageRepository = chatMessageRepository;
                 this.trainerRepository = trainerRepository;
                 this.userRepository = userRepository;
+                this.notificationService = notificationService;
         }
 
         public void requestConnection(Long trainerId, String userEmail, String message) {
@@ -54,6 +57,12 @@ public class TrainerInteractionService {
 
                 TrainerClient request = new TrainerClient(trainer, user, "PENDING", message);
                 trainerClientRepository.save(request);
+
+                // Notify Trainer
+                if (trainer.getUser() != null) {
+                        notificationService.createNotification(trainer.getUser().getId(), "New Client Request",
+                                        user.getName() + " has sent you a connection request.", "INFO");
+                }
         }
 
         public List<ConnectionResponseDto> getTrainerRequests(String trainerUserEmail) {
@@ -82,6 +91,16 @@ public class TrainerInteractionService {
                                 .orElseThrow(() -> new RuntimeException("Request not found"));
                 request.setStatus(status);
                 trainerClientRepository.save(request);
+
+                // Notify Client
+                String trainerName = request.getTrainer().getName();
+                if ("ACTIVE".equalsIgnoreCase(status)) {
+                        notificationService.createNotification(request.getClient().getId(), "Request Accepted",
+                                        "Trainer " + trainerName + " accepted your connection request.", "SUCCESS");
+                } else if ("REJECTED".equalsIgnoreCase(status)) {
+                        notificationService.createNotification(request.getClient().getId(), "Request Declined",
+                                        "Trainer " + trainerName + " declined your connection request.", "WARNING");
+                }
         }
 
         public void sendMessage(String senderEmail, Long receiverId, String content) {
@@ -92,6 +111,10 @@ public class TrainerInteractionService {
 
                 ChatMessage message = new ChatMessage(sender, receiver, content);
                 chatMessageRepository.save(message);
+
+                // Notify Receiver
+                notificationService.createNotification(receiver.getId(), "New Message from " + sender.getName(),
+                                content.length() > 50 ? content.substring(0, 47) + "..." : content, "INFO");
         }
 
         public List<ChatMessageDto> getChatHistory(String userEmail, Long otherUserId) {
@@ -120,6 +143,21 @@ public class TrainerInteractionService {
                                 .orElseThrow(() -> new RuntimeException("Client not found"));
                 return new com.wellnest.app.dto.ClientProfileDto(client.getId(), client.getName(), client.getEmail(),
                                 client.getAge(), client.getHeightCm(), client.getWeightKg(), client.getFitnessGoal());
+        }
+
+        public void verifyTrainerAccess(String trainerEmail, Long clientId) {
+                User trainerUser = userRepository.findByEmail(trainerEmail)
+                                .orElseThrow(() -> new RuntimeException("User not found"));
+                Trainer trainer = trainerRepository.findByUserId(trainerUser.getId())
+                                .orElseThrow(() -> new RuntimeException("Trainer not found"));
+
+                boolean isConnected = trainerClientRepository.findByTrainerIdAndClientId(trainer.getId(), clientId)
+                                .map(tc -> "ACTIVE".equalsIgnoreCase(tc.getStatus()))
+                                .orElse(false);
+
+                if (!isConnected) {
+                        throw new RuntimeException("Trainer is not authorized to view this client.");
+                }
         }
 
         private ConnectionResponseDto mapToConnectionResponse(TrainerClient tc) {

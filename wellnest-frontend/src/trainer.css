@@ -56,6 +56,119 @@
     color: var(--text-muted);
 }
 
+/* ---------- TRAINER STAT CARDS ---------- */
+.trainer-stat-card {
+    position: relative;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    padding: 24px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 180px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-md);
+}
+
+.trainer-stat-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Color Variants */
+.trainer-stat-card.blue {
+    background: linear-gradient(145deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);
+    border-color: rgba(37, 99, 235, 0.2);
+}
+
+.trainer-stat-card.yellow {
+    background: linear-gradient(145deg, rgba(234, 179, 8, 0.1) 0%, rgba(234, 179, 8, 0.05) 100%);
+    border-color: rgba(234, 179, 8, 0.2);
+}
+
+.trainer-stat-card.green {
+    background: linear-gradient(145deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+    border-color: rgba(34, 197, 94, 0.2);
+}
+
+/* Hover Glows */
+.trainer-stat-card.blue:hover {
+    box-shadow: 0 10px 30px -10px rgba(37, 99, 235, 0.4);
+    border-color: rgba(37, 99, 235, 0.4);
+}
+
+.trainer-stat-card.yellow:hover {
+    box-shadow: 0 10px 30px -10px rgba(234, 179, 8, 0.4);
+    border-color: rgba(234, 179, 8, 0.4);
+}
+
+.trainer-stat-card.green:hover {
+    box-shadow: 0 10px 30px -10px rgba(34, 197, 94, 0.4);
+    border-color: rgba(34, 197, 94, 0.4);
+}
+
+.stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(4px);
+}
+
+.trainer-stat-card.blue .stat-icon-wrapper {
+    background: rgba(37, 99, 235, 0.2);
+    color: #60a5fa;
+}
+
+.trainer-stat-card.yellow .stat-icon-wrapper {
+    background: rgba(234, 179, 8, 0.2);
+    color: #facc15;
+}
+
+.trainer-stat-card.green .stat-icon-wrapper {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.stat-value {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--text-main);
+    line-height: 1;
+    margin-bottom: 4px;
+    letter-spacing: -1px;
+}
+
+.stat-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    opacity: 0.8;
+}
+
+/* Background Icon Decoration */
+.stat-bg-icon {
+    position: absolute;
+    right: -20px;
+    bottom: -20px;
+    font-size: 140px;
+    opacity: 0.05;
+    transform: rotate(-15deg);
+    pointer-events: none;
+    transition: all 0.5s ease;
+}
+
+.trainer-stat-card:hover .stat-bg-icon {
+    transform: rotate(0deg) scale(1.1);
+    opacity: 0.1;
+}
+
 .trainer-specialties {
     display: flex;
     flex-wrap: wrap;
@@ -116,124 +229,220 @@
     color: var(--text-main);
 }
 
-/* ---------- CHAT / MODALS ---------- */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(4px);
-    padding: 16px;
-    /* Prevent edge touching on mobile */
-}
-
-.modal-content,
+/* User Chat Modal (TrainerCard) */
 .chat-modal-content {
     background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 16px;
-    width: 100%;
+    border-radius: 24px;
+    width: 90%;
     max-width: 500px;
+    height: 600px;
+    max-height: 80vh;
     display: flex;
     flex-direction: column;
+    /* Stack header, messages, input */
     overflow: hidden;
-    box-shadow: var(--shadow-lg);
-    color: var(--text-main);
-    position: relative;
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-xl);
 }
 
-.chat-modal-content {
-    height: 80vh;
-    max-height: 800px;
-}
-
-.modal-header {
-    padding: 16px;
-    background: rgba(255, 255, 255, 0.03);
+.chat-modal-content .modal-header {
+    flex-shrink: 0;
+    /* Keep header fixed */
+    padding: 20px;
     border-bottom: 1px solid var(--card-border);
+    background: rgba(255, 255, 255, 0.02);
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-weight: 700;
+    font-size: 18px;
     color: var(--text-main);
 }
 
-.modal-close-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--text-muted);
-    padding: 4px;
+.chat-modal-content .chat-messages-area {
+    flex-grow: 1;
+    /* Take up all remaining space */
+    overflow-y: auto;
+    /* Scrollable */
+    background: var(--card-bg);
+    /* Or transparent if parent has bg */
 }
 
-.modal-body {
-    padding: 24px;
+.chat-modal-content .chat-input-area {
+    flex-shrink: 0;
+    /* Fixed height input */
+}
+
+/* ---------- CHAT / MODALS ---------- */
+.chat-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 0;
+    height: 650px;
+    background: var(--card-bg);
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-xl);
+}
+
+/* Sidebar */
+.chat-sidebar {
+    border-right: 1px solid var(--card-border);
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-user-item {
+    padding: 16px 20px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--card-border);
+    color: var(--text-main);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.chat-user-item:hover {
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.chat-user-item.active {
+    background: rgba(59, 130, 246, 0.1);
+    border-right: 3px solid var(--primary);
+}
+
+.chat-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+/* Main Chat Area */
+.chat-main {
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+    position: relative;
+}
+
+.chat-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--card-border);
+    font-weight: 700;
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 70px;
 }
 
 .chat-messages-area {
     flex: 1;
-    padding: 16px;
+    padding: 24px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    background: var(--card-bg);
+    gap: 16px;
+    background-image: radial-gradient(var(--card-border) 1px, transparent 1px);
+    background-size: 24px 24px;
 }
 
 /* Chat Bubbles */
 .chat-bubble {
-    padding: 8px 12px;
-    border-radius: 12px;
-    font-size: 14px;
+    padding: 12px 20px;
+    border-radius: 20px;
+    font-size: 15px;
     max-width: 75%;
-    line-height: 1.4;
+    line-height: 1.5;
     word-wrap: break-word;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    position: relative;
+    animation: fadeIn 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .chat-bubble.me {
     align-self: flex-end;
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
     color: #ffffff;
+    border-bottom-right-radius: 4px;
+    /* subtle tail */
+    border: none;
 }
 
 .chat-bubble.them {
     align-self: flex-start;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+    /* Glassy transparent */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     color: var(--text-main);
-    border: 1px solid var(--card-border);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom-left-radius: 4px;
+    /* subtle tail */
 }
 
+/* Light Mode specific for bubbles */
 [data-theme="light"] .chat-bubble.them {
     background: #f1f5f9;
+    border: 1px solid #e2e8f0;
     color: #0f172a;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+/* Input Area */
 .chat-input-area {
-    padding: 16px;
+    padding: 20px;
     border-top: 1px solid var(--card-border);
     display: flex;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.03);
+    gap: 12px;
+    background: var(--card-bg);
+    align-items: center;
+    /* Center alignment looks better generally */
 }
 
 .chat-input {
     flex: 1;
-    padding: 10px 16px;
+    padding: 14px 24px;
     border-radius: 99px;
+    /* Pill shape */
     border: 1px solid var(--card-border);
-    background: transparent;
+    background: rgba(255, 255, 255, 0.05);
     color: var(--text-main);
     outline: none;
+    font-size: 15px;
+    transition: all 0.2s ease;
 }
 
 .chat-input:focus {
     border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
 }
 
 .chat-send-btn {
@@ -242,13 +451,25 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    width: 42px;
-    height: 42px;
+    width: 48px;
+    height: 48px;
     background: var(--primary);
     color: white;
     border: none;
     cursor: pointer;
     flex-shrink: 0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.chat-send-btn:hover {
+    transform: scale(1.1);
+    background: #2563eb;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
+}
+
+.chat-send-btn:active {
+    transform: scale(0.95);
 }
 
 .connect-textarea {
@@ -267,95 +488,178 @@
 
 /* ---------- CLIENT DETAILS DASHBOARD ---------- */
 
+/* ---------- CLIENT DETAILS DASHBOARD ---------- */
+
 .client-list-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 24px;
+    padding-bottom: 24px;
 }
 
 .client-card {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 24px;
     box-shadow: var(--shadow-md);
     color: var(--text-main);
-    transition: transform 0.2s;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    backdrop-filter: blur(12px);
+}
+
+.client-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), #60a5fa);
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .client-card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.client-card:hover::before {
+    opacity: 1;
 }
 
 .client-card h3 {
-    margin: 0 0 8px 0;
+    margin: 0 0 4px 0;
     color: var(--text-main);
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .client-card p {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text-muted);
-    margin: 0 0 16px 0;
+    margin: 0 0 20px 0;
+    line-height: 1.5;
 }
 
+/* Request Cards */
 .request-card {
     background: var(--card-bg);
-    padding: 20px;
-    border-radius: 12px;
+    padding: 24px;
+    border-radius: 16px;
     border: 1px solid var(--card-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 20px;
     color: var(--text-main);
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+}
+
+.request-card:hover {
+    box-shadow: var(--shadow-md);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.request-info {
+    flex: 1;
+    min-width: 200px;
 }
 
 .request-info h4 {
-    margin: 0 0 4px 0;
+    margin: 0 0 6px 0;
     color: var(--text-main);
+    font-size: 16px;
+    font-weight: 700;
 }
 
 .request-info p {
-    margin: 0;
+    margin: 0 0 8px 0;
     color: var(--text-muted);
     font-size: 14px;
+    font-style: italic;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: inline-block;
 }
 
 .request-info span {
+    display: block;
     font-size: 12px;
     color: var(--text-muted);
-    opacity: 0.8;
+    opacity: 0.7;
+    margin-top: 4px;
 }
 
 .dashboard-tabs {
     display: flex;
-    gap: 16px;
-    margin-bottom: 24px;
-    border-bottom: 1px solid var(--card-border);
+    gap: 12px;
+    margin-bottom: 32px;
+    border-bottom: none;
     overflow-x: auto;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 99px;
+    /* Pill container */
+    border: 1px solid var(--card-border);
+    width: fit-content;
 }
 
 .tab-btn {
-    padding: 12px 16px;
-    border-bottom: 2px solid transparent;
+    padding: 10px 24px;
+    border: 1px solid transparent;
+    border-radius: 99px;
+    /* Pill shape */
     color: var(--text-muted);
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 14px;
     background: transparent;
     cursor: pointer;
     white-space: nowrap;
     display: flex;
     align-items: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
 .tab-btn:hover {
-    color: var(--primary);
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .tab-btn.active {
-    border-bottom-color: var(--primary);
-    color: var(--primary);
-    font-weight: 700;
+    background: var(--primary);
+    color: white;
+    /* Text color on active */
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    /* Glow effect */
+    border-color: transparent;
+}
+
+/* Optional: Add a subtle shine effect for active tab */
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    pointer-events: none;
 }
 
 .chat-layout {
@@ -442,4 +746,75 @@
 
 [data-theme="dark"] .detail-box.success .detail-value {
     color: #4ade80;
+}
+
+/* ---------- DIET PLAN FORM ---------- */
+.diet-plan-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.diet-section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.diet-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.diet-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.diet-icon {
+    color: var(--text-muted);
+}
+
+.diet-textarea {
+    width: 100%;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    transition: all 0.2s ease;
+    min-height: 80px;
+}
+
+.diet-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: rgba(59, 130, 246, 0.05);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.diet-textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+.modal-footer {
+    margin-top: 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
 }

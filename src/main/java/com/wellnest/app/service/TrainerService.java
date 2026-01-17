@@ -28,6 +28,9 @@ public class TrainerService {
         this.trainerRepository = trainerRepository;
     }
 
+    @Autowired
+    private NotificationService notificationService;
+
     // Initialize default trainers method removed to support real user data only.
 
     public List<TrainerResponse> getAllTrainers() {
@@ -87,9 +90,11 @@ public class TrainerService {
     }
 
     private TrainerResponse toResponse(Trainer trainer) {
+        Long userId = trainer.getUser() != null ? trainer.getUser().getId() : null;
+
         return new TrainerResponse(
                 trainer.getId(),
-                trainer.getUser().getId(),
+                userId,
                 trainer.getName(),
                 trainer.getSpecialties(),
                 trainer.getExperience(),
@@ -157,6 +162,9 @@ public class TrainerService {
         plan.setUpdatedAt(LocalDateTime.now());
 
         dietPlanRepository.save(plan);
+
+        notificationService.createNotification(dto.getClientId(), "Diet Plan Updated",
+                "Trainer " + trainer.getName() + " has updated your diet plan.", "INFO");
     }
 
     public DietPlanDto getDietPlan(Long trainerId, Long clientId) {

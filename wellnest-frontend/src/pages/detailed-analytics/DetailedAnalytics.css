@@ -7,11 +7,11 @@
 }
 
 .detailed-analytics-card {
-    background: rgba(15, 23, 42, 0.9);
-    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 16px;
     padding: 2rem;
-    color: #e5e7eb;
+    color: var(--text-main);
 }
 
 .detailed-analytics-card.full-width {

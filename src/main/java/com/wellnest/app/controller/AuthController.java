@@ -48,8 +48,11 @@ public class AuthController {
     // ---------- REGISTER ----------
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
+        System.out.println(
+                "DEBUG REGISTER: " + req.getEmail() + " Role: " + req.getRole() + " Goal: " + req.getFitnessGoal());
 
         if (userService.emailExists(req.getEmail())) {
+            System.out.println("DEBUG REGISTER: Email already exists: " + req.getEmail());
             return ResponseEntity.badRequest().body("Email already in use");
         }
 
@@ -75,28 +78,38 @@ public class AuthController {
         user.setPassword(hashedPassword);
         user.setRole(finalRole);
         user.setPhone(req.getPhone());
+        user.setFitnessGoal(req.getFitnessGoal());
 
-        User savedUser = userService.save(user);
-
-        // If newly registered user is a TRAINER, create a Trainer profile
         if ("ROLE_TRAINER".equals(finalRole)) {
             com.wellnest.app.model.Trainer trainer = new com.wellnest.app.model.Trainer();
-            trainer.setName(savedUser.getName());
-            trainer.setEmail(savedUser.getEmail());
-            trainer.setPhone(savedUser.getPhone());
-            trainer.setUser(savedUser);
+            trainer.setName(user.getName());
+            trainer.setEmail(user.getEmail());
+            trainer.setPhone(user.getPhone());
+
             // Default placeholder values, user can update profile later
             String specialty = (req.getFitnessGoal() != null && !req.getFitnessGoal().isEmpty()) ? req.getFitnessGoal()
                     : "General Fitness";
-            trainer.setSpecialties(java.util.List.of(specialty));
+            trainer.setSpecialties(new java.util.ArrayList<>(java.util.List.of(specialty)));
             trainer.setExperience(0);
             trainer.setRating(5.0); // New trainers start with 5.0 or 0.0? Let's give them a boost.
             trainer.setLocation("Online");
-            trainer.setAvailability(java.util.List.of("Mon", "Wed", "Fri"));
+            trainer.setAvailability(new java.util.ArrayList<>(java.util.List.of("Mon", "Wed", "Fri")));
             trainer.setBio("Certified fitness trainer eager to help you reach your goals.");
             trainer.setImage("https://via.placeholder.com/150"); // Placeholder image
 
-            trainerRepository.save(trainer);
+            try {
+                userService.registerTrainer(user, trainer);
+            } catch (Exception e) {
+                System.out.println("DEBUG REGISTER ERROR: " + e.getMessage());
+                e.printStackTrace();
+                return ResponseEntity.status(500).body("Registration failed: " + e.getMessage());
+            }
+        } else {
+            try {
+                userService.save(user);
+            } catch (Exception e) {
+                return ResponseEntity.status(500).body("Registration failed: " + e.getMessage());
+            }
         }
 
         return ResponseEntity.ok("User registered successfully");

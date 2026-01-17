@@ -17,3 +17,9 @@ export const getWater = () => apiClient.get("/trackers/water");
 
 export const createSleep = (data) => apiClient.post("/trackers/sleep", data);
 export const getSleep = () => apiClient.get("/trackers/sleep");
+
+// Delete
+export const deleteWorkout = (id) => apiClient.delete(`/trackers/workouts/${id}`);
+export const deleteMeal = (id) => apiClient.delete(`/trackers/meals/${id}`);
+export const deleteWater = (id) => apiClient.delete(`/trackers/water/${id}`);
+export const deleteSleep = (id) => apiClient.delete(`/trackers/sleep/${id}`);

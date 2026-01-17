@@ -93,7 +93,7 @@ const MyTrainers = () => {
             {/* View Diet Plan Modal */}
             {showDietModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '600px' }}>
+                    <div className="modal-content" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                         <div className="modal-header">
                             <div>Diet Plan</div>
                             <button className="modal-close-btn" onClick={() => setShowDietModal(false)}>

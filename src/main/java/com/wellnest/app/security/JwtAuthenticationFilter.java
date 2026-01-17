@@ -57,7 +57,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 username = jwtService.extractUsername(jwt);
             } catch (ExpiredJwtException ex) {
                 log.warn("JWT expired: {}", ex.getMessage());
-                // token expire ho gaya, context me kuch set nahi karenge
             } catch (Exception ex) {
                 log.warn("Invalid JWT: {}", ex.getMessage());
             }

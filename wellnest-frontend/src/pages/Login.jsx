@@ -54,12 +54,13 @@ const Login = ({ onLoginSuccess }) => {
       {/* ================= HERO + LOGIN ================= */}
       <section className="login-hero">
         <div className="login-hero-inner">
-          <h1>Welcome to <span>Wellnest</span></h1>
+          <h1>Unlock Your Best Self with <span>Wellnest</span></h1>
           <p className="hero-subtitle">
-            Your personal health & fitness command center
+            The all-in-one platform to track fitness, nutrition, and health goals.
+            Join thousands of users building better habits today.
           </p>
 
-          <form className="login-form-card" onSubmit={handleSubmit}>
+          <form id="login-form" className="login-form-card" onSubmit={handleSubmit}>
             <h2>Sign in to your account</h2>
 
             <div className="input-group">
@@ -118,43 +119,38 @@ const Login = ({ onLoginSuccess }) => {
 
       {/* ================= WHAT IS WELLNEST ================= */}
       <section className="info-section">
-        <h2>What is Wellnest?</h2>
+        <h2>Why Choose Wellnest?</h2>
         <p>
-          Wellnest is a smart health and fitness platform designed to help you
-          build consistent habits, track daily activities, and understand your
-          progress using clean analytics and simple tools.
+          Achieving your health goals shouldn't be complicated. Wellnest brings everything you need—activity tracking, professional guidance, and deep insights—into one seamless experience. Whether you want to lose weight, build muscle, or simply live healthier, we have the tools to help you succeed.
         </p>
       </section>
 
       {/* ================= FEATURES ================= */}
       <section className="features-section">
-        <h2>What you can do with Wellnest</h2>
+        <h2>Everything you need to succeed</h2>
 
         <div className="features-grid">
           <div className="feature-card">
             <FiActivity />
-            <h3>Track Daily Activities</h3>
+            <h3>Complete Tracking</h3>
             <p>
-              Log workouts, meals, water intake, and sleep effortlessly in one
-              place.
+              Log workouts, meals, water intake, and sleep patterns all in one intuitive dashboard.
             </p>
           </div>
 
           <div className="feature-card">
             <FiTrendingUp />
-            <h3>Progress & Analytics</h3>
+            <h3>Advanced Analytics</h3>
             <p>
-              Visualize your progress with streaks, goals, charts, and health
-              metrics.
+              Visualize your journey with detailed charts, streak tracking, and weekly progress reports.
             </p>
           </div>
 
           <div className="feature-card">
             <FiUsers />
-            <h3>Trainer Matching</h3>
+            <h3>Expert Guidance</h3>
             <p>
-              Find fitness trainers based on your goals, preferences, and
-              availability.
+              Connect with certified trainers, get personalized diet plans, and reach your goals faster.
             </p>
           </div>
 
@@ -162,8 +158,7 @@ const Login = ({ onLoginSuccess }) => {
             <FiShield />
             <h3>Secure & Private</h3>
             <p>
-              Your health data is protected with secure authentication and
-              privacy-first design.
+              Your health data is encrypted and secure. We prioritize your privacy above all else.
             </p>
           </div>
         </div>
@@ -189,7 +184,30 @@ const Login = ({ onLoginSuccess }) => {
         </div>
       </section>
 
-      {/* ================= SECURITY ================= */}
+      {/* ================= FOR TRAINERS ================= */}
+      <section className="info-section" style={{ background: 'rgba(59, 130, 246, 0.05)' }}>
+        <h2 style={{ marginBottom: '10px' }}>Are you a Fitness Professional?</h2>
+        <p style={{ maxWidth: '600px', margin: '0 auto 30px' }}>
+          Join Wellnest as a Trainer to manage clients, create personalized diet plans, and track their progress with real-time analytics. Grow your reach and help more people achieve their goals.
+        </p>
+        <div className="features-grid" style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <div className="feature-card">
+            <FiUsers />
+            <h3>Client Management</h3>
+            <p>Easily manage your client roster and view their daily activity logs.</p>
+          </div>
+          <div className="feature-card">
+            <FiActivity />
+            <h3>Diet & Workout Plans</h3>
+            <p>Create and assign custom nutrition and exercise plans instantly.</p>
+          </div>
+          <div className="feature-card">
+            <FiTrendingUp />
+            <h3>Client Analytics</h3>
+            <p>Get deep insights into your clients' health trends and adherence.</p>
+          </div>
+        </div>
+      </section>
       <section className="trust-section">
         <h2>Your data, fully protected</h2>
         <p>
@@ -201,17 +219,25 @@ const Login = ({ onLoginSuccess }) => {
 
       {/* ================= CTA ================= */}
       <section className="cta-section">
-        <h2>Start your wellness journey today</h2>
-        <div className="cta-actions">
-          <Link to="/register" className="primary-btn">
-            Create account
-          </Link>
-          <button
-            className="secondary-btn"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          >
-            Login
-          </button>
+        <div className="cta-card">
+          <h2>Start your wellness journey today</h2>
+          <p>Join thousands of users who are transforming their lives with Wellnest.</p>
+          <div className="cta-actions">
+            <Link to="/register" className="primary-btn large-btn">
+              Get Started for Free
+            </Link>
+            <button
+              className="secondary-btn large-btn"
+              onClick={() => {
+                const form = document.getElementById('login-form');
+                form?.scrollIntoView({ behavior: 'smooth' });
+                // Optional: focus email after scroll
+                setTimeout(() => document.querySelector('input[name="email"]')?.focus(), 500);
+              }}
+            >
+              Login to Existing Account
+            </button>
+          </div>
         </div>
       </section>
 

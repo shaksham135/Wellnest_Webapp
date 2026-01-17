@@ -15,9 +15,22 @@ import java.time.LocalDate;
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
+    private final com.wellnest.app.service.TrainerInteractionService trainerInteractionService;
 
-    public AnalyticsController(AnalyticsService analyticsService) {
+    public AnalyticsController(AnalyticsService analyticsService,
+            com.wellnest.app.service.TrainerInteractionService trainerInteractionService) {
         this.analyticsService = analyticsService;
+        this.trainerInteractionService = trainerInteractionService;
+    }
+
+    @GetMapping("/client/{clientId}")
+    public ResponseEntity<AnalyticsSummary> getAnalyticsForClient(
+            @PathVariable Long clientId,
+            Authentication authentication) {
+
+        trainerInteractionService.verifyTrainerAccess(authentication.getName(), clientId);
+        AnalyticsSummary summary = analyticsService.getClientAnalytics(clientId, authentication);
+        return ResponseEntity.ok(summary);
     }
 
     @GetMapping("/summary")
