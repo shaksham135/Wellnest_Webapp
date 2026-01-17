@@ -39,16 +39,16 @@ const SetupProfile = () => {
   };
 
   return (
-    <div className="setup-page">
-      <div className="setup-card">
-        <div className="setup-title">
-          <FiMonitor className="setup-title-icon" />
+    <div className="auth-page">
+      <div className="auth-card" style={{ maxWidth: '600px' }}>
+        <div className="auth-title">
+          <FiMonitor className="auth-title-icon" />
           <h2>Complete your profile</h2>
-          <p className="setup-subtitle">Tell us about your fitness details</p>
+          <p className="auth-subtitle">Tell us about your fitness details</p>
         </div>
 
-        <form className="setup-form" onSubmit={handleSubmit}>
-          <div className="setup-row">
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="auth-grid-row">
             <div className="input-group">
               <FiUser className="input-icon" />
               <input
@@ -74,7 +74,7 @@ const SetupProfile = () => {
             </div>
           </div>
 
-          <div className="setup-row">
+          <div className="auth-grid-row">
             <div className="input-group">
               <FiActivity className="input-icon" />
               <input
@@ -89,7 +89,13 @@ const SetupProfile = () => {
 
             <div className="input-group">
               <FiUser className="input-icon" />
-              <select name="gender" value={formData.gender} onChange={handleChange} required>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                required
+                className="role-select"
+              >
                 <option value="">Select Gender</option>
                 <option value="MALE">Male</option>
                 <option value="FEMALE">Female</option>
@@ -99,7 +105,7 @@ const SetupProfile = () => {
           </div>
 
           {/* New Phone Number Field */}
-          <div className="input-group" style={{ marginBottom: 12 }}>
+          <div className="input-group">
             <FiPhone className="input-icon" />
             <input
               type="tel"
@@ -117,6 +123,7 @@ const SetupProfile = () => {
               value={formData.fitnessGoal}
               onChange={handleChange}
               required
+              className="role-select"
             >
               <option value="">Select Fitness Goal</option>
               <option value="WEIGHT_LOSS">Weight Loss</option>
@@ -125,7 +132,7 @@ const SetupProfile = () => {
             </select>
           </div>
 
-          <button type="submit" className="primary-btn">
+          <button type="submit" className="primary-btn" style={{ marginTop: '10px' }}>
             Save & Continue
           </button>
         </form>

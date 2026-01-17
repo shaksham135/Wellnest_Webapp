@@ -25,4 +25,8 @@ export const toggleLike = (id) => apiClient.post(`/blog/posts/${id}/like`);
 export const getComments = (postId) => apiClient.get(`/blog/posts/${postId}/comments`);
 
 // Add a comment to a post
+// Add a comment to a post
 export const addComment = (postId, commentData) => apiClient.post(`/blog/posts/${postId}/comments`, commentData);
+
+// Delete a comment
+export const deleteComment = (id) => apiClient.delete(`/blog/comments/${id}`);

@@ -188,8 +188,8 @@ const Register = () => {
                 {passwordStrength.score <= 2
                   ? "Weak"
                   : passwordStrength.score <= 3
-                  ? "Medium"
-                  : "Strong"}
+                    ? "Medium"
+                    : "Strong"}
               </b>
               {!passwordStrength.isValid && (
                 <div style={{ color: "#ef4444" }}>
@@ -219,7 +219,6 @@ const Register = () => {
           </div>
 
           <div className="role-row">
-            <label>Role:</label>
             <select
               name="role"
               value={form.role}
@@ -230,6 +229,26 @@ const Register = () => {
               <option value="TRAINER">Trainer</option>
             </select>
           </div>
+
+          {form.role === "TRAINER" && (
+            <div className="role-row" style={{ marginTop: '16px' }}>
+              <label>Specialty / Goal:</label>
+              <select
+                name="fitnessGoal"
+                value={form.fitnessGoal || ""}
+                onChange={handleChange}
+                className="role-select"
+                required
+              >
+                <option value="" disabled>Select your specialty</option>
+                <option value="Muscle Gain">Muscle Gain</option>
+                <option value="Weight Loss">Weight Loss</option>
+                <option value="Yoga">Yoga</option>
+                <option value="Rehabilitation">Rehabilitation</option>
+                <option value="CrossFit">CrossFit</option>
+              </select>
+            </div>
+          )}
 
           <button
             type="submit"

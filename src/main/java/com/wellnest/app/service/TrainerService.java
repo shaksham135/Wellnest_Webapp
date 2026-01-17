@@ -1,14 +1,22 @@
 package com.wellnest.app.service;
 
+import com.wellnest.app.dto.DietPlanDto;
+import com.wellnest.app.dto.TrainerFiltersDto;
 import com.wellnest.app.dto.TrainerResponse;
+import com.wellnest.app.dto.TrainerUpdateDto;
+import com.wellnest.app.model.DietPlan;
 import com.wellnest.app.model.Trainer;
+import com.wellnest.app.repository.DietPlanRepository;
 import com.wellnest.app.repository.TrainerRepository;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,71 +28,7 @@ public class TrainerService {
         this.trainerRepository = trainerRepository;
     }
 
-    // Initialize default trainers if database is empty
-    @PostConstruct
-    @Transactional
-    public void initializeDefaultTrainers() {
-        if (trainerRepository.count() == 0) {
-            List<Trainer> defaultTrainers = Arrays.asList(
-                    new Trainer(
-                            "Alex Johnson",
-                            Arrays.asList("Muscle Gain", "Strength Training"),
-                            8,
-                            4.9,
-                            "New York",
-                            Arrays.asList("Mon", "Wed", "Fri"),
-                            "Certified strength coach helping you build muscle and confidence.",
-                            "https://images.unsplash.com/photo-1567013127542-490d757e51fc?q=80&w=1887&auto=format&fit=crop",
-                            "alex.j@wellnest_trainers.com",
-                            "+1 (555) 012-3456"),
-                    new Trainer(
-                            "Sarah Lee",
-                            Arrays.asList("Yoga", "Flexibility", "Mental Wellness"),
-                            5,
-                            4.8,
-                            "Online",
-                            Arrays.asList("Tue", "Thu", "Sat"),
-                            "Yoga instructor focused on holistic health and mindfulness.",
-                            "https://images.unsplash.com/photo-1518611012118-696072aa579a?q=80&w=2070&auto=format&fit=crop",
-                            "sarah.yoga@wellnest_trainers.com",
-                            "+1 (555) 012-7890"),
-                    new Trainer(
-                            "Mike Chen",
-                            Arrays.asList("Weight Loss", "HIIT", "Cardio"),
-                            6,
-                            4.7,
-                            "San Francisco",
-                            Arrays.asList("Mon", "Tue", "Thu", "Fri"),
-                            "High energy trainer specialized in fat loss and metabolic conditioning.",
-                            "https://images.unsplash.com/photo-1627931105822-6b99d5543c3a?u=4r&q=80&w=2000&auto=format&fit=crop",
-                            "mike.chen@wellnest_trainers.com",
-                            "+1 (555) 012-4567"),
-                    new Trainer(
-                            "Jessica Davis",
-                            Arrays.asList("Rehabilitation", "Mobility", "Senior Fitness"),
-                            12,
-                            5.0,
-                            "Chicago",
-                            Arrays.asList("Wed", "Fri"),
-                            "Helping you recover from injuries and move pain-free.",
-                            "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?q=80&w=2070&auto=format&fit=crop",
-                            "jessica.rehab@wellnest_trainers.com",
-                            "+1 (555) 012-8901"),
-                    new Trainer(
-                            "David Kim",
-                            Arrays.asList("CrossFit", "Endurance", "Muscle Gain"),
-                            4,
-                            4.6,
-                            "Online",
-                            Arrays.asList("Sat", "Sun"),
-                            "Pushing your limits with functional fitness and endurance training.",
-                            "https://images.unsplash.com/photo-1594381898411-846e7d193883?q=80&w=1887&auto=format&fit=crop",
-                            "david.fit@wellnest_trainers.com",
-                            "+1 (555) 012-2345"));
-
-            trainerRepository.saveAll(defaultTrainers);
-        }
-    }
+    // Initialize default trainers method removed to support real user data only.
 
     public List<TrainerResponse> getAllTrainers() {
         return trainerRepository.findAllByOrderByRatingDesc()
@@ -145,6 +89,7 @@ public class TrainerService {
     private TrainerResponse toResponse(Trainer trainer) {
         return new TrainerResponse(
                 trainer.getId(),
+                trainer.getUser().getId(),
                 trainer.getName(),
                 trainer.getSpecialties(),
                 trainer.getExperience(),
@@ -155,5 +100,97 @@ public class TrainerService {
                 trainer.getImage(),
                 trainer.getEmail(),
                 trainer.getPhone());
+    }
+
+    public com.wellnest.app.dto.TrainerFiltersDto getFilters() {
+        List<Trainer> all = trainerRepository.findAll();
+        List<String> locations = all.stream()
+                .map(Trainer::getLocation)
+                .filter(l -> l != null && !l.isEmpty())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        List<String> specialties = all.stream()
+                .flatMap(t -> t.getSpecialties().stream())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        return new com.wellnest.app.dto.TrainerFiltersDto(locations, specialties);
+    }
+
+    public TrainerResponse updateProfile(String email, com.wellnest.app.dto.TrainerUpdateDto dto) {
+        Trainer trainer = trainerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Trainer not found"));
+
+        if (dto.getLocation() != null)
+            trainer.setLocation(dto.getLocation());
+        if (dto.getBio() != null)
+            trainer.setBio(dto.getBio());
+        if (dto.getSpecialties() != null)
+            trainer.setSpecialties(dto.getSpecialties());
+
+        return toResponse(trainerRepository.save(trainer));
+    }
+
+    @Autowired
+    private DietPlanRepository dietPlanRepository;
+
+    public void saveDietPlan(String trainerEmail, DietPlanDto dto) {
+        Trainer trainer = trainerRepository.findByEmail(trainerEmail)
+                .orElseThrow(() -> new RuntimeException("Trainer not found"));
+
+        // Verify connection exists? (Optional but good practice)
+        // For now, assume if they have the ID, they can set it.
+
+        Optional<DietPlan> existing = dietPlanRepository.findByTrainerIdAndUserId(trainer.getId(), dto.getClientId());
+        DietPlan plan = existing.orElse(new DietPlan());
+
+        plan.setTrainerId(trainer.getId());
+        plan.setUserId(dto.getClientId());
+        plan.setBreakfast(dto.getBreakfast());
+        plan.setLunch(dto.getLunch());
+        plan.setDinner(dto.getDinner());
+        plan.setSnacks(dto.getSnacks());
+        plan.setAdditionalNotes(dto.getAdditionalNotes());
+        plan.setUpdatedAt(LocalDateTime.now());
+
+        dietPlanRepository.save(plan);
+    }
+
+    public DietPlanDto getDietPlan(Long trainerId, Long clientId) {
+        DietPlan plan = dietPlanRepository.findByTrainerIdAndUserId(trainerId, clientId)
+                .orElse(null);
+
+        if (plan == null)
+            return null;
+
+        DietPlanDto dto = new DietPlanDto();
+        dto.setTrainerId(plan.getTrainerId());
+        dto.setClientId(plan.getUserId());
+        dto.setBreakfast(plan.getBreakfast());
+        dto.setLunch(plan.getLunch());
+        dto.setDinner(plan.getDinner());
+        dto.setSnacks(plan.getSnacks());
+        dto.setAdditionalNotes(plan.getAdditionalNotes());
+        return dto;
+    }
+
+    public TrainerResponse rateTrainer(Long trainerId, Double rating) {
+        Trainer trainer = trainerRepository.findById(trainerId)
+                .orElseThrow(() -> new RuntimeException("Trainer not found"));
+
+        double currentTotal = (trainer.getRating() != null ? trainer.getRating() : 0.0)
+                * (trainer.getRatingCount() != null ? trainer.getRatingCount() : 0);
+        int newCount = (trainer.getRatingCount() != null ? trainer.getRatingCount() : 0) + 1;
+
+        double newAvg = (currentTotal + rating) / newCount;
+        newAvg = Math.round(newAvg * 10.0) / 10.0;
+
+        trainer.setRating(newAvg);
+        trainer.setRatingCount(newCount);
+
+        return toResponse(trainerRepository.save(trainer));
     }
 }

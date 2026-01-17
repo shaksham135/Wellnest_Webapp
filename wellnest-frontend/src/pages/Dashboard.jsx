@@ -66,7 +66,7 @@ const Dashboard = () => {
         setMeals(m.data || []);
         setWater(wa.data || []);
         setSleep(s.data || []);
-      } catch {}
+      } catch { }
     };
 
     loadTrackers();
@@ -184,8 +184,8 @@ const Dashboard = () => {
 
               const category =
                 bmi < 18.5 ? "Underweight" :
-                bmi < 25 ? "Normal" :
-                bmi < 30 ? "Overweight" : "Obese";
+                  bmi < 25 ? "Normal" :
+                    bmi < 30 ? "Overweight" : "Obese";
 
               return (
                 <>
@@ -228,6 +228,21 @@ const Dashboard = () => {
         </button>
       </div>
 
+      {/* ================= TRAINER SETTINGS ================= */}
+      {(user.role === 'ROLE_TRAINER' || user.role === 'TRAINER') && (
+        <div className="dashboard-card" style={{ marginTop: 24, border: '1px solid var(--primary)', background: 'rgba(59, 130, 246, 0.05)' }}>
+          <div className="dashboard-header">
+            <div className="flex gap-sm">
+              <FiActivity style={{ color: "var(--primary)", fontSize: 26 }} />
+              <h3>Trainer Profile Settings</h3>
+            </div>
+            <p className="dashboard-subtitle">Update your availability and details for clients</p>
+          </div>
+
+          <TrainerSettingsForm userEmail={user.email} />
+        </div>
+      )}
+
       {/* ================= DAILY HEALTH TIP ================= */}
       <div className="dashboard-card" style={{ marginTop: 24 }}>
         <div className="dashboard-header">
@@ -241,10 +256,81 @@ const Dashboard = () => {
         {tipLoading
           ? <p>Loading tip…</p>
           : <p style={{ fontStyle: "italic", fontSize: 16 }}>
-              💡 {healthTip}
-            </p>}
+            💡 {healthTip}
+          </p>}
       </div>
 
+    </div>
+  );
+};
+
+const TrainerSettingsForm = () => {
+  const [formData, setFormData] = useState({
+    location: '',
+    specialties: '',
+    bio: ''
+  });
+  const [msg, setMsg] = useState('');
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async () => {
+    try {
+      // Convert comma string to list
+      const payload = {
+        ...formData,
+        specialties: formData.specialties.split(',').map(s => s.trim()).filter(s => s)
+      };
+      await import("../api/trainerApi").then(mod => mod.updateTrainerProfile(payload));
+      setMsg('Profile updated successfully!');
+      setTimeout(() => setMsg(''), 3000);
+    } catch (e) {
+      console.error(e);
+      setMsg('Failed to update.');
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div className="input-group">
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Location (City or 'Online')</label>
+        <input
+          type="text"
+          name="location"
+          className="auth-input"
+          value={formData.location}
+          onChange={handleChange}
+          placeholder="e.g. New York"
+          style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+        />
+      </div>
+      <div className="input-group">
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Specialties (comma separated)</label>
+        <input
+          type="text"
+          name="specialties"
+          className="auth-input"
+          value={formData.specialties}
+          onChange={handleChange}
+          placeholder="e.g. Yoga, Weight Loss, HIIT"
+          style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+        />
+      </div>
+      <div className="input-group">
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Bio</label>
+        <textarea
+          name="bio"
+          value={formData.bio}
+          onChange={handleChange}
+          placeholder="Tell clients about yourself..."
+          rows={3}
+          style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+        />
+      </div>
+      <button className="primary-btn" onClick={handleSubmit}>Save Changes</button>
+      {msg && <p style={{ color: msg.includes('Failed') ? 'red' : 'green', marginTop: '8px' }}>{msg}</p>}
     </div>
   );
 };

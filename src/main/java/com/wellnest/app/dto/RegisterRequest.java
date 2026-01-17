@@ -11,8 +11,10 @@ public class RegisterRequest {
     private String email;
     private String password;
     private String role;
+    private String phone;
+    private String fitnessGoal;
 
-    public RegisterRequest(){}
-
+    public RegisterRequest() {
+    }
 
 }

@@ -74,25 +74,28 @@ public class BlogService {
         }
     }
 
-    public List<BlogPostResponse> getAllPosts() {
+    public List<BlogPostResponse> getAllPosts(String userEmail) {
+        User user = userEmail != null ? userRepository.findByEmail(userEmail).orElse(null) : null;
         return blogPostRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .map(this::toResponse)
+                .map(post -> toResponse(post, user))
                 .collect(Collectors.toList());
     }
 
-    public List<BlogPostResponse> getPostsByCategory(String category) {
+    public List<BlogPostResponse> getPostsByCategory(String category, String userEmail) {
         if (category == null || category.equalsIgnoreCase("All")) {
-            return getAllPosts();
+            return getAllPosts(userEmail);
         }
+        User user = userEmail != null ? userRepository.findByEmail(userEmail).orElse(null) : null;
         return blogPostRepository.findByCategoryOrderByCreatedAtDesc(category)
                 .stream()
-                .map(this::toResponse)
+                .map(post -> toResponse(post, user))
                 .collect(Collectors.toList());
     }
 
-    public Optional<BlogPostResponse> getPostById(Long id) {
-        return blogPostRepository.findById(id).map(this::toResponse);
+    public Optional<BlogPostResponse> getPostById(Long id, String userEmail) {
+        User user = userEmail != null ? userRepository.findByEmail(userEmail).orElse(null) : null;
+        return blogPostRepository.findById(id).map(post -> toResponse(post, user));
     }
 
     @Transactional
@@ -127,7 +130,7 @@ public class BlogService {
         }
 
         BlogPost saved = blogPostRepository.save(post);
-        return toResponse(saved);
+        return toResponse(saved, user);
     }
 
     @Transactional
@@ -143,22 +146,57 @@ public class BlogService {
                 post.setCategory(dto.getCategory());
             if (dto.getImage() != null)
                 post.setImage(dto.getImage());
-            return toResponse(blogPostRepository.save(post));
+            return toResponse(blogPostRepository.save(post), null);
         });
     }
 
     @Transactional
-    public void deletePost(Long id) {
+    public void deletePost(Long id, String userEmail) {
+        BlogPost post = blogPostRepository.findById(id).orElseThrow(() -> new RuntimeException("Post not found"));
+        User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Ownership check
+        if (post.getUser() == null || !post.getUser().getId().equals(user.getId())) {
+            if (!"ROLE_ADMIN".equals(user.getRole())) {
+                throw new RuntimeException("Permission denied");
+            }
+        }
+
         blogCommentRepository.deleteByPostId(id);
         blogPostRepository.deleteById(id);
     }
 
     @Transactional
-    public Optional<BlogPostResponse> toggleLike(Long id) {
+    public Optional<BlogPostResponse> toggleLike(Long id, String userEmail) {
+        User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+
         return blogPostRepository.findById(id).map(post -> {
-            post.setLikes(post.getLikes() + 1);
-            return toResponse(blogPostRepository.save(post));
+            if (post.getLikedBy().contains(user)) {
+                post.getLikedBy().remove(user);
+            } else {
+                post.getLikedBy().add(user);
+            }
+            post.setLikes(post.getLikedBy().size());
+            return toResponse(blogPostRepository.save(post), user);
         });
+    }
+
+    @Transactional
+    public void deleteComment(Long commentId, String userEmail) {
+        BlogComment comment = blogCommentRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found"));
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        boolean isCommentOwner = comment.getUser() != null && comment.getUser().getId().equals(user.getId());
+        boolean isPostOwner = comment.getPost().getUser() != null
+                && comment.getPost().getUser().getId().equals(user.getId());
+
+        if (!isCommentOwner && !isPostOwner && !"ROLE_ADMIN".equals(user.getRole())) {
+            throw new RuntimeException("Permission denied");
+        }
+
+        blogCommentRepository.deleteById(commentId);
     }
 
     @Transactional
@@ -189,11 +227,12 @@ public class BlogService {
     public List<CommentResponse> getComments(Long postId) {
         return blogCommentRepository.findByPostIdOrderByCreatedAtAsc(postId)
                 .stream()
-                .map(c -> new CommentResponse(c.getId(), c.getText(), c.getUserName(), c.getCreatedAt()))
+                .map(c -> new CommentResponse(c.getId(), c.getText(), c.getUserName(), c.getCreatedAt(),
+                        c.getUser() != null ? c.getUser().getId() : null))
                 .collect(Collectors.toList());
     }
 
-    private BlogPostResponse toResponse(BlogPost post) {
+    private BlogPostResponse toResponse(BlogPost post, User currentUser) {
         BlogPostResponse response = new BlogPostResponse(
                 post.getId(),
                 post.getTitle(),
@@ -205,6 +244,17 @@ public class BlogService {
                 post.getImage(),
                 post.getLikes(),
                 post.getCreatedAt());
+
+        if (post.getUser() != null) {
+            response.setAuthorId(post.getUser().getId());
+        }
+
+        if (currentUser != null) {
+            response.setIsLiked(post.getLikedBy().contains(currentUser));
+        } else {
+            response.setIsLiked(false);
+        }
+
         response.setComments(getComments(post.getId()));
         return response;
     }

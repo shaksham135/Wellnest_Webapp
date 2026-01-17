@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiHeart, FiShare2, FiClock, FiUser, FiTrash2 } from 'react-icons/fi';
-import { getPostById, toggleLike, addComment, deletePost } from '../api/blogApi';
+import { getPostById, toggleLike, addComment, deletePost, deleteComment } from '../api/blogApi';
 
 const BlogPost = () => {
     const { id } = useParams();
@@ -21,6 +21,7 @@ const BlogPost = () => {
             try {
                 const response = await getPostById(id);
                 setPost(response.data);
+                setIsLiked(response.data.isLiked);
             } catch (err) {
                 console.error('Error fetching post:', err);
                 setError('Failed to load the article.');
@@ -36,7 +37,7 @@ const BlogPost = () => {
         try {
             const response = await toggleLike(post.id);
             setPost(response.data);
-            setIsLiked(!isLiked);
+            setIsLiked(response.data.isLiked);
         } catch (err) {
             console.error('Error liking post:', err);
             alert('Please log in to like posts.');
@@ -61,15 +62,30 @@ const BlogPost = () => {
         }
     };
 
+    const handleDeleteComment = async (commentId) => {
+        if (!window.confirm("Delete this comment?")) return;
+        try {
+            await deleteComment(commentId);
+            setPost(prev => ({
+                ...prev,
+                comments: prev.comments.filter(c => c.id !== commentId)
+            }));
+        } catch (err) {
+            console.error("Failed to delete comment", err);
+            alert("Failed to delete comment");
+        }
+    };
+
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
         if (!commentText.trim()) return;
 
         setCommenting(true);
         try {
-            // Get user name from localStorage if available
             const userName = localStorage.getItem('userName') || 'You';
             const response = await addComment(post.id, { text: commentText, userName });
+            // Updating comments list from response (which returns list of comments)
+            // But wait, addComment returns list of comments? Yes in backend.
             setPost({ ...post, comments: response.data });
             setCommentText('');
         } catch (err) {
@@ -96,6 +112,9 @@ const BlogPost = () => {
             </div>
         );
     }
+
+    const currentUserId = localStorage.getItem('userId');
+    const canDeletePost = post.authorId && String(post.authorId) === String(currentUserId);
 
     return (
         <div className="blog-page">
@@ -140,7 +159,6 @@ const BlogPost = () => {
                 </header>
 
                 <div className="blog-body">
-                    {/* Simple paragraph splitting for demo */}
                     {post.content && post.content.split('\n').map((para, i) => (
                         <p key={i}>{para}</p>
                     ))}
@@ -159,24 +177,42 @@ const BlogPost = () => {
                         <FiShare2 /> Share
                     </button>
 
-                    <button className="action-btn" onClick={handleDelete} style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
-                        <FiTrash2 /> Delete
-                    </button>
+                    {canDeletePost && (
+                        <button className="action-btn" onClick={handleDelete} style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+                            <FiTrash2 /> Delete
+                        </button>
+                    )}
                 </div>
 
                 <div className="comments-section">
                     <h3>Comments ({post.comments && post.comments.length})</h3>
 
                     <div className="comment-list">
-                        {post.comments && post.comments.map(comment => (
-                            <div key={comment.id} className="comment-item">
-                                <div className="comment-header">
-                                    <span className="comment-user">{comment.user}</span>
-                                    <span className="comment-date">{comment.date}</span>
+                        {post.comments && post.comments.map(comment => {
+                            const isCommentOwner = comment.userId && String(comment.userId) === String(currentUserId);
+                            const isPostOwner = post.authorId && String(post.authorId) === String(currentUserId);
+                            const canDeleteComment = isCommentOwner || isPostOwner;
+
+                            return (
+                                <div key={comment.id} className="comment-item">
+                                    <div className="comment-header">
+                                        <span className="comment-user">{comment.user}</span>
+                                        <span className="comment-date">{comment.date}</span>
+                                        {canDeleteComment && (
+                                            <button
+                                                onClick={() => handleDeleteComment(comment.id)}
+                                                className="ghost-btn"
+                                                style={{ marginLeft: 'auto', color: '#ef4444', padding: '4px', height: 'auto', fontSize: '12px' }}
+                                                title="Delete comment"
+                                            >
+                                                <FiTrash2 size={12} />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <p className="comment-text">{comment.text}</p>
                                 </div>
-                                <p className="comment-text">{comment.text}</p>
-                            </div>
-                        ))}
+                            );
+                        })}
 
                         {(!post.comments || post.comments.length === 0) && (
                             <p style={{ color: '#64748b', fontStyle: 'italic' }}>No comments yet. Be the first to share your thoughts!</p>

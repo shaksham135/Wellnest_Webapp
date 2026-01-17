@@ -40,8 +40,15 @@ public class JwtService {
         long now = System.currentTimeMillis();
         long expiry = now + 1000 * 60 * 60 * 24; // 24 hours
 
+        // Extract role
+        String role = userDetails.getAuthorities().stream()
+                .findFirst()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .orElse("USER");
+
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
+                .claim("role", role)
                 .setIssuedAt(new Date(now))
                 .setExpiration(new Date(expiry))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)

@@ -1,5 +1,6 @@
 // src/App.js
 import React, { useState, useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 import {
   BrowserRouter as Router,
   Routes,
@@ -16,8 +17,10 @@ import {
   FiBookOpen,
   FiUsers,
   FiTrendingUp,
+  FiCheck,
 } from "react-icons/fi";
 
+// Pages
 // Pages
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -29,6 +32,8 @@ import ResetPassword from "./pages/ResetPassword";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import TrainerMatching from "./pages/TrainerMatching";
+import ClientDetails from "./pages/ClientDetails"; // Import ClientDetails
+import MyTrainers from "./pages/MyTrainers"; // Import MyTrainers
 import Trackers from "./pages/Trackers";
 import BmiCalculator from "./pages/BmiCalculator";
 import AnalyticsPage from "./pages/AnalyticsPage";
@@ -47,23 +52,43 @@ import ThemeToggle from "./components/ThemeToggle";
 
 // Styles
 import "./index.css";
+import "./trainer.css";
+
+const getUserRole = () => {
+  const token = localStorage.getItem("token");
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.role;
+  } catch (e) {
+    return null;
+  }
+};
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(
     !!localStorage.getItem("token")
   );
+  const [userRole, setUserRole] = useState(getUserRole());
 
   useEffect(() => {
     const handleStorage = () => {
       setIsLoggedIn(!!localStorage.getItem("token"));
+      setUserRole(getUserRole());
     };
 
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    setUserRole(getUserRole());
+  };
+
   return (
     <Router>
+      <Toaster position="top-right" toastOptions={{ style: { fontSize: '14px', fontWeight: 500 } }} />
       <header className="top-nav">
         <div className="logo">
           <span className="logo-dot" />
@@ -118,8 +143,15 @@ const App = () => {
 
               <NavLink to="/trainers" className="nav-link">
                 <FiUsers />
-                <span>Trainer Matching</span>
+                <span>{userRole === 'ROLE_TRAINER' ? 'My Clients' : 'Trainer Matching'}</span>
               </NavLink>
+
+              {userRole === 'ROLE_USER' && (
+                <NavLink to="/my-trainers" className="nav-link">
+                  <FiCheck />
+                  <span>My Trainers</span>
+                </NavLink>
+              )}
 
               {/* 🌗 THEME TOGGLE */}
               <ThemeToggle />
@@ -133,7 +165,7 @@ const App = () => {
           {/* Public routes */}
           <Route
             path="/"
-            element={<Login onLoginSuccess={() => setIsLoggedIn(true)} />}
+            element={<Login onLoginSuccess={handleLoginSuccess} />}
           />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -166,6 +198,7 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          {/* ... analytics sub-routes ... */}
           <Route
             path="/analytics/workout"
             element={
@@ -236,7 +269,16 @@ const App = () => {
             path="/trainers"
             element={
               <ProtectedRoute>
-                <TrainerMatching />
+                {userRole === 'ROLE_TRAINER' ? <ClientDetails /> : <TrainerMatching />}
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/my-trainers"
+            element={
+              <ProtectedRoute>
+                <MyTrainers />
               </ProtectedRoute>
             }
           />

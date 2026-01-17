@@ -65,6 +65,8 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/blog/**").permitAll()
                         // Trainer endpoints - allow public reading
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/trainers/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/blog/posts/{id}/comments")
+                        .permitAll()
                         .anyRequest().authenticated() // rest require token
                 )
                 .authenticationProvider(authProvider())

@@ -31,6 +31,9 @@ public class Trainer {
 
     private Double rating; // 0.0 to 5.0
 
+    @Column(columnDefinition = "integer default 0")
+    private Integer ratingCount = 0;
+
     private String location; // City or "Online"
 
     @ElementCollection
