@@ -334,6 +334,8 @@
     flex-direction: column;
     background: var(--card-bg);
     position: relative;
+    height: 100%; /* Ensure it fills the grid cell */
+    overflow: hidden; /* Contain children */
 }
 
 .chat-header {
@@ -662,40 +664,7 @@
     pointer-events: none;
 }
 
-.chat-layout {
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    gap: 0;
-    height: 600px;
-    background: var(--card-bg);
-    border-radius: 16px;
-    overflow: hidden;
-    border: 1px solid var(--card-border);
-}
 
-.chat-sidebar {
-    border-right: 1px solid var(--card-border);
-    overflow-y: auto;
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.chat-user-item {
-    padding: 16px;
-    cursor: pointer;
-    border-bottom: 1px solid var(--card-border);
-    color: var(--text-main);
-}
-
-.chat-user-item:hover,
-.chat-user-item.active {
-    background: rgba(59, 130, 246, 0.1);
-}
-
-.chat-main {
-    display: flex;
-    flex-direction: column;
-    background: var(--card-bg);
-}
 
 .detail-grid {
     display: grid;

@@ -281,6 +281,15 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             List<WeightLog> allWeightLogs = weightLogRepository.findByUserIdOrderByLogDateAsc(user.getId());
             double initialWeight = allWeightLogs.isEmpty() ? currentWeight : allWeightLogs.get(0).getWeightKg();
 
+            System.out.println("DEBUG GOAL: Current Weight = " + currentWeight);
+            System.out.println("DEBUG GOAL: Target Weight = " + targetWeight);
+            System.out.println("DEBUG GOAL: Initial Weight = " + initialWeight);
+            System.out.println("DEBUG GOAL: Logs Count = " + allWeightLogs.size());
+            if (!allWeightLogs.isEmpty()) {
+                System.out.println("DEBUG GOAL: First Log Date = " + allWeightLogs.get(0).getLogDate());
+                System.out.println("DEBUG GOAL: First Log Weight = " + allWeightLogs.get(0).getWeightKg());
+            }
+
             double weightDiff = Math.abs(currentWeight - initialWeight);
             double totalToChange = Math.abs(targetWeight - initialWeight);
 

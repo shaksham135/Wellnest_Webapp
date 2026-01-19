@@ -85,14 +85,14 @@ const TrainerDashboard = ({ user }) => {
 
                 <div className="trainer-stat-card green">
                     <div className="stat-icon-wrapper">
-                        <FiDollarSign />
+                        <FiStar />
                     </div>
                     <div>
-                        <h3>Earnings</h3>
-                        <div className="stat-value">${stats.earnings}</div>
+                        <h3>Client Rating</h3>
+                        <div className="stat-value">{stats.rating} <span style={{fontSize: '1rem', color: 'var(--text-muted)'}}>/ 5.0</span></div>
                     </div>
-                    <p className="stat-label">This month</p>
-                    <div className="stat-bg-icon"><FiDollarSign /></div>
+                    <p className="stat-label">Based on feedback</p>
+                    <div className="stat-bg-icon"><FiStar /></div>
                 </div>
             </div>
 

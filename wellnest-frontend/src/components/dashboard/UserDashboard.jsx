@@ -59,18 +59,22 @@ const UserDashboard = ({ user }) => {
     }, []);
 
     /* ---------------- DAILY HEALTH TIP ---------------- */
+    /* ---------------- DAILY HEALTH TIP ---------------- */
     useEffect(() => {
-        const tips = [
-            "Drink at least 8 glasses of water.",
-            "Get 7–9 hours of sleep daily.",
-            "Add fruits and vegetables to your meals.",
-            "Walk or exercise for 30 minutes.",
-            "Practice deep breathing to reduce stress."
-        ];
-
-        const tip = tips[new Date().getDate() % tips.length];
-        setHealthTip(tip);
-        setTipLoading(false);
+        const fetchTip = async () => {
+            try {
+                const res = await apiClient.get('/health-tips/daily');
+                if (res.data && res.data.tip) {
+                    setHealthTip(res.data.tip);
+                }
+            } catch (error) {
+                console.error("Failed to fetch health tip", error);
+                setHealthTip("Stay hydrated and keep moving!"); // Fallback
+            } finally {
+                setTipLoading(false);
+            }
+        };
+        fetchTip();
     }, []);
 
     /* ---------------- CALCULATIONS ---------------- */
@@ -148,7 +152,7 @@ const UserDashboard = ({ user }) => {
                             <div>Based on height/weight</div>
                         </div>
                     </div>
-                    <Link to="/profile" className="link-btn">Calc</Link>
+                    <Link to="/bmi-calculator" className="link-btn">Calculator</Link>
                 </div>
             </div>
 
@@ -190,20 +194,45 @@ const UserDashboard = ({ user }) => {
             </div>
 
             {/* ================= DAILY HEALTH TIP ================= */}
-            <div className="dashboard-card" style={{ maxWidth: '100%', marginTop: '24px' }}>
-                <div className="dashboard-header">
-                    <div className="flex gap-sm">
-                        <FiSun style={{ color: "#fbbf24", fontSize: 26 }} />
-                        <h3>Daily Health Tip</h3>
+            {/* ================= DAILY HEALTH TIP ================= */}
+            <div className="dashboard-card" style={{
+                maxWidth: '100%',
+                marginTop: '24px',
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                color: 'white',
+                border: 'none',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ position: 'relative', zIndex: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                        <div style={{
+                            background: 'rgba(255,255,255,0.2)',
+                            borderRadius: '50%', padding: '10px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                            <FiSun style={{ color: "white", fontSize: 24 }} />
+                        </div>
+                        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'white' }}>Daily Health Tip</h3>
                     </div>
-                    <p className="dashboard-subtitle">Your wellness tip for today</p>
+
+                    {tipLoading
+                        ? <p style={{ opacity: 0.8 }}>Fetching your tip...</p>
+                        : <div style={{ fontSize: '1.2rem', fontWeight: 600, lineHeight: '1.6', fontStyle: 'italic', opacity: 0.95 }}>
+                            "{healthTip}"
+                        </div>}
                 </div>
 
-                {tipLoading
-                    ? <p>Loading tip…</p>
-                    : <p style={{ fontStyle: "italic", fontSize: 16 }}>
-                        💡 {healthTip}
-                    </p>}
+                {/* Decorative Background Icon */}
+                <FiSun style={{
+                    position: 'absolute',
+                    right: -20, bottom: -40,
+                    fontSize: '180px',
+                    color: 'white',
+                    opacity: 0.1,
+                    transform: 'rotate(-20deg)',
+                    pointerEvents: 'none'
+                }} />
             </div>
         </>
     );

@@ -23,47 +23,74 @@ body {
 /* DARK (DEFAULT) */
 :root,
 [data-theme="dark"] {
-  --primary: #3b82f6;
+  --primary: #4f46e5;
+  /* More vibrant Indigo */
+  --primary-glow: rgba(79, 70, 229, 0.5);
 
-  --bg-main: radial-gradient(circle at top,
-      #0b3aa4 0%,
-      #08162f 45%,
-      #040b18 100%);
+  /* Richer, deeper background */
+  --bg-main: radial-gradient(circle at 50% 0%,
+      #1e1b4b 0%,
+      #0f172a 40%,
+      #020617 100%);
 
-  --card-bg: rgba(15, 23, 42, 0.65);
-  --card-border: rgba(148, 163, 184, 0.15);
+  /* High Glass Effect */
+  --card-bg: rgba(30, 41, 59, 0.4);
+  /* Much more transparent */
+  --card-border: rgba(255, 255, 255, 0.1);
+  /* Crisp white border */
 
-  --text-main: #e6f3ff;
-  --text-muted: #9fb9da;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
 
-  --glass-blur: blur(14px);
+  --glass-blur: blur(24px);
+  /* Heavy Blur */
 
-  --shadow-lg: 0 25px 60px rgba(0, 0, 0, 0.55);
-  --shadow-md: 0 12px 30px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(79, 70, 229, 0.1);
+  /* Subtle color shine */
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 /* LIGHT */
 [data-theme="light"] {
-  --primary: #2563eb;
+  --primary: #4f46e5;
+  /* Deep Indigo - more professional than bright blue */
+  --primary-glow: rgba(79, 70, 229, 0.3);
 
-  --bg-main: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  /* Modern "Clean" Background: subtle warmth */
+  --bg-main: radial-gradient(circle at 50% 10%,
+      #fff1f2 0%,
+      /* Very Light Rose */
+      #eff6ff 50%,
+      /* Very Light Blue */
+      #f8fafc 100%);
+  /* Slate White */
 
-  --card-bg: #ffffff;
-  --card-border: #e2e8f0;
+  /* Crisper Cards */
+  --card-bg: rgba(255, 255, 255, 0.9);
+  /* Whiter, less transparent */
+  --card-border: #ffffff;
+  /* pure white border for "cutout" look */
 
-  --text-main: #0f172a;
-  --text-muted: #475569;
+  --text-main: #1e1b4b;
+  /* Deep Navy (High Contrast) */
+  --text-muted: #64748b;
+  /* Slate 500 */
 
-  --glass-blur: blur(0px);
+  --glass-blur: blur(16px);
 
-  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.12);
-  --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.08);
+  /* Softer, larger diffused shadows */
+  --shadow-lg: 0 25px 50px -12px rgba(99, 102, 241, 0.25);
+  /* Indigo Shadow */
+  --shadow-md: 0 10px 25px -5px rgba(99, 102, 241, 0.15);
 }
 
 /* ---------------- BODY ---------------- */
 body {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Outfit", "Inter", system-ui, sans-serif;
+  /* Try Outfit if available, else Inter */
   background: var(--bg-main);
+  background-attachment: fixed;
+  /* Parallax feel */
   color: var(--text-main);
   min-height: 100vh;
   transition: background 0.4s ease, color 0.25s ease;
@@ -72,16 +99,34 @@ body {
 /* ---------------- MAIN WRAPPER ---------------- */
 main {
   padding: 32px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 /* ---------------- COMMON CARD BASE ---------------- */
 .card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 20px;
+  border-radius: 24px;
+  /* More rounded */
   backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-lg);
   color: var(--text-main);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Shine effect on top of cards */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  opacity: 0.5;
 }
 
 /* =====================================================
@@ -305,28 +350,62 @@ main {
 .input-group select,
 .role-select {
   width: 100%;
-  padding: 12px 16px 12px 40px;
-  border-radius: 12px;
+  padding: 14px 18px 14px 44px;
+  /* Slightly taller for modern feel */
+  border-radius: 14px;
+  /* Rounder */
 
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.2);
+  /* Darker, cleaner background (removes milky effect) */
   border: 1px solid var(--card-border);
 
   color: var(--text-main);
-  font-size: 14px;
+  font-size: 15px;
+  /* Slightly larger text */
   outline: none;
 
-  transition: border 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .input-group input::placeholder {
   color: var(--text-muted);
+  opacity: 0.7;
 }
 
 .input-group input:focus,
 .role-select:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+  /* Soft glow ring */
+  background: rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+/* ---------------- CUSTOM SCROLLBAR ---------------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.5);
+  /* Subtle dark thumb */
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(59, 130, 246, 0.5);
+}
+
+/* Light Mode Scrollbar */
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.5);
 }
 
 /* ---------- ROLE ROW ---------- */
@@ -598,11 +677,14 @@ main {
 }
 
 [data-theme="light"] .dash-box {
-  background: #f8fafc;
+  background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
+  border: 1px solid #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  /* Subtle lift */
 }
 
 .dash-box:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-md);
 }
 

@@ -47,9 +47,15 @@ public class UserController {
         String email = auth.getName();
         User user = userService.findByEmail(email).orElseThrow();
 
+        if (req.getWeightKg() != null && !req.getWeightKg().equals(user.getWeightKg())) {
+            userService.updateWeight(user, req.getWeightKg());
+        } else {
+            user.setWeightKg(req.getWeightKg());
+        }
+
         user.setAge(req.getAge());
         user.setHeightCm(req.getHeightCm());
-        user.setWeightKg(req.getWeightKg());
+        // Weight set above or in updateWeight
         user.setGender(req.getGender());
         user.setFitnessGoal(req.getFitnessGoal());
         user.setPhone(req.getPhone());
@@ -72,8 +78,7 @@ public class UserController {
     @PutMapping("/me/target-weight")
     public ResponseEntity<Void> updateTargetWeight(
             @RequestBody UpdateTargetWeightRequest req,
-            Authentication auth
-    ) {
+            Authentication auth) {
         String email = auth.getName();
         userService.updateTargetWeight(email, req.getTargetWeightKg());
         return ResponseEntity.ok().build();

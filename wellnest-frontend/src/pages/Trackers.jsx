@@ -1,5 +1,6 @@
 // src/pages/Trackers.jsx
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   createWorkout,
   createMeal,
@@ -17,7 +18,8 @@ import {
 import { FiTrash2 } from "react-icons/fi";
 
 const Trackers = () => {
-  const [tab, setTab] = useState("workout");
+  const location = useLocation();
+  const [tab, setTab] = useState(location.state?.tab || "workout");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(""); // success or error messages
   const [messageType, setMessageType] = useState("info"); // "info" | "error" | "success"
