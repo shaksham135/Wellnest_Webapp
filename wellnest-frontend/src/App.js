@@ -12,7 +12,6 @@ import {
   FiActivity,
   FiBookOpen,
   FiUsers,
-  FiTrendingUp,
 } from "react-icons/fi";
 
 // Pages

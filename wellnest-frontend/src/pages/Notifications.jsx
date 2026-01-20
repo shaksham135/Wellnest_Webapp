@@ -1,6 +1,6 @@
 // src/pages/Notifications.jsx
 import React from "react";
-import { FiBell, FiCheck, FiChevronLeft, FiClock } from "react-icons/fi";
+import { FiBell, FiCheck, FiChevronLeft } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { getNotifications, markAsRead, markAllAsRead } from "../api/notificationApi";
 
