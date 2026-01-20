@@ -238,6 +238,11 @@ main {
 }
 
 /* ---------------- RESPONSIVE NAV ---------------- */
+.mobile-controls {
+  display: none;
+  /* Hidden on desktop */
+}
+
 .nav-toggle {
   display: none;
   /* Hidden on desktop */
@@ -294,6 +299,12 @@ main {
   }
 
   /* Hamburger Button Visible */
+  .mobile-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   .nav-toggle {
     display: flex;
     align-items: center;

@@ -39,8 +39,8 @@ const Navbar = ({ isLoggedIn, userRole }) => {
                     Wellnest
                 </Link>
 
-                {/* Mobile Hamburger Toggle */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {/* Mobile Hamburger Toggle + Theme */}
+                <div className="mobile-controls">
                     <ThemeToggle />
                     <button className="nav-toggle" onClick={toggleMenu} aria-label="Toggle Navigation" aria-expanded={isOpen}>
                         {isOpen ? <FiX /> : <FiMenu />}
