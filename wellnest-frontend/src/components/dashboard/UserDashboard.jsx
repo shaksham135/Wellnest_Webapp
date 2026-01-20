@@ -61,12 +61,12 @@ const UserDashboard = ({ user }) => {
         const fetchTip = async () => {
             try {
                 const res = await apiClient.get('/health-tips/daily');
-                if (res.data && res.data.tip) {
-                    setHealthTip(res.data.tip);
+                if (res.data) {
+                    setHealthTip(res.data);
                 }
             } catch (error) {
                 console.error("Failed to fetch health tip", error);
-                setHealthTip("Stay hydrated and keep moving!"); // Fallback
+                setHealthTip({ tip: "Stay hydrated and keep moving!" }); // Fallback
             } finally {
                 setTipLoading(false);
             }
@@ -215,8 +215,20 @@ const UserDashboard = ({ user }) => {
 
                     {tipLoading
                         ? <p style={{ opacity: 0.8 }}>Fetching your tip...</p>
-                        : <div style={{ fontSize: '1.2rem', fontWeight: 600, lineHeight: '1.6', fontStyle: 'italic', opacity: 0.95 }}>
-                            "{healthTip}"
+                        : <div>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 600, lineHeight: '1.6', fontStyle: 'italic', opacity: 0.95, marginBottom: '8px' }}>
+                                "{healthTip.tip || healthTip}"
+                            </div>
+                            {healthTip.link && (
+                                <a
+                                    href={healthTip.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ color: 'white', textDecoration: 'underline', fontSize: '0.9rem', opacity: 0.9 }}
+                                >
+                                    Read more from {healthTip.source || "Source"}
+                                </a>
+                            )}
                         </div>}
                 </div>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { FiMessageSquare, FiUsers, FiClock, FiCheck, FiX, FiSend, FiActivity, FiSun, FiMoon, FiCoffee, FiSunrise, FiArrowLeft } from 'react-icons/fi';
+import { FiMessageSquare, FiUsers, FiClock, FiCheck, FiX, FiSend, FiActivity, FiSun, FiMoon, FiCoffee, FiSunrise } from 'react-icons/fi';
 import { getTrainerRequests, updateRequestStatus, getChatHistory, sendMessage, getClientDetails, saveDietPlan, getDietPlanForClient } from '../api/trainerApi';
 
 const ClientDetails = () => {

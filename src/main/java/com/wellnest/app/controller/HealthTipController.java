@@ -4,15 +4,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.Collections;
 import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/health-tips")
 public class HealthTipController {
 
-    private final List<String> TIPS = List.of(
+    private final List<String> FALLBACK_TIPS = List.of(
             "Drink at least 8 glasses of water today for optimal hydration.",
             "Take a 10-minute walk after lunch to boost digestion.",
             "Aim for 7-9 hours of quality sleep tonight.",
@@ -39,14 +43,63 @@ public class HealthTipController {
             "Cut down on added salt in your meals.",
             "Make your bedroom a dark, cool sanctuary for sleep.");
 
+    private final List<String> KEYWORDS = List.of("nutrition", "exercise", "sleep", "stress", "heart", "fitness",
+            "wellness");
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final Random random = new Random();
+
     @GetMapping("/daily")
     public ResponseEntity<?> getDailyTip() {
-        // Use DayOfYear to consistently show the same tip for the whole day for
-        // everyone
+        try {
+            // Pick a random keyword
+            String keyword = KEYWORDS.get(random.nextInt(KEYWORDS.size()));
+            String url = "https://health.gov/myhealthfinder/api/v4/topicsearch.json?keyword=" + keyword;
+
+            // Fetch from API
+            Map response = restTemplate.getForObject(url, Map.class);
+
+            if (response != null && response.containsKey("Result")) {
+                Map result = (Map) response.get("Result");
+                if (result.containsKey("Resources")) {
+                    Map resources = (Map) result.get("Resources");
+                    if (resources.containsKey("Resource")) {
+                        Object resourceObj = resources.get("Resource");
+                        List<Map<String, Object>> resourceList;
+
+                        if (resourceObj instanceof List) {
+                            resourceList = (List<Map<String, Object>>) resourceObj;
+                        } else if (resourceObj instanceof Map) {
+                            resourceList = Collections.singletonList((Map<String, Object>) resourceObj);
+                        } else {
+                            resourceList = new ArrayList<>();
+                        }
+
+                        if (!resourceList.isEmpty()) {
+                            // Pick a random item from the results
+                            Map<String, Object> randomItem = resourceList.get(random.nextInt(resourceList.size()));
+                            String title = (String) randomItem.get("Title");
+                            String link = (String) randomItem.get("AccessibleVersion");
+
+                            // Sometimes titles are too long or specific, but it's better than nothing
+                            return ResponseEntity.ok(Map.of(
+                                    "tip", title,
+                                    "source", "MyHealthfinder",
+                                    "link", link != null ? link : ""));
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to fetch health tip from API: " + e.getMessage());
+            // Fallback to local list on error
+        }
+
+        // Fallback Logic
         int dayOfYear = LocalDate.now().getDayOfYear();
-        String tip = TIPS.get(dayOfYear % TIPS.size());
+        String tip = FALLBACK_TIPS.get(dayOfYear % FALLBACK_TIPS.size());
 
         return ResponseEntity.ok(Map.of(
-                "tip", tip));
+                "tip", tip,
+                "source", "Wellnest (Daily)"));
     }
 }
