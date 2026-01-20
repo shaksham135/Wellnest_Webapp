@@ -189,7 +189,7 @@ const GoalProgress = ({ data, onGoalSet }) => {
     };
 
     return (
-        <div className="goal-card-content" style={{ padding: '24px' }}>
+        <div className="goal-card-content p-6-responsive">
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
                 <div>

@@ -107,11 +107,38 @@
 
 /* Responsive updates */
 @media (max-width: 768px) {
+    .analytics-page-container {
+        padding: 0 16px;
+        /* Explicit horizontal padding */
+        width: 100%;
+        box-sizing: border-box;
+    }
+
     .analytics-grid {
-        grid-template-columns: 1fr;
+        display: flex;
+        /* Switch to flex column to prevent grid overflow quirks */
+        flex-direction: column;
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+        width: 100%;
     }
 
     .analytics-split-view {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .analytics-box {
+        padding: 1rem;
+        /* Slightly reduced padding */
+        width: 100%;
+        margin: 0 auto;
+    }
+
+    /* Ensure Chart containers allow shrinking */
+    .chart-container {
+        width: 100%;
+        overflow: hidden;
     }
 }

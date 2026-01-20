@@ -45,3 +45,18 @@
     color: #ef4444;
     margin-top: 1rem;
 }
+
+.p-6-responsive {
+    padding: 24px;
+}
+
+@media (max-width: 768px) {
+    .p-6-responsive {
+        padding: 16px;
+        /* Decrease padding on mobile */
+    }
+
+    .goal-analytics-container {
+        width: 100%;
+    }
+}

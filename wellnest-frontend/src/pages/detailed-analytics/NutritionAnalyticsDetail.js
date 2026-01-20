@@ -45,8 +45,8 @@ const NutritionAnalyticsDetail = () => {
             r: {
                 angleLines: { color: 'rgba(148, 163, 184, 0.2)' },
                 grid: { color: 'rgba(148, 163, 184, 0.2)' },
-                pointLabels: { color: '#cbd5e1', font: { size: 12 } },
-                ticks: { color: '#9ca3af', backdropColor: 'rgba(15, 23, 42, 0.8)' },
+                pointLabels: { color: '#64748b', font: { size: 12 } },
+                ticks: { color: '#64748b', backdropColor: 'transparent' },
             },
         },
     };
@@ -83,8 +83,8 @@ const NutritionAnalyticsDetail = () => {
         responsive: true,
         plugins: { legend: { display: false } },
         scales: {
-            x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
-            y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
+            x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(148, 163, 184, 0.15)' } },
+            y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(148, 163, 184, 0.15)' } },
         },
     };
 

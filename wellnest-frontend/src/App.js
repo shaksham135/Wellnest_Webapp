@@ -29,6 +29,7 @@ import Profile from "./pages/Profile";
 import SetupProfile from "./pages/SetupProfile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Navbar from "./components/layout/Navbar";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import TrainerMatching from "./pages/TrainerMatching";
@@ -91,76 +92,7 @@ const App = () => {
   return (
     <Router>
       <Toaster position="top-right" toastOptions={{ style: { fontSize: '14px', fontWeight: 500 } }} />
-      <header className="top-nav">
-        <div className="logo">
-          <span className="logo-dot" />
-          Wellnest
-        </div>
-
-        <nav>
-          {/* Not logged in */}
-          {!isLoggedIn && (
-            <>
-              <NavLink to="/" className="nav-link">
-                <FiHome />
-                <span>Login</span>
-              </NavLink>
-              <NavLink to="/register" className="nav-link">
-                <FiUserPlus />
-                <span>Register</span>
-              </NavLink>
-
-              {/* Theme toggle even on login page (optional) */}
-              <ThemeToggle />
-            </>
-          )}
-
-          {/* Logged in */}
-          {isLoggedIn && (
-            <>
-              <NavLink to="/dashboard" className="nav-link">
-                <FiBarChart2 />
-                <span>Dashboard</span>
-              </NavLink>
-
-              <NavLink to="/trackers" className="nav-link">
-                <FiActivity />
-                <span>Trackers</span>
-              </NavLink>
-
-              <NavLink to="/analytics" className="nav-link">
-                <FiTrendingUp />
-                <span>Analytics</span>
-              </NavLink>
-
-              <NavLink to="/profile" className="nav-link">
-                <FiUser />
-                <span>Profile</span>
-              </NavLink>
-
-              <NavLink to="/blog" className="nav-link">
-                <FiBookOpen />
-                <span>Health Blog</span>
-              </NavLink>
-
-              <NavLink to="/trainers" className="nav-link">
-                <FiUsers />
-                <span>{userRole === 'ROLE_TRAINER' ? 'My Clients' : 'Trainer Matching'}</span>
-              </NavLink>
-
-              {userRole === 'ROLE_USER' && (
-                <NavLink to="/my-trainers" className="nav-link">
-                  <FiCheck />
-                  <span>My Trainers</span>
-                </NavLink>
-              )}
-
-              {/* 🌗 THEME TOGGLE */}
-              <ThemeToggle />
-            </>
-          )}
-        </nav>
-      </header>
+      <Navbar isLoggedIn={isLoggedIn} userRole={userRole} />
 
       <main>
         <Routes>

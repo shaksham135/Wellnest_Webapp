@@ -42,7 +42,7 @@ const WorkoutAnalyticsDetail = () => {
             legend: {
                 position: 'right',
                 labels: {
-                    color: '#9ca3af',
+                    color: '#64748b',
                     padding: 20,
                 }
             },
@@ -80,8 +80,8 @@ const WorkoutAnalyticsDetail = () => {
             legend: { display: false },
         },
         scales: {
-            x: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
-            y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } },
+            x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(148, 163, 184, 0.15)' } },
+            y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(148, 163, 184, 0.15)' } },
         },
     };
 

@@ -40,15 +40,15 @@ const SleepAnalyticsDetail = () => {
         responsive: true,
         interaction: { mode: 'index', intersect: false },
         plugins: {
-            legend: { 
+            legend: {
                 position: 'bottom',
-                labels: { color: '#9ca3af' }
+                labels: { color: '#64748b' }
             },
         },
         scales: {
             x: {
-                ticks: { color: '#9ca3af' },
-                grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                ticks: { color: '#64748b' },
+                grid: { color: 'rgba(148, 163, 184, 0.15)' }
             },
             y: {
                 type: 'linear',
@@ -56,7 +56,7 @@ const SleepAnalyticsDetail = () => {
                 position: 'left',
                 title: { display: true, text: 'Duration (h)', color: '#a78bfa' },
                 ticks: { color: '#a78bfa' },
-                grid: { color: 'rgba(148, 163, 184, 0.1)' }
+                grid: { color: 'rgba(148, 163, 184, 0.15)' }
             },
             y1: {
                 type: 'linear',

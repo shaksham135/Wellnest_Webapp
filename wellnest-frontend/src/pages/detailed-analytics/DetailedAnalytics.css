@@ -38,3 +38,15 @@
 .detailed-analytics-card li {
     margin-bottom: 1rem;
 }
+
+/* Mobile: Stack columns */
+@media (max-width: 768px) {
+    .detailed-analytics-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .detailed-analytics-card {
+        padding: 1rem;
+    }
+}

@@ -238,17 +238,137 @@ main {
 }
 
 /* ---------------- RESPONSIVE NAV ---------------- */
+.nav-toggle {
+  display: none;
+  /* Hidden on desktop */
+  background: transparent;
+  border: none;
+  font-size: 28px;
+  /* Slightly larger */
+  color: var(--text-main);
+  cursor: pointer;
+  padding: 4px;
+  z-index: 101;
+  /* Above sidebar */
+}
+
+/* Sidebar Backdrop */
+.nav-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  /* Semi-transparent black */
+  backdrop-filter: blur(4px);
+  z-index: 90;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.nav-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.nav-bar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 @media (max-width: 768px) {
   .top-nav {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 16px;
+    align-items: stretch;
+    /* Full width for children */
+    gap: 0;
+    padding: 12px 20px;
   }
 
-  .top-nav nav {
+  .nav-bar-header {
     width: 100%;
-    justify-content: flex-start;
+    justify-content: space-between;
+  }
+
+  /* Hamburger Button Visible */
+  .nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Sidebar Menu */
+  .nav-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    /* Slide from right */
+    width: 280px;
+    height: 100vh;
+
+    background: var(--bg-main);
+    border-left: 1px solid var(--card-border);
+    /* backdrop-filter: blur(20px);  Removed blur, prefer solid background for readability */
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
+
+    display: flex;
+    /* Always flex, visibility controlled by transform */
+    flex-direction: column;
+    padding: 80px 24px 24px;
+    /* Top padding for close button/header */
+    gap: 8px;
+
+    z-index: 100;
+    transform: translateX(100%);
+    /* Hidden by default */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  [data-theme="light"] .nav-menu {
+    background: #ffffff;
+    border-left: 1px solid #e2e8f0;
+  }
+
+  /* Show Sidebar */
+  .nav-menu.open {
+    transform: translateX(0);
+  }
+
+  /* Reset previous slideDown animation */
+  .top-nav nav {
+    animation: none;
+  }
+
+  /* Remove old open styles since we use transform now */
+  .top-nav nav.open {
+    display: flex;
+  }
+
+  .nav-link {
+    width: 100%;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .nav-theme-toggle {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
