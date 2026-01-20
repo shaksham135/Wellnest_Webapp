@@ -5,13 +5,9 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  NavLink,
 } from "react-router-dom";
 
 import {
-  FiHome,
-  FiUserPlus,
-  FiUser,
   FiBarChart2,
   FiActivity,
   FiBookOpen,
@@ -51,7 +47,6 @@ import HealthMetricsDetail from "./pages/detailed-analytics/HealthMetricsDetail"
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
-import ThemeToggle from "./components/ThemeToggle";
 
 // Styles
 import "./index.css";
