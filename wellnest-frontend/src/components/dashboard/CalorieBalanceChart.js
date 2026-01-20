@@ -83,6 +83,8 @@ const CalorieBalanceChart = ({ burnedData, consumedData }) => {
                 backgroundColor: 'rgba(244, 114, 182, 0.7)', // Pink
                 borderColor: '#f472b6',
                 borderWidth: 1,
+                barPercentage: 0.6,
+                categoryPercentage: 0.8,
             },
             {
                 label: 'Calories Burned',
@@ -90,6 +92,8 @@ const CalorieBalanceChart = ({ burnedData, consumedData }) => {
                 backgroundColor: 'rgba(56, 189, 248, 0.7)', // Light Blue
                 borderColor: '#38bdf8',
                 borderWidth: 1,
+                barPercentage: 0.6,
+                categoryPercentage: 0.8,
             },
         ],
     };

@@ -1645,10 +1645,169 @@ main {
   font-weight: 600;
 }
 
+/* ---------- TRAINER ACTIONS ---------- */
 .trainer-actions {
   margin-top: 14px;
   display: flex;
   gap: 10px;
+}
+
+/* ---------- CLIENT LIST GRID (TRAINER BOARD) ---------- */
+.client-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.client-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.client-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.client-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.client-card p {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+/* Request Card Styling */
+.request-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.request-info h4 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  color: var(--text-main);
+}
+
+.request-info p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.request-info span {
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+@media (max-width: 600px) {
+  .request-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .request-card>div:last-child {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .client-list-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ---------- MOBILE OPTIMIZATIONS FOR CLIENT DETAILS ---------- */
+.dashboard-page-header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.dashboard-page-header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.dashboard-page-header p {
+  color: var(--text-muted);
+  max-width: 600px;
+  font-size: 15px;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+
+  /* Header resizing */
+  .dashboard-page-header h1 {
+    font-size: 1.5rem;
+    /* Smaller title on mobile */
+  }
+
+  .dashboard-page-header p {
+    font-size: 13px;
+  }
+
+  /* Grid becomes single column */
+  .client-list-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Compact card padding */
+  .client-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  /* Adjust button grid inside card */
+  .client-card .secondary-btn {
+    font-size: 12px;
+    padding: 8px 4px;
+  }
+
+  /* Request Card Stacking */
+  .request-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .request-card>div:last-child {
+    align-self: flex-end;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 
 /* ---------- MODAL ---------- */
@@ -2398,16 +2557,180 @@ textarea:focus {
   font-weight: 600;
 }
 
-/* ================= INFO SECTION ================= */
-
-.info-section,
-.features-section,
-.steps-section,
-.trust-section,
-.cta-section {
-  padding: 80px 16px;
-  text-align: center;
+/* ---------- TABS ---------- */
+.dashboard-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  /* Enable wrapping for mobile visibility */
 }
+
+/* Ensure buttons take available space on mobile */
+.dashboard-tabs button {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  /* Keep text on one line inside button */
+  justify-content: center;
+}
+
+/* Hide scrollbar for cleaner look (legacy) */
+.dashboard-tabs::-webkit-scrollbar {
+  height: 0px;
+  background: transparent;
+}
+
+.chat-sidebar {
+  width: 300px;
+  border-right: 1px solid var(--card-border);
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.chat-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.chat-messages-area {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-input-area {
+  padding: 16px;
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  align-items: center;
+  /* Vertically center items */
+  gap: 10px;
+  background: var(--card-bg);
+}
+
+/* Fix for chat input width pushing button out */
+.chat-input-area input {
+  flex: 1;
+  /* Take remaining space */
+  width: auto !important;
+  /* Override 100% width from general input styles */
+  min-width: 0;
+  /* Allow shrinking below content size if needed */
+}
+
+.chat-send-btn {
+  flex-shrink: 0;
+  /* Prevent button from squashing */
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.chat-user-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--card-border);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  color: var(--text-main);
+}
+
+.chat-user-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.chat-user-item.active {
+  background: rgba(59, 130, 246, 0.15);
+  border-left: 3px solid var(--primary);
+}
+
+/* Bubbles */
+.chat-bubble {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.chat-bubble.me {
+  align-self: flex-end;
+  background: var(--primary);
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+
+.chat-bubble.them {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  border-bottom-left-radius: 2px;
+}
+
+[data-theme="light"] .chat-bubble.them {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Mobile Responsive Chat */
+@media (max-width: 768px) {
+  .chat-layout {
+    height: calc(100vh - 200px);
+    /* Fill available space on mobile */
+    border-radius: 12px;
+  }
+
+  .chat-sidebar {
+    width: 100%;
+    /* Full width on mobile */
+  }
+
+  .chat-main {
+    width: 100%;
+    /* Full width on mobile */
+  }
+
+  .mobile-hidden {
+    display: none !important;
+  }
+
+  .mobile-back-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    margin-right: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+  }
+}
+
+/* ---------- INFO SECTION ---------- */
 
 .info-section {
   max-width: 720px;

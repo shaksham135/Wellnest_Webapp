@@ -155,10 +155,10 @@ const ClientAnalyticsPage = () => {
                 </div>
 
                 {/* Charts Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: '24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
 
                     {/* Calorie Balance Chart */}
-                    <div className="dashboard-card" style={{ minHeight: '400px' }}>
+                    <div className="dashboard-card" style={{ minHeight: '300px', height: 'auto' }}>
                         <CalorieBalanceChart
                             burnedData={analytics.workoutAnalytics?.dailyCaloriesBurned}
                             consumedData={analytics.nutritionAnalytics?.weeklyCalorieTrend}
@@ -166,7 +166,7 @@ const ClientAnalyticsPage = () => {
                     </div>
 
                     {/* Weight Trend */}
-                    <div className="dashboard-card" style={{ minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+                    <div className="dashboard-card" style={{ minHeight: '300px', display: 'flex', flexDirection: 'column' }}>
                         <h3 style={{ margin: '0 0 20px 0', color: 'var(--text-main)' }}>Weight Trend</h3>
                         <div style={{ flex: 1, minHeight: '300px' }}>
                             {weightValues.length > 0 ? (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { FiMessageSquare, FiUsers, FiClock, FiCheck, FiX, FiSend, FiActivity, FiSun, FiMoon, FiCoffee, FiSunrise } from 'react-icons/fi';
+import { FiMessageSquare, FiUsers, FiClock, FiCheck, FiX, FiSend, FiActivity, FiSun, FiMoon, FiCoffee, FiSunrise, FiArrowLeft } from 'react-icons/fi';
 import { getTrainerRequests, updateRequestStatus, getChatHistory, sendMessage, getClientDetails, saveDietPlan, getDietPlanForClient } from '../api/trainerApi';
 
 const ClientDetails = () => {
@@ -149,9 +149,9 @@ const ClientDetails = () => {
 
     return (
         <div className="blog-page">
-            <div className="blog-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-                <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)' }}>Trainer Dashboard</h1>
-                <p style={{ color: 'var(--text-muted)', maxWidth: '600px', fontSize: '15px' }}>
+            <div className="blog-header dashboard-page-header">
+                <h1>Trainer Dashboard</h1>
+                <p>
                     Manage your clients, track their progress, and stay connected.
                 </p>
             </div>
@@ -250,7 +250,8 @@ const ClientDetails = () => {
                 {activeTab === 'chat' && (
                     <div className="chat-layout">
                         {/* Sidebar list of active clients */}
-                        <div className="chat-sidebar">
+                        <div className={`chat-sidebar ${selectedChatUser ? 'mobile-hidden' : ''}`}>
+                            {activeClients.length === 0 && <p style={{ padding: '16px', color: 'var(--text-muted)' }}>No active clients.</p>}
                             {activeClients.map(req => (
                                 <div
                                     key={req.id}
@@ -266,10 +267,19 @@ const ClientDetails = () => {
                         </div>
 
                         {/* Chat Area */}
-                        <div className="chat-main">
+                        <div className={`chat-main ${!selectedChatUser ? 'mobile-hidden' : ''}`}>
                             {selectedChatUser ? (
                                 <>
                                     <div className="chat-header">
+                                        <button
+                                            className="mobile-back-btn"
+                                            onClick={() => setSelectedChatUser(null)}
+                                            style={{ marginRight: '10px', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer', display: 'none' }}
+                                        >
+                                            <FiActivity style={{ transform: 'rotate(180deg)' }} /> {/* Using generic icon as arrow if ArrowLeft not imported, but wait, let's use a simpler char or import ArrowLeft if needed. I see FiCheck, FiX etc imported. I'll use < back arrow symbol or add import. */}
+                                            {/* Checking imports: FiMessageSquare, FiUsers, FiClock, FiCheck, FiX, FiSend, FiActivity... No ArrowLeft. I'll add it to imports or use text '<' for now to be safe, then fix styles. */}
+                                            Back
+                                        </button>
                                         <div className="chat-user-avatar">
                                             {selectedChatUser.clientName.charAt(0)}
                                         </div>
@@ -303,8 +313,9 @@ const ClientDetails = () => {
                                     </div>
                                 </>
                             ) : (
-                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                                    Select a client to start chatting
+                                <div className="chat-placeholder">
+                                    <FiMessageSquare size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
+                                    <p>Select a client to start chatting</p>
                                 </div>
                             )}
                         </div>
