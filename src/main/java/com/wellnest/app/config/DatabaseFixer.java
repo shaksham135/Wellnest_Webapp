@@ -27,11 +27,21 @@ public class DatabaseFixer implements CommandLineRunner {
             System.out.println("Modified trainers.image to LONGTEXT");
 
             // Add phone column to users table if missing
-            try {
-                jdbcTemplate.execute("ALTER TABLE users ADD COLUMN phone VARCHAR(255)");
-                System.out.println("Added phone column to users table");
-            } catch (Exception e) {
-                System.out.println("Phone column may already exist: " + e.getMessage());
+            // Add phone column to users table if missing
+            Integer phoneCount = jdbcTemplate.queryForObject(
+                    "SELECT count(*) FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'phone' AND table_schema = DATABASE()",
+                    Integer.class);
+
+            if (phoneCount != null && phoneCount == 0) {
+                try {
+                    jdbcTemplate.execute("ALTER TABLE users ADD COLUMN phone VARCHAR(255)");
+                    System.out.println("Added phone column to users table");
+                } catch (Exception e) {
+                    System.out.println("Failed to add phone column: " + e.getMessage());
+                }
+            } else {
+                // Column already exists, silent continue or debug log
+                // System.out.println("Phone column already exists.");
             }
 
         } catch (Exception e) {

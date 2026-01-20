@@ -1,0 +1,6 @@
+wellnest-frontend/
+.git/
+target/
+*.md
+.idea/
+.vscode/
