@@ -157,6 +157,7 @@ const ClientDetails = () => {
             </div>
 
             {/* Tabs */}
+            {loading && <div style={{ marginBottom: '16px' }}>Loading...</div>}
             <div className="dashboard-tabs">
                 <button
                     onClick={() => setActiveTab('active')}

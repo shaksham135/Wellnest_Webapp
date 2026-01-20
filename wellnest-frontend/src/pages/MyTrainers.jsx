@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getClientRequests, getAllTrainers, getDietPlanForTrainer } from '../api/trainerApi';
+import { getClientRequests, getDietPlanForTrainer } from '../api/trainerApi';
 import TrainerCard from '../components/TrainerCard';
 import { FiUsers, FiX } from 'react-icons/fi';
 
