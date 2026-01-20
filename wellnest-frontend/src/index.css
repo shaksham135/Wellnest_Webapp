@@ -243,6 +243,13 @@ main {
   /* Hidden on desktop */
 }
 
+/* Desktop Only Toggle */
+.desktop-toggle {
+  margin-left: 12px;
+  display: flex;
+  align-items: center;
+}
+
 .nav-toggle {
   display: none;
   /* Hidden on desktop */
@@ -291,6 +298,11 @@ main {
     /* Full width for children */
     gap: 0;
     padding: 12px 20px;
+  }
+
+  /* Hide Desktop Toggle on Mobile */
+  .desktop-toggle {
+    display: none;
   }
 
   .nav-bar-header {

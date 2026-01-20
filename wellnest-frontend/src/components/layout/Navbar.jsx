@@ -64,8 +64,6 @@ const Navbar = ({ isLoggedIn, userRole }) => {
                             <span>Register</span>
                         </NavLink>
 
-                        {/* Theme toggle even on login page */}
-                        <ThemeToggle />
                     </>
                 )}
 
@@ -108,10 +106,13 @@ const Navbar = ({ isLoggedIn, userRole }) => {
                                 <span>My Trainers</span>
                             </NavLink>
                         )}
-
-                        {/* ThemeToggle removed from sidebar (moved to header) */}
                     </>
                 )}
+
+                {/* Desktop Theme Toggle (Rightmost on Desktop, Hidden on Mobile) */}
+                <div className="desktop-toggle">
+                    <ThemeToggle />
+                </div>
             </nav>
         </header>
     );
