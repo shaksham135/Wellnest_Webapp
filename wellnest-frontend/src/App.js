@@ -13,7 +13,6 @@ import {
   FiBookOpen,
   FiUsers,
   FiTrendingUp,
-  FiCheck,
 } from "react-icons/fi";
 
 // Pages
