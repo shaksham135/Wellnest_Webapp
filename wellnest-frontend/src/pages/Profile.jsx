@@ -1,7 +1,7 @@
 // src/pages/Profile.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiEdit2, FiMail, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiActivity, FiTarget } from "react-icons/fi";
+import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget } from "react-icons/fi";
 import { fetchCurrentUser, updateUserProfile } from "../api/userApi";
 
 const Profile = () => {

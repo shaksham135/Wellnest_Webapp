@@ -16,7 +16,7 @@ const TrainerMatching = () => {
     // Store connection status by trainerId: { 1: 'PENDING', 2: 'ACTIVE' }
     const [clientRequests, setClientRequests] = useState({});
 
-    const fetchTrainers = async () => {
+    const fetchTrainers = React.useCallback(async () => {
         setLoading(true);
         setError('');
         try {
@@ -33,9 +33,9 @@ const TrainerMatching = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters]);
 
-    const fetchClientRequests = async () => {
+    const fetchClientRequests = React.useCallback(async () => {
         try {
             const res = await getClientRequests();
             // Map array to object: { trainerId: status }
@@ -49,7 +49,7 @@ const TrainerMatching = () => {
         } catch (err) {
             console.error("Error fetching client requests", err);
         }
-    };
+    }, []);
 
     // Initial load
     useEffect(() => {
@@ -60,12 +60,12 @@ const TrainerMatching = () => {
                 if (res.data) setFilterOptions(res.data);
             })
             .catch(err => console.error("Error loading filters", err));
-    }, []);
+    }, [fetchTrainers, fetchClientRequests]);
 
     // Filter whenever filters change
     useEffect(() => {
         fetchTrainers();
-    }, [filters]);
+    }, [fetchTrainers]);
 
     const handleChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });

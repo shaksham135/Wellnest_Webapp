@@ -120,7 +120,7 @@ const Trackers = () => {
       setSleep(prev => ({ ...prev, quality: qualityData.quality }));
       setCalculatedSleepQuality(qualityData);
     }
-  }, []); // Run once on mount
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // helper: show message
