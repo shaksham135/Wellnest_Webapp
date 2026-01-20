@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { fetchCurrentUser, updateUserProfile } from '../../api/userApi';
 import apiClient from '../../api/apiClient';
-import { FiEdit2, FiCheck, FiX, FiTarget, FiTrendingUp, FiActivity } from 'react-icons/fi';
+import { FiEdit2, FiCheck, FiX, FiTarget, FiActivity } from 'react-icons/fi';
 import './GoalProgress.css';
 
 const GoalProgress = ({ data, onGoalSet }) => {

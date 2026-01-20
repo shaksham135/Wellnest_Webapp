@@ -7,12 +7,7 @@ import {
   Route,
 } from "react-router-dom";
 
-import {
-  FiBarChart2,
-  FiActivity,
-  FiBookOpen,
-  FiUsers,
-} from "react-icons/fi";
+// Icons removed
 
 // Pages
 // Pages

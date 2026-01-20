@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { FiStar, FiMapPin, FiPhone, FiMail, FiCopy, FiCheck, FiUserPlus, FiMessageSquare, FiX, FiSend } from 'react-icons/fi';
+import { FiStar, FiMapPin, FiMail, FiCopy, FiCheck, FiUserPlus, FiMessageSquare, FiX, FiSend } from 'react-icons/fi';
 import { requestConnection, getChatHistory, sendMessage, rateTrainer } from '../api/trainerApi';
 
 const TrainerCard = ({ trainer, connectionStatus, onConnectRefresh, onViewDiet }) => {
