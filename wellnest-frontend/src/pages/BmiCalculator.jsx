@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiActivity, FiArrowLeft, FiInfo } from "react-icons/fi";
+import { FiActivity, FiArrowLeft } from "react-icons/fi";
 
 const BmiCalculator = () => {
   const navigate = useNavigate();

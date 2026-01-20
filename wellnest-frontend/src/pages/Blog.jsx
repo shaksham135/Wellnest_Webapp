@@ -15,7 +15,7 @@ const Blog = () => {
     // Check if user is logged in
     const isLoggedIn = !!localStorage.getItem('token');
 
-    const fetchPosts = async () => {
+    const fetchPosts = React.useCallback(async () => {
         setLoading(true);
         setError('');
         try {
@@ -27,11 +27,11 @@ const Blog = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filter]);
 
     useEffect(() => {
         fetchPosts();
-    }, [filter]);
+    }, [fetchPosts]);
 
     const handleCreatePost = async (newPostData) => {
         setCreateError('');

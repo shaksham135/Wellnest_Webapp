@@ -35,50 +35,60 @@ const Notifications = () => {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     };
 
+    // Helper to format time relative
+    const formatTime = (dateString) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+
+        if (diffInSeconds < 60) return "Just now";
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+        return date.toLocaleDateString();
+    };
+
     return (
         <div className="dashboard-page">
-            <div className="dashboard-card" style={{ maxWidth: '800px', margin: '0 auto', minHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="dashboard-card" style={{ maxWidth: '700px', margin: '0 auto', minHeight: '80vh', padding: 0, overflow: 'hidden' }}>
 
                 {/* Header */}
                 <div style={{
-                    padding: '20px 24px',
+                    padding: '24px',
                     borderBottom: '1px solid var(--card-border)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    background: 'rgba(255,255,255,0.02)'
+                    background: 'var(--card-bg)'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <button onClick={() => navigate('/dashboard')} className="icon-btn" style={{ fontSize: '1.2rem' }}>
                             <FiChevronLeft />
                         </button>
                         <div>
-                            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>Notifications</h1>
-                            <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                Stay updated with your progress
-                            </p>
+                            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.5px' }}>Notifications</h1>
                         </div>
                     </div>
                     {notifications.length > 0 && (
-                        <button onClick={handleMarkAll} className="secondary-btn" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>
+                        <button onClick={handleMarkAll} className="secondary-btn" style={{ fontSize: '0.85rem', padding: '8px 16px', borderRadius: '12px' }}>
                             <FiCheck style={{ marginRight: '6px' }} /> Mark all read
                         </button>
                     )}
                 </div>
 
                 {/* List */}
-                <div className="notifications-list" style={{ padding: '10px', flex: 1 }}>
+                <div className="notifications-list" style={{ padding: '0' }}>
                     {loading ? (
-                        <p style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading updates...</p>
+                        <p style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading updates...</p>
                     ) : notifications.length === 0 ? (
                         <div style={{
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                            height: '100%', padding: '60px 20px', color: 'var(--text-muted)', textAlign: 'center'
+                            minHeight: '400px', padding: '40px', color: 'var(--text-muted)', textAlign: 'center'
                         }}>
                             <div style={{
-                                width: '80px', height: '80px', background: 'var(--card-bg)',
+                                width: '80px', height: '80px', background: 'rgba(59, 130, 246, 0.05)',
                                 borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                border: '1px solid var(--card-border)', marginBottom: '20px', fontSize: '2rem', color: 'var(--primary)'
+                                marginBottom: '24px', fontSize: '2rem', color: 'var(--primary)'
                             }}>
                                 <FiBell />
                             </div>
@@ -89,23 +99,18 @@ const Notifications = () => {
                         notifications.map(notif => (
                             <div
                                 key={notif.id}
-                                className={`notif-card ${!notif.read ? 'unread' : ''}`}
+                                className={`notif-item ${!notif.read ? 'unread' : ''}`}
                                 onClick={() => !notif.read && handleMarkRead(notif.id)}
                             >
-                                <div className="notif-icon-col">
-                                    <div className="notif-icon-circle">
-                                        <FiBell />
-                                    </div>
+                                <div className="notif-icon-box">
+                                    <FiBell />
                                 </div>
-                                <div className="notif-content-col">
-                                    <div className="notif-header-row">
-                                        <h4>{notif.title}</h4>
-                                        <span className="notif-time">
-                                            <FiClock style={{ marginRight: '4px' }} />
-                                            {new Date(notif.createdAt).toLocaleDateString()}
-                                        </span>
+                                <div className="notif-content">
+                                    <div className="notif-top-row">
+                                        <h4 className="notif-title">{notif.title}</h4>
+                                        <span className="notif-time">{formatTime(notif.createdAt)}</span>
                                     </div>
-                                    <p>{notif.message}</p>
+                                    <p className="notif-msg">{notif.message}</p>
                                 </div>
                                 {!notif.read && <div className="unread-dot"></div>}
                             </div>
@@ -115,57 +120,59 @@ const Notifications = () => {
             </div>
 
             <style>{`
-                .notif-card {
+                .notif-item {
                     display: flex;
                     gap: 16px;
-                    padding: 18px;
-                    margin: 8px 12px;
-                    border-radius: 16px;
-                    background: var(--card-bg);
-                    border: 1px solid var(--card-border);
-                    transition: all 0.2s ease;
-                    cursor: default;
+                    padding: 20px 24px;
+                    border-bottom: 1px solid var(--card-border);
+                    cursor: pointer;
+                    transition: background 0.2s;
                     position: relative;
                 }
-                .notif-card:hover {
-                    background: rgba(255,255,255,0.03);
-                    transform: translateY(-2px);
-                    box-shadow: var(--shadow-md);
+                .notif-item:last-child { border-bottom: none; }
+                .notif-item:hover {
+                    background: rgba(255,255,255,0.02);
                 }
-                .notif-card.unread {
-                    background: rgba(59, 130, 246, 0.04);
-                    border-color: rgba(59, 130, 246, 0.2);
+                .notif-item.unread {
+                    background: rgba(59, 130, 246, 0.03);
                 }
-                .notif-icon-circle {
-                    width: 40px; height: 40px;
+                .notif-item.unread:hover {
+                    background: rgba(59, 130, 246, 0.06);
+                }
+                
+                .notif-icon-box {
+                    width: 44px; height: 44px;
+                    min-width: 44px;
                     border-radius: 12px;
                     background: rgba(59, 130, 246, 0.1);
                     color: var(--primary);
                     display: flex; align-items: center; justifyContent: center;
-                    font-size: 1.2rem;
+                    font-size: 1.25rem;
                 }
-                .notif-content-col {
-                    flex: 1;
-                }
-                .notif-header-row {
+                
+                .notif-content { flex: 1; }
+                
+                .notif-top-row {
                     display: flex; justify-content: space-between; align-items: flex-start;
                     margin-bottom: 6px;
                 }
-                .notif-header-row h4 {
-                    margin: 0; font-size: 1rem; font-weight: 600; color: var(--text-main);
-                }
-                .notif-time {
-                    font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center;
-                }
-                .notif-content-col p {
-                    margin: 0; font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;
-                }
+                .notif-title { margin: 0; font-size: 1rem; font-weight: 600; color: var(--text-main); }
+                .notif-time { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; margin-left: 10px; }
+                
+                .notif-msg { margin: 0; font-size: 0.95rem; color: var(--text-muted); line-height: 1.5; }
+                
                 .unread-dot {
-                    position: absolute; top: 20px; right: 20px;
+                    position: absolute; top: 22px; right: 24px; /* Adjusted position */
                     width: 8px; height: 8px; background: #ef4444; border-radius: 50%;
                 }
-                [data-theme="light"] .notif-card.unread {
-                    background: #eff6ff;
+                /* Hide dot if specific layout needs it, but keeping it simple */
+                .notif-item.unread .unread-dot { display: block; }
+                
+                @media (max-width: 640px) {
+                    .notif-item { padding: 16px; gap: 12px; }
+                    .notif-icon-box { width: 36px; height: 36px; min-width: 36px; font-size: 1rem; }
+                    .notif-title { font-size: 0.95rem; }
+                    .notif-msg { font-size: 0.85rem; }
                 }
             `}</style>
         </div>

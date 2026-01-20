@@ -17,7 +17,6 @@ import DailyProgress from "./DailyProgress";
 import RecentActivity from "./RecentActivity";
 
 const UserDashboard = ({ user }) => {
-    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
 
     const [workouts, setWorkouts] = useState([]);
@@ -25,7 +24,6 @@ const UserDashboard = ({ user }) => {
     const [water, setWater] = useState([]);
     const [sleep, setSleep] = useState([]);
     const [goalData, setGoalData] = useState(null);
-    const [streaks, setStreaks] = useState(null);
 
     const [healthTip, setHealthTip] = useState("");
     const [tipLoading, setTipLoading] = useState(true);
@@ -49,7 +47,6 @@ const UserDashboard = ({ user }) => {
 
                 const d = g.data || {};
                 setGoalData(d.goalProgress || null);
-                if (d.streaks) setStreaks(d.streaks);
             } catch { } finally {
                 setLoading(false);
             }

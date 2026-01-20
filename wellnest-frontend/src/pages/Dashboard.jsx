@@ -254,7 +254,45 @@ const Dashboard = () => {
             }
             .view-all-link { color: var(--primary); font-size: 0.9rem; font-weight: 600; text-decoration: none; cursor: pointer; }
             .view-all-link:hover { text-decoration: underline; }
+
+            /* Mobile Responsive Styles */
+            .dropdown-overlay-bg { display: none; }
+            @media (max-width: 640px) {
+              .notification-dropdown {
+                position: fixed;
+                top: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 92%;
+                max-width: 360px;
+                max-height: 60vh;
+                border-radius: 16px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                border: 1px solid rgba(255,255,255,0.1);
+                animation: fadeIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+                will-change: transform, opacity;
+                z-index: 1000;
+              }
+              
+              .dropdown-header {
+                padding: 16px 20px;
+              }
+              
+              .dropdown-overlay-bg {
+                 display: block;
+                 position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999;
+                 /* Removed blur for performance */
+              }
+            }
           `}</style>
+
+            {/* Mobile Overlay (Backdrop) */}
+            {showNotifications && (
+              <div
+                className="dropdown-overlay-bg"
+                onClick={() => setShowNotifications(false)}
+              />
+            )}
 
             {/* Notification Bell */}
             <div style={{ position: 'relative' }} ref={notifRef}>
