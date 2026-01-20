@@ -61,6 +61,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Allow
                                                                                                          // pre-flight
                         .requestMatchers("/api/auth/**").permitAll() // login/register open
+                        .requestMatchers("/health", "/").permitAll() // UptimeRobot health check
                         // Blog endpoints - allow public reading
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/blog/**").permitAll()
                         // Trainer endpoints - allow public reading
