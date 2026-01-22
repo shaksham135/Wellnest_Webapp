@@ -85,7 +85,7 @@ const App = () => {
     <Router>
       <Toaster position="top-right" toastOptions={{ style: { fontSize: '14px', fontWeight: 500 } }} />
       <Navbar isLoggedIn={isLoggedIn} userRole={userRole} />
-      <ChatbotWidget />
+      <ChatbotWidget isLoggedIn={isLoggedIn} />
 
       <main>
         <Routes>

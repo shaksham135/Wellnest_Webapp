@@ -4,7 +4,7 @@ import apiClient from '../../api/apiClient';
 import { Link } from 'react-router-dom';
 import './ChatbotWidget.css';
 
-const ChatbotWidget = () => {
+const ChatbotWidget = ({ isLoggedIn }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
         { text: "Hi! I'm Wellnest AI. How can I help you regarding your health today?", sender: 'bot' }
@@ -13,7 +13,8 @@ const ChatbotWidget = () => {
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
 
-    const [token, setToken] = useState(localStorage.getItem('token'));
+    // Sync with App's Auth State
+    const [token, setToken] = useState(isLoggedIn ? localStorage.getItem('token') : null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -23,36 +24,18 @@ const ChatbotWidget = () => {
         scrollToBottom();
     }, [messages]);
 
-    // Check for token changes (Logout/Login)
+    // Update token whenever isLoggedIn prop changes
     useEffect(() => {
-        const handleStorageChange = () => {
-            const currentToken = localStorage.getItem('token');
-            if (currentToken !== token) {
-                setToken(currentToken);
-                // Reset Chat on Auth Change
-                setMessages([
-                    { text: "Hi! I'm Wellnest AI. How can I help you regarding your health today?", sender: 'bot' }
-                ]);
-            }
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        // Also verify on mount/interval to catch local changes
-        const interval = setInterval(() => {
-            const currentToken = localStorage.getItem('token');
-            if (currentToken !== token) {
-                setToken(currentToken);
-                setMessages([
-                    { text: "Hi! I'm Wellnest AI. How can I help you regarding your health today?", sender: 'bot' }
-                ]);
-            }
-        }, 1000);
-
-        return () => {
-            window.removeEventListener('storage', handleStorageChange);
-            clearInterval(interval);
-        };
-    }, [token]);
+        if (isLoggedIn) {
+            setToken(localStorage.getItem('token'));
+        } else {
+            setToken(null);
+            // Reset Chat on Logout
+            setMessages([
+                { text: "Hi! I'm Wellnest AI. How can I help you regarding your health today?", sender: 'bot' }
+            ]);
+        }
+    }, [isLoggedIn]);
 
     // Helper to parse **bold** text
     const parseBold = (text) => {

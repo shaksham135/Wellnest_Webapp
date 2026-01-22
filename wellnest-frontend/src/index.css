@@ -152,24 +152,33 @@ main {
 }
 
 /* ---------------- LOGO ---------------- */
-.logo {
+/* ---------------- LOGO ---------------- */
+.logo-link {
   display: flex;
   align-items: center;
-  gap: 8px;
-
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-
-  color: var(--primary);
+  gap: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
 }
 
-.logo-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--primary);
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+.logo-link:hover {
+  opacity: 0.9;
+}
+
+.logo-image {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: 10px;
+  /* Apps icon look */
+}
+
+.logo-text {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.02em;
 }
 
 /* ---------------- NAV LINKS ---------------- */

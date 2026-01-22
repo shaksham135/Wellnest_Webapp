@@ -1,7 +1,7 @@
 package com.wellnest.app.controller;
 
 import com.wellnest.app.model.User;
-import com.wellnest.app.service.GeminiService;
+import com.wellnest.app.service.GroqService;
 import com.wellnest.app.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +17,7 @@ import java.util.Optional;
 public class ChatbotController {
 
     @Autowired
-    private GeminiService geminiService;
+    private GroqService groqService;
 
     @Autowired
     private UserService userService;
@@ -127,7 +127,7 @@ public class ChatbotController {
         promptBuilder.append("- BOLD KEY TERMS: Use **bold** for metrics, numbers, and key actions.\n");
         promptBuilder.append("- BE CONCISE: Total answer must be short and easy to scan on mobile.\n");
 
-        String aiResponse = geminiService.getResponse(promptBuilder.toString());
+        String aiResponse = groqService.getResponse(promptBuilder.toString());
 
         return ResponseEntity.ok(Map.of("response", aiResponse));
     }

@@ -15,6 +15,8 @@ import {
 } from "react-icons/fi";
 import ThemeToggle from "../ThemeToggle"; // Adjust import path if needed
 
+import logo from '../../assets/logo.png';
+
 const Navbar = ({ isLoggedIn, userRole }) => {
     const [isOpen, setIsOpen] = useState(false);
     const location = useLocation();
@@ -34,9 +36,9 @@ const Navbar = ({ isLoggedIn, userRole }) => {
     return (
         <header className="top-nav">
             <div className="nav-bar-header">
-                <Link to={isLoggedIn ? "/dashboard" : "/"} className="logo" style={{ textDecoration: 'none', cursor: 'pointer' }}>
-                    <span className="logo-dot" />
-                    Wellnest
+                <Link to={isLoggedIn ? "/dashboard" : "/"} className="logo-link">
+                    <img src={logo} alt="Wellnest" className="logo-image" />
+                    <span className="logo-text">Wellnest</span>
                 </Link>
 
                 {/* Mobile Hamburger Toggle + Theme */}

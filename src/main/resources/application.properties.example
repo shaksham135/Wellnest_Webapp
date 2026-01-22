@@ -26,9 +26,5 @@ spring.mail.properties.mail.smtp.starttls.enable=true
 # Frontend base URL for building reset link
 app.frontend.base-url=${FRONTEND_URL:http://localhost:3000}
 
-# ===== GEMINI AI CONFIG =====
-# Uses Environment Variable GEMINI_API_KEY if exists
-gemini.api.key=${GEMINI_API_KEY:YOUR_GEMINI_KEY_HERE}
-
-# Second key for rate limit failover (Optional)
-gemini.api.key.secondary=${GEMINI_API_KEY_SECONDARY:}
+# ===== AI CONFIG (Groq - Llama 3) =====
+groq.api.key=${GROQ_API_KEY:YOUR_GROQ_API_KEY}
