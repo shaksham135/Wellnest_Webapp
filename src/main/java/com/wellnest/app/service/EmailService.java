@@ -1,5 +1,6 @@
 package com.wellnest.app.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -8,35 +9,43 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    @Autowired
+    private JavaMailSender mailSender;
 
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    @Value("${app.frontend.base-url}")
-    private String frontendBaseUrl;
+    public void sendContactMessage(String userEmail, String topic, String content) {
+        try {
+            jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
+            org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(
+                    message, true);
 
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+            // Set the "From" name to include the user's email, so it shows up in the inbox
+            // e.g. "shaksham135@gmail.com (via Wellnest)"
+            helper.setFrom(fromEmail, userEmail + " (via Wellnest)");
+            helper.setTo(fromEmail);
+            helper.setReplyTo(userEmail); // This ensures "Reply" goes to the user
+            helper.setSubject("Support: " + topic);
+            helper.setText("You received a new inquiry:\n\n" +
+                    "From: " + userEmail + "\n" +
+                    "Topic: " + topic + "\n\n" +
+                    "Message:\n" + content);
+
+            mailSender.send(message);
+            System.out.println("Email sent successfully to " + fromEmail);
+        } catch (Exception e) {
+            System.err.println("Error sending email: " + e.getMessage());
+        }
     }
 
     public void sendPasswordResetEmail(String toEmail, String token) {
-        String resetLink = frontendBaseUrl + "/reset-password?token=" + token;
-
-        String subject = "Wellnest - Password Reset";
-        String text = "Hi,\n\n"
-                + "We received a request to reset your password for Wellnest.\n"
-                + "Click the link below to set a new password (valid for 15 minutes):\n\n"
-                + resetLink + "\n\n"
-                + "If you didn't request this, you can ignore this email.\n\n"
-                + "Best regards,\n"
-                + "Wellnest Team";
-
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(toEmail);
-        message.setSubject(subject);
-        message.setText(text);
+        message.setSubject("Password Reset Request");
+        message.setText("To reset your password, please click here: " +
+                "http://localhost:3000/reset-password?token=" + token);
 
         mailSender.send(message);
     }

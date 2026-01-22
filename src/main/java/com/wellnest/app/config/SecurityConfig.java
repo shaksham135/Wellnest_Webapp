@@ -68,6 +68,8 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/trainers/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/blog/posts/{id}/comments")
                         .permitAll()
+                        .requestMatchers("/api/contact/**").permitAll() // Contact form public access
+                        .requestMatchers("/api/chat/**").permitAll() // Chatbot public access
                         .anyRequest().authenticated() // rest require token
                 )
                 .authenticationProvider(authProvider())

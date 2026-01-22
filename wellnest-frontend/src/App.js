@@ -28,6 +28,9 @@ import Trackers from "./pages/Trackers";
 import BmiCalculator from "./pages/BmiCalculator";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import Notifications from "./pages/Notifications";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import Support from "./pages/Support";
 
 // Analytics Detail Pages
 import WorkoutAnalyticsDetail from "./pages/detailed-analytics/WorkoutAnalyticsDetail";
@@ -40,6 +43,7 @@ import HealthMetricsDetail from "./pages/detailed-analytics/HealthMetricsDetail"
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
+import ChatbotWidget from "./components/common/ChatbotWidget";
 
 // Styles
 import "./index.css";
@@ -81,6 +85,7 @@ const App = () => {
     <Router>
       <Toaster position="top-right" toastOptions={{ style: { fontSize: '14px', fontWeight: 500 } }} />
       <Navbar isLoggedIn={isLoggedIn} userRole={userRole} />
+      <ChatbotWidget />
 
       <main>
         <Routes>
@@ -92,6 +97,12 @@ const App = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/support" element={<Support />} />
 
           {/* Protected routes */}
           <Route

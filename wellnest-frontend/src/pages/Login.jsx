@@ -53,11 +53,18 @@ const Login = ({ onLoginSuccess }) => {
       {/* ================= HERO + LOGIN ================= */}
       <section className="login-hero">
         <div className="login-hero-inner">
-          <h1>Unlock Your Best Self with <span>Wellnest</span></h1>
-          <p className="hero-subtitle">
-            The all-in-one platform to track fitness, nutrition, and health goals.
-            Join thousands of users building better habits today.
-          </p>
+          <div className="login-text-content">
+            <h1>Unlock Your Best Self with <span>Wellnest</span></h1>
+            <p className="hero-subtitle">
+              The all-in-one platform to track fitness, nutrition, and health goals.
+              Join thousands of users building better habits today.
+            </p>
+            <div className="hero-features-preview">
+              <div className="preview-item"><FiActivity /> <span>Track Habits</span></div>
+              <div className="preview-item"><FiTrendingUp /> <span>View Analytics</span></div>
+              <div className="preview-item"><FiUsers /> <span>Hire Trainers</span></div>
+            </div>
+          </div>
 
           <form id="login-form" className="login-form-card" onSubmit={handleSubmit}>
             <h2>Sign in to your account</h2>
@@ -244,9 +251,9 @@ const Login = ({ onLoginSuccess }) => {
       <footer className="site-footer">
         <p>© {new Date().getFullYear()} Wellnest. All rights reserved.</p>
         <div className="footer-links">
-          <span>Privacy</span>
-          <span>Terms</span>
-          <span>Support</span>
+          <Link to="/privacy">Privacy</Link>
+          <Link to="/terms">Terms</Link>
+          <Link to="/support">Support</Link>
         </div>
       </footer>
     </div>
