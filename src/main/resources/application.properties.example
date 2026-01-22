@@ -15,21 +15,20 @@ server.tomcat.max-http-post-size=10MB
 spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=10MB
 
-# ===== EMAIL CONFIG (Gmail example) =====
+# ===== EMAIL CONFIG =====
 spring.mail.host=smtp.gmail.com
 spring.mail.port=587
-spring.mail.username=shaksham135@gmail.com
-spring.mail.password=eofgaufkndnlqgwd
+spring.mail.username=${MAIL_USERNAME:your_email@gmail.com}
+spring.mail.password=${MAIL_PASSWORD:your_app_password}
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
 
 # Frontend base URL for building reset link
-# Frontend base URL for building reset link
 app.frontend.base-url=${FRONTEND_URL:http://localhost:3000}
 
 # ===== GEMINI AI CONFIG =====
-# Uses Environment Variable GEMINI_API_KEY if exists, otherwise uses the hardcoded fallback (Local Dev)
-gemini.api.key=${GEMINI_API_KEY:AIzaSyDqRIthiyZoy3oC4OjkuT8NXwM3Z-ysU-E}
+# Uses Environment Variable GEMINI_API_KEY if exists
+gemini.api.key=${GEMINI_API_KEY:YOUR_GEMINI_KEY_HERE}
 
 # Second key for rate limit failover (Optional)
-gemini.api.key.secondary=${GEMINI_API_KEY_SECONDARY:}AIzaSyA6pJiPKd8_OvqYK6n3NH2gbMEcnN9uC40
+gemini.api.key.secondary=${GEMINI_API_KEY_SECONDARY:}
