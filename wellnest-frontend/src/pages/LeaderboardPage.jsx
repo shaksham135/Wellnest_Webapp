@@ -40,7 +40,6 @@ const LeaderboardPage = () => {
                 display: 'flex',
                 alignItems: 'center',
                 padding: '16px',
-                borderBottom: '1px solid var(--card-border)',
                 background: isCurrentUser ? 'rgba(79, 70, 229, 0.1)' : (entry.rank === 1 ? 'rgba(251, 191, 36, 0.1)' : 'transparent'),
                 borderRadius: isCurrentUser ? '12px' : '0',
                 border: isCurrentUser ? '1px solid var(--primary)' : 'none',
