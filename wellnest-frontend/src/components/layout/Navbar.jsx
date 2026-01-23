@@ -11,7 +11,9 @@ import {
     FiUsers,
     FiCheck,
     FiMenu,
-    FiX
+    FiX,
+    FiChevronDown,
+    FiAward
 } from "react-icons/fi";
 import ThemeToggle from "../ThemeToggle"; // Adjust import path if needed
 
@@ -87,27 +89,39 @@ const Navbar = ({ isLoggedIn, userRole }) => {
                             <span>Analytics</span>
                         </NavLink>
 
+                        {/* Community Dropdown */}
+                        <div className="nav-dropdown-container">
+                            <button className="nav-link dropdown-trigger" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                                <FiUsers />
+                                <span style={{ fontFamily: 'inherit' }}>Community</span>
+                                <FiChevronDown style={{ marginLeft: '4px', fontSize: '14px' }} />
+                            </button>
+                            <div className="nav-dropdown-menu">
+                                <NavLink to="/leaderboard" className="nav-link" onClick={closeMenu}>
+                                    <FiAward />
+                                    <span>Leaderboard</span>
+                                </NavLink>
+                                <NavLink to="/blog" className="nav-link" onClick={closeMenu}>
+                                    <FiBookOpen />
+                                    <span>Health Blog</span>
+                                </NavLink>
+                                <NavLink to="/trainers" className="nav-link" onClick={closeMenu}>
+                                    <FiUsers />
+                                    <span>{userRole === 'ROLE_TRAINER' ? 'My Clients' : 'Trainer Matching'}</span>
+                                </NavLink>
+                                {userRole === 'ROLE_USER' && (
+                                    <NavLink to="/my-trainers" className="nav-link" onClick={closeMenu}>
+                                        <FiCheck />
+                                        <span>My Trainers</span>
+                                    </NavLink>
+                                )}
+                            </div>
+                        </div>
+
                         <NavLink to="/profile" className="nav-link" onClick={closeMenu}>
                             <FiUser />
                             <span>Profile</span>
                         </NavLink>
-
-                        <NavLink to="/blog" className="nav-link" onClick={closeMenu}>
-                            <FiBookOpen />
-                            <span>Health Blog</span>
-                        </NavLink>
-
-                        <NavLink to="/trainers" className="nav-link" onClick={closeMenu}>
-                            <FiUsers />
-                            <span>{userRole === 'ROLE_TRAINER' ? 'My Clients' : 'Trainer Matching'}</span>
-                        </NavLink>
-
-                        {userRole === 'ROLE_USER' && (
-                            <NavLink to="/my-trainers" className="nav-link" onClick={closeMenu}>
-                                <FiCheck />
-                                <span>My Trainers</span>
-                            </NavLink>
-                        )}
                     </>
                 )}
 

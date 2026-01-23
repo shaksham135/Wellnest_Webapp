@@ -235,17 +235,26 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             return analytics;
         }
 
-        // WaterIntake model uses 'liters', converting to ml for consistency with DTO
-        double avgIntake = waterIntakes.stream().mapToDouble(w -> w.getLiters() * 1000).average().orElse(0);
-        analytics.setAvgDailyIntake(avgIntake);
+        // Group by Date and Sum Intake
+        Map<String, Double> dailyIntakeMap = waterIntakes.stream()
+                .collect(Collectors.groupingBy(
+                        w -> w.getLoggedAt().toLocalDate().toString(),
+                        Collectors.summingDouble(w -> w.getLiters() * 1000)));
 
-        long daysMetGoal = waterIntakes.stream().filter(w -> (w.getLiters() * 1000) >= targetIntake).count();
+        // Calculate Days Met Goal based on aggregated daily totals
+        long daysMetGoal = dailyIntakeMap.values().stream()
+                .filter(total -> total >= targetIntake)
+                .count();
         analytics.setDaysMetGoal((int) daysMetGoal);
 
-        Map<String, Double> weeklyTrend = waterIntakes.stream()
-                .collect(Collectors.groupingBy(w -> w.getLoggedAt().toLocalDate().toString(),
-                        Collectors.summingDouble(w -> w.getLiters() * 1000)));
-        analytics.setWeeklyIntakeTrend(weeklyTrend);
+        // Average Daily Intake calculation
+        double avgIntake = dailyIntakeMap.values().stream()
+                .mapToDouble(Double::doubleValue)
+                .average()
+                .orElse(0);
+        analytics.setAvgDailyIntake(avgIntake);
+
+        analytics.setWeeklyIntakeTrend(dailyIntakeMap);
 
         return analytics;
     }

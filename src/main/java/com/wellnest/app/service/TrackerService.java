@@ -46,6 +46,16 @@ public class TrackerService {
         Assert.notNull(userId, "userId is required");
         Assert.notNull(dto, "workout dto is required");
 
+        // Enforce Limit: Max 2 workouts per day
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        long todayCount = workoutRepository.findByUserIdOrderByPerformedAtDesc(userId).stream()
+                .filter(w -> w.getPerformedAt().isAfter(startOfDay))
+                .count();
+
+        if (todayCount >= 2) {
+            throw new IllegalArgumentException("Daily Limit Reached: You can only log 2 workouts per day.");
+        }
+
         Workout workout = new Workout();
         workout.setUserId(userId);
         workout.setType(dto.getType());
@@ -78,6 +88,17 @@ public class TrackerService {
     public Meal createMealForUser(Long userId, MealDto dto) {
         Assert.notNull(userId, "userId is required");
         Assert.notNull(dto, "meal dto is required");
+
+        // Enforce Limit: Max 1 entry per Meal Type per day
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        boolean alreadyLoggedType = mealRepository.findByUserIdOrderByLoggedAtDesc(userId).stream()
+                .filter(m -> m.getLoggedAt().isAfter(startOfDay))
+                .anyMatch(m -> m.getMealType().equalsIgnoreCase(dto.getMealType()));
+
+        if (alreadyLoggedType) {
+            throw new IllegalArgumentException(
+                    "Daily Limit Reached: You have already logged " + dto.getMealType() + " today.");
+        }
 
         Meal meal = new Meal();
         meal.setUserId(userId);
@@ -114,6 +135,29 @@ public class TrackerService {
         Assert.notNull(userId, "userId is required");
         Assert.notNull(dto, "water dto is required");
 
+        // Enforce Limit: Max 10 Liters Total per day
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        double todayTotal = waterIntakeRepository.findByUserIdOrderByLoggedAtDesc(userId).stream()
+                .filter(w -> w.getLoggedAt().isAfter(startOfDay))
+                .mapToDouble(WaterIntake::getLiters)
+                .sum();
+
+        if (todayTotal + dto.getLiters() > 10.0) {
+            throw new IllegalArgumentException("Daily Limit Reached: You cannot log more than 10L of water per day.");
+        }
+
+        // Enforce Cooldown: Max 1 entry per hour
+        List<WaterIntake> history = waterIntakeRepository.findByUserIdOrderByLoggedAtDesc(userId);
+        if (!history.isEmpty()) {
+            WaterIntake last = history.get(0);
+            LocalDateTime now = LocalDateTime.now();
+            long minutesDiff = java.time.Duration.between(last.getLoggedAt(), now).toMinutes();
+            if (minutesDiff < 60) {
+                throw new IllegalArgumentException(
+                        "Cooldown Active: Please wait " + (60 - minutesDiff) + " minutes before logging water again.");
+            }
+        }
+
         WaterIntake water = new WaterIntake();
         water.setUserId(userId);
         water.setLiters(dto.getLiters());
@@ -144,6 +188,15 @@ public class TrackerService {
     public SleepLog createSleepForUser(Long userId, SleepLogDto dto) {
         Assert.notNull(userId, "userId is required");
         Assert.notNull(dto, "sleep dto is required");
+
+        // Enforce Limit: Max 1 Sleep Record per day
+        LocalDate today = LocalDate.now();
+        boolean alreadyLoggedSleep = sleepLogRepository.findByUserIdOrderBySleepDateDesc(userId).stream()
+                .anyMatch(s -> s.getSleepDate().equals(today));
+
+        if (alreadyLoggedSleep) {
+            throw new IllegalArgumentException("Daily Limit Reached: You can only log sleep once per day.");
+        }
 
         SleepLog sleep = new SleepLog();
         sleep.setUserId(userId);

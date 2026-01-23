@@ -1,105 +1,92 @@
 package com.wellnest.app.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
-import java.util.Map;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Random;
-import java.util.Collections;
+
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/health-tips")
 public class HealthTipController {
 
-    private final List<String> FALLBACK_TIPS = List.of(
-            "Drink at least 8 glasses of water today for optimal hydration.",
-            "Take a 10-minute walk after lunch to boost digestion.",
-            "Aim for 7-9 hours of quality sleep tonight.",
-            "Include a portion of leafy greens in your dinner.",
-            "Practice deep breathing for 5 minutes if you feel stressed.",
-            "Limit sugary drinks and opt for herbal tea or water.",
-            "Stretch for 5 minutes before starting your work day.",
-            "Eat a protein-rich breakfast to curb cravings later.",
-            "Avoid blue light screens 1 hour before bed.",
-            "Take the stairs instead of the elevator whenever possible.",
-            "Snack on nuts or fruit instead of processed chips.",
-            "Listen to your body—rest if you are feeling fatigued.",
-            "Stand up and move around every hour while working.",
-            "Try a new vegetable or fruit this week.",
-            "Socialize with a friend—it boosts mental well-being!",
-            "Spend 15 minutes in sunlight for Vitamin D.",
-            "Keep a water bottle at your desk as a reminder to drink.",
-            "Chew your food slowly to improve digestion.",
-            "Plan your healthy meals for the week on Sunday.",
-            "Replace one coffee with a glass of water.",
-            "Do a quick plank or push-ups during TV commercials.",
-            "Read a book instead of scrolling social media before bed.",
-            "Gratitude journaling can lower stress levels.",
-            "Cut down on added salt in your meals.",
-            "Make your bedroom a dark, cool sanctuary for sleep.");
+        private final RestTemplate restTemplate = new RestTemplate();
 
-    private final List<String> KEYWORDS = List.of("nutrition", "exercise", "sleep", "stress", "heart", "fitness",
-            "wellness");
-    private final RestTemplate restTemplate = new RestTemplate();
-    private final Random random = new Random();
-
-    @GetMapping("/daily")
-    public ResponseEntity<?> getDailyTip() {
-        try {
-            // Pick a random keyword
-            String keyword = KEYWORDS.get(random.nextInt(KEYWORDS.size()));
-            String url = "https://health.gov/myhealthfinder/api/v4/topicsearch.json?keyword=" + keyword;
-
-            // Fetch from API
-            Map response = restTemplate.getForObject(url, Map.class);
-
-            if (response != null && response.containsKey("Result")) {
-                Map result = (Map) response.get("Result");
-                if (result.containsKey("Resources")) {
-                    Map resources = (Map) result.get("Resources");
-                    if (resources.containsKey("Resource")) {
-                        Object resourceObj = resources.get("Resource");
-                        List<Map<String, Object>> resourceList;
-
-                        if (resourceObj instanceof List) {
-                            resourceList = (List<Map<String, Object>>) resourceObj;
-                        } else if (resourceObj instanceof Map) {
-                            resourceList = Collections.singletonList((Map<String, Object>) resourceObj);
-                        } else {
-                            resourceList = new ArrayList<>();
-                        }
-
-                        if (!resourceList.isEmpty()) {
-                            // Pick a random item from the results
-                            Map<String, Object> randomItem = resourceList.get(random.nextInt(resourceList.size()));
-                            String title = (String) randomItem.get("Title");
-                            String link = (String) randomItem.get("AccessibleVersion");
-
-                            // Sometimes titles are too long or specific, but it's better than nothing
-                            return ResponseEntity.ok(Map.of(
-                                    "tip", title,
-                                    "source", "MyHealthfinder",
-                                    "link", link != null ? link : ""));
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to fetch health tip from API: " + e.getMessage());
-            // Fallback to local list on error
+        // Robust Fallback List (Over 30 tips for monthly variety)
+        record Tip(String text, String category) {
         }
 
-        // Fallback Logic
-        int dayOfYear = LocalDate.now().getDayOfYear();
-        String tip = FALLBACK_TIPS.get(dayOfYear % FALLBACK_TIPS.size());
+        private final List<Tip> BACKUP_TIPS = List.of(
+                        new Tip("Hydration is key: Drink a glass of water now.", "Hydration"),
+                        new Tip("Take a 5-minute break to stretch your back.", "Fitness"),
+                        new Tip("Sleep is when your muscles recover—aim for 8 hours.", "Sleep"),
+                        new Tip("Eat a fruit or vegetable with your next meal.", "Nutrition"),
+                        new Tip("Deep breathing reduces cortisol levels instantly.", "Stress"),
+                        new Tip("Walking 10 minutes after a meal aids digestion.", "Fitness"),
+                        new Tip("Avoid screens 30 minutes before bed for better sleep.", "Sleep"),
+                        new Tip("Your body needs rest as much as it needs activity.", "Wellness"),
+                        new Tip("Consistency is better than intensity.", "Motivation"),
+                        new Tip("Listen to your body—if you're tired, rest.", "Wellness"),
+                        new Tip("Swap soda for sparkling water or herbal tea.", "Nutrition"),
+                        new Tip("Take the stairs instead of the elevator today.", "Fitness"),
+                        new Tip("Practice gratitude: Name 3 things you are thankful for.", "Mindfulness"),
+                        new Tip("Stand up and move around every hour.", "Fitness"),
+                        new Tip("Eat slowly and chew your food thoroughly.", "Nutrition"),
+                        new Tip("Get at least 15 minutes of sunlight today.", "Wellness"),
+                        new Tip("Replace processed snacks with nuts or seeds.", "Nutrition"),
+                        new Tip("Read a book instead of scrolling before bed.", "Sleep"),
+                        new Tip("Do a plank for 30 seconds to strengthen your core.", "Fitness"),
+                        new Tip("Smile! It signals your brain to release serotonin.", "Mindfulness"),
+                        new Tip("Cut back on added sugars for better energy levels.", "Nutrition"),
+                        new Tip("Keep your bedroom cool and dark for better sleep.", "Sleep"),
+                        new Tip("Park further away to get more steps in.", "Fitness"),
+                        new Tip("Stay present: Focus on your breath for 1 minute.", "Mindfulness"),
+                        new Tip("Eat a high-protein breakfast to stay full longer.", "Nutrition"),
+                        new Tip("Limit caffeine intake after 2 PM.", "Sleep"),
+                        new Tip("Stretch your neck and shoulders to release tension.", "Fitness"),
+                        new Tip("Connect with a friend or loved one today.", "Social Wellness"),
+                        new Tip("Declutter your workspace for a clearer mind.", "Productivity"),
+                        new Tip("Drink water before every meal.", "Hydration"));
 
-        return ResponseEntity.ok(Map.of(
-                "tip", tip,
-                "source", "Wellnest (Daily)"));
-    }
+        @GetMapping("/daily")
+        public ResponseEntity<?> getDailyTip() {
+                try {
+                        // ZenQuotes API: Returns an array of objects [ { "q": "quote", "a": "author",
+                        // ... } ]
+                        String url = "https://zenquotes.io/api/random";
+
+                        // Fetch as List of Maps
+                        @SuppressWarnings("unchecked")
+                        List<Map<String, Object>> response = restTemplate.getForObject(url, List.class);
+
+                        if (response != null && !response.isEmpty()) {
+                                Map<String, Object> quoteObj = response.get(0);
+                                String quoteText = (String) quoteObj.get("q");
+                                // ZenQuotes are inspirational, so we categorize them generally or randomly
+                                String category = "Inspiration";
+
+                                return ResponseEntity.ok(Map.of(
+                                                "tip", quoteText,
+                                                "category", category,
+                                                "source", "ZenQuotes API"));
+                        }
+                } catch (Exception e) {
+                        // Log error silently and use fallback
+                        System.err.println("Health Tip API Error: " + e.getMessage());
+                }
+
+                // --- FALLBACK LOGIC ---
+                // Pick a backup tip based on Day of Year so it rotates daily even offline
+                int index = (LocalDate.now().getDayOfYear()) % BACKUP_TIPS.size();
+                Tip backup = BACKUP_TIPS.get(index);
+
+                return ResponseEntity.ok(Map.of(
+                                "tip", backup.text(),
+                                "category", backup.category(),
+                                "source", "Wellnest Coach (Offline)"));
+        }
 }

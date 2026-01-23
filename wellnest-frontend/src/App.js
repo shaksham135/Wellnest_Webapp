@@ -25,6 +25,7 @@ import TrainerMatching from "./pages/TrainerMatching";
 import ClientDetails from "./pages/ClientDetails"; // Import ClientDetails
 import MyTrainers from "./pages/MyTrainers"; // Import MyTrainers
 import Trackers from "./pages/Trackers";
+import LeaderboardPage from "./pages/LeaderboardPage";
 import BmiCalculator from "./pages/BmiCalculator";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import Notifications from "./pages/Notifications";
@@ -177,6 +178,15 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <HealthMetricsDetail />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/leaderboard"
+            element={
+              <ProtectedRoute>
+                <LeaderboardPage />
               </ProtectedRoute>
             }
           />

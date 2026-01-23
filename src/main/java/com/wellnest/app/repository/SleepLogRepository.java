@@ -6,7 +6,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface SleepLogRepository extends JpaRepository<SleepLog, Long> {
-        List<SleepLog> findByUserIdOrderBySleepDateDesc(Long userId);
+    List<SleepLog> findByUserIdOrderBySleepDateDesc(Long userId);
 
     List<SleepLog> findByUserIdAndSleepDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
+
+    List<SleepLog> findBySleepDateBetween(LocalDate startDate, LocalDate endDate);
 }

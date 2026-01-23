@@ -246,6 +246,50 @@ main {
   transform: rotate(10deg);
 }
 
+/* ---------------- DROPDOWN ---------------- */
+.nav-dropdown-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 200px;
+
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: var(--glass-blur);
+
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+}
+
+.nav-dropdown-container:hover .nav-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.nav-dropdown-menu .nav-link {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 10px 12px;
+}
+
 /* ---------------- RESPONSIVE NAV ---------------- */
 .mobile-controls {
   display: none;
@@ -383,6 +427,32 @@ main {
     width: 100%;
     border-radius: 8px;
     padding: 10px 12px;
+  }
+
+  /* Mobile Dropdown Overrides */
+  .nav-dropdown-container {
+    flex-direction: column;
+    align-items: flex-start;
+    height: auto;
+    width: 100%;
+  }
+
+  .nav-dropdown-menu {
+    position: static;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    box-shadow: none;
+    width: 100%;
+    padding-left: 16px;
+    /* Indent sub-items */
+    border: none;
+    background: transparent;
+  }
+
+  .dropdown-trigger {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .nav-theme-toggle {
@@ -1213,7 +1283,38 @@ main {
 
   .tracker-page.container {
     padding: 16px;
-    margin: 16px;
+    margin: 16px auto;
+    width: auto;
+  }
+
+  /* Stack tabs on small mobile */
+  .tracker-page .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+  }
+
+  .tracker-page .tabs button {
+    flex-shrink: 0;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  /* Recent List Card Stacking */
+  .recent-list .card {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+
+  .recent-list .card>div:first-child {
+    width: 100%;
+  }
+
+  .recent-list .card button {
+    align-self: flex-end;
   }
 }
 
