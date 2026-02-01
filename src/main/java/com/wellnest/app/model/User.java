@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Setter
 @Getter
 @Entity
-@Table(name = "users")
+@Table(name = "app_users")
 public class User {
 
     @Id
