@@ -1,24 +1,34 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import apiClient from "../api/apiClient";
-import { FiUsers, FiTrash2, FiActivity, FiUserCheck, FiLogOut, FiX } from "react-icons/fi";
+import {
+    FiUsers, FiTrash2, FiActivity, FiUserCheck, FiLogOut, FiX,
+    FiGrid, FiList, FiFileText, FiShield, FiSearch, FiChevronRight, FiGlobe
+} from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { getClientAnalytics } from "../api/trainerApi";
-
+import ThemeToggle from "../components/ThemeToggle";
+import logo from "../assets/logo.png";
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
-    const [activeTab, setActiveTab] = useState("all"); // 'all', 'users', 'trainers', 'verification', 'posts'
+    const [activeTab, setActiveTab] = useState("all");
     const [users, setUsers] = useState([]);
     const [trainers, setTrainers] = useState([]);
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
-    const [userAnalytics, setUserAnalytics] = useState(null);
-    const [selectedUser, setSelectedUser] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+    // User Detail State
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [userAnalytics, setUserAnalytics] = useState(null);
+
+    const navigate = useNavigate();
+
+    // Fetch Analytics when user is selected
     useEffect(() => {
         if (selectedUser) {
-            setUserAnalytics(null); // Reset
+            setUserAnalytics(null);
             getClientAnalytics(selectedUser.id)
                 .then(res => setUserAnalytics(res.data))
                 .catch(err => {
@@ -32,15 +42,15 @@ const AdminDashboard = () => {
         navigate(`/trainers/client/${selectedUser.id}/analytics`, { state: { fromAdmin: true } });
     };
 
-    const fetchData = React.useCallback(async () => {
+    const fetchData = useCallback(async () => {
         try {
             setLoading(true);
             const [usersRes, trainersRes, postsRes] = await Promise.all([
                 apiClient.get("/admin/users"),
                 apiClient.get("/admin/trainers"),
-                apiClient.get("/blog/posts?category=All") // Fetch all posts
+                apiClient.get("/blog/posts?category=All")
             ]);
-            setUsers(usersRes.data);
+            setUsers(usersRes.data.filter(u => u.role !== 'ROLE_ADMIN'));
             setTrainers(trainersRes.data);
             setPosts(postsRes.data);
         } catch (error) {
@@ -58,20 +68,19 @@ const AdminDashboard = () => {
         fetchData();
     }, [fetchData]);
 
+    // -- Action Handlers --
+
     const handleDeleteUser = async (userId) => {
         if (!window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
-
         try {
             await apiClient.delete(`/admin/users/${userId}`);
-            // Remove from users list
             const userToDelete = users.find(u => u.id === userId);
             setUsers(users.filter(u => u.id !== userId));
-
-            // If this user was a trainer, remove from trainers list too (by email match as fallback)
             if (userToDelete) {
                 setTrainers(trainers.filter(t => t.email !== userToDelete.email));
             }
-            alert("User deleted successfully.");
+            // Close modal if deleted user is currently viewed
+            if (selectedUser?.id === userId) setSelectedUser(null);
         } catch (error) {
             console.error("Error deleting user:", error);
             alert("Failed to delete user.");
@@ -80,13 +89,11 @@ const AdminDashboard = () => {
 
     const handleDeleteTrainer = async (trainerId, trainerEmail) => {
         if (!window.confirm("Are you sure you want to delete this trainer? This will also delete their User account.")) return;
-
         try {
             await apiClient.delete(`/admin/trainers/${trainerId}`);
             setTrainers(trainers.filter(t => t.id !== trainerId));
-            // Also remove from users list by email
             setUsers(users.filter(u => u.email !== trainerEmail));
-            alert("Trainer deleted successfully.");
+            if (selectedUser?.email === trainerEmail) setSelectedUser(null);
         } catch (error) {
             console.error("Error deleting trainer:", error);
             alert("Failed to delete trainer.");
@@ -98,7 +105,6 @@ const AdminDashboard = () => {
         try {
             await apiClient.delete(`/blog/posts/${postId}`);
             setPosts(posts.filter(p => p.id !== postId));
-            alert("Post deleted successfully.");
         } catch (error) {
             console.error("Error deleting post:", error);
             alert("Failed to delete post.");
@@ -114,7 +120,10 @@ const AdminDashboard = () => {
                 }
                 return u;
             }));
-            alert("User verification status updated.");
+            // Update modal if open
+            if (selectedUser?.id === userId) {
+                setSelectedUser(prev => ({ ...prev, verified: !prev.verified, verificationRequested: false }));
+            }
         } catch (error) {
             console.error("Error verifying user:", error);
             alert("Failed to update verification status.");
@@ -128,358 +137,381 @@ const AdminDashboard = () => {
         navigate("/login");
     };
 
+    // -- Data Filtering --
+
     const getDisplayData = () => {
-        if (activeTab === 'all') return users;
-        if (activeTab === 'users') return users.filter(u => u.role === 'ROLE_USER');
-        if (activeTab === 'verification') return users.filter(u => u.verificationRequested || u.verified);
-        return trainers;
+        let data = [];
+        if (activeTab === 'all') data = users;
+        else if (activeTab === 'users') data = users.filter(u => u.role === 'ROLE_USER');
+        else if (activeTab === 'trainers') data = trainers;
+        else if (activeTab === 'verification') data = users.filter(u => u.verificationRequested || u.verified);
+        else if (activeTab === 'posts') data = posts;
+
+        // Search Filter
+        if (searchTerm) {
+            const lowerSearch = searchTerm.toLowerCase();
+            return data.filter(item => {
+                // Determine fields to search based on item type
+                if (activeTab === 'posts') {
+                    return item.title?.toLowerCase().includes(lowerSearch) ||
+                        item.author?.toLowerCase().includes(lowerSearch);
+                }
+                return item.name?.toLowerCase().includes(lowerSearch) ||
+                    item.email?.toLowerCase().includes(lowerSearch);
+            });
+        }
+        return data;
     };
 
     const displayData = getDisplayData();
 
+    // -- Renders --
 
-
-    const handleViewDetails = (user) => {
-        setSelectedUser(user);
-    };
-
-    const closeDetails = () => {
-        setSelectedUser(null);
-    };
+    const NavItem = ({ id, icon: Icon, label }) => (
+        <button
+            className={`admin-nav-item ${activeTab === id ? 'active' : ''}`}
+            onClick={() => { setActiveTab(id); setIsSidebarOpen(false); }}
+        >
+            <Icon className="nav-icon" />
+            <span>{label}</span>
+            {activeTab === id && <FiChevronRight className="nav-arrow" />}
+        </button>
+    );
 
     return (
-        <div className="admin-dashboard-container">
-            {/* ... Header and Stats ... */}
-            <div className="admin-header">
-                <h1 className="admin-title">Admin <span>Dashboard</span></h1>
-                <button onClick={handleLogout} className="logout-btn">
-                    <FiLogOut style={{ marginRight: '8px' }} /> Logout
-                </button>
-            </div>
+        <div className="admin-layout">
+            <div
+                className={`sidebar-backdrop ${isSidebarOpen ? 'open' : ''}`}
+                onClick={() => setIsSidebarOpen(false)}
+            />
 
-            <div className="stats-grid">
-                {/* ... stats ... */}
-                <div className="statCard">
-                    <div className="stat-icon-box" style={{ background: '#EFF6FF', color: '#3B82F6' }}>
-                        <FiUsers />
+            {/* Sidebar */}
+            <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+                <div className="sidebar-header">
+                    <div className="admin-brand">
+                        <img src={logo} alt="Wellnest" style={{ width: '32px', height: '32px' }} />
+                        <h2>Wellnest</h2>
                     </div>
-                    <div className="stat-content">
-                        <p className="stat-label">Total Accounts</p>
-                        <h3 className="statValue">{users.length}</h3>
+                    <div style={{ marginLeft: 'auto' }}>
+                        <ThemeToggle />
                     </div>
+                    <button className="mobile-close" onClick={() => setIsSidebarOpen(false)}>
+                        <FiX />
+                    </button>
                 </div>
 
-                <div className="statCard">
-                    <div className="stat-icon-box" style={{ background: '#DCFCE7', color: '#22C55E' }}>
-                        <FiUserCheck />
+                <nav className="sidebar-nav">
+                    <div className="nav-group">
+                        <p className="nav-label">Overview</p>
+                        <NavItem id="all" icon={FiGrid} label="Dashboard" />
+                        <NavItem id="users" icon={FiUsers} label="Users" />
+                        <NavItem id="trainers" icon={FiUserCheck} label="Trainers" />
                     </div>
-                    <div className="stat-content">
-                        <p className="stat-label">Trainers</p>
-                        <h3 className="statValue">
-                            {users.filter(u => u.role === 'ROLE_TRAINER').length}
-                        </h3>
+
+                    <div className="nav-group">
+                        <p className="nav-label">Management</p>
+                        <NavItem id="verification" icon={FiShield} label="Verifications" />
+                        <NavItem id="posts" icon={FiFileText} label="Community Posts" />
                     </div>
+                </nav>
+
+                <div className="sidebar-footer">
+                    <button onClick={() => window.location.href = '/community'} className="logout-btn-full secondary">
+                        <FiGlobe /> <span>View Community</span>
+                    </button>
+                    <button onClick={handleLogout} className="logout-btn-full">
+                        <FiLogOut /> <span>Logout</span>
+                    </button>
                 </div>
+            </aside>
 
-                <div className="statCard">
-                    <div className="stat-icon-box" style={{ background: '#F3E8FF', color: '#A855F7' }}>
-                        <FiUsers />
+            {/* Main Content */}
+            <main className="admin-main">
+                {/* Mobile Header */}
+                <header className="mobile-header">
+                    <button className="menu-btn" onClick={() => setIsSidebarOpen(true)}>
+                        <FiList />
+                    </button>
+                    <div className="admin-brand mobile">
+                        <img src={logo} alt="Wellnest" style={{ width: '28px', height: '28px' }} />
+                        <h2 style={{ fontSize: '20px', margin: 0 }}>Wellnest</h2>
                     </div>
-                    <div className="stat-content">
-                        <p className="stat-label">Normal Users</p>
-                        <h3 className="statValue">
-                            {users.filter(u => u.role === 'ROLE_USER').length}
-                        </h3>
+                </header>
+
+                <div className="admin-content-wrapper">
+
+                    {/* Header Section */}
+                    <div className="content-header">
+                        <div>
+                            <h1>{activeTab === 'all' ? 'Overview' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
+                            <p className="subtitle">Manage your application data and users</p>
+                        </div>
+
+                        <div className="header-actions">
+                            <div className="search-box">
+                                <FiSearch />
+                                <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            {/* Tabs */}
-            <div className="admin-tabs">
-                <button
-                    className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('all')}
-                >
-                    All Accounts
-                </button>
-                <button
-                    className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('users')}
-                >
-                    Normal Users
-                </button>
-                <button
-                    className={`tab-btn ${activeTab === 'trainers' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('trainers')}
-                >
-                    Trainers List
-                </button>
-                <button
-                    className={`tab-btn ${activeTab === 'verification' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('verification')}
-                >
-                    Verified Users
-                </button>
-                <button
-                    className={`tab-btn ${activeTab === 'posts' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('posts')}
-                >
-                    Community Posts
-                </button>
-            </div>
+                    {/* Stats Row (Only on Overview) */}
+                    {activeTab === 'all' && (
+                        <div className="stats-grid-modern">
+                            <div className="stat-card-modern">
+                                <div className="icon-wrapper blue"><FiUsers /></div>
+                                <div className="stat-info">
+                                    <h3>Total Users</h3>
+                                    <p>{users.length}</p>
+                                </div>
+                            </div>
+                            <div className="stat-card-modern">
+                                <div className="icon-wrapper green"><FiUserCheck /></div>
+                                <div className="stat-info">
+                                    <h3>Trainers</h3>
+                                    <p>{trainers.length}</p>
+                                </div>
+                            </div>
+                            <div className="stat-card-modern">
+                                <div className="icon-wrapper purple"><FiFileText /></div>
+                                <div className="stat-info">
+                                    <h3>Total Posts</h3>
+                                    <p>{posts.length}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-            {/* Content Area */}
-            <div className="content-card">
-                {loading ? (
-                    <p className="state-message">Loading data...</p>
-                ) : (
-                    <div className="table-responsive">
-                        <table className="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    {activeTab === 'posts' ? (
-                                        <>
-                                            <th>Title</th>
-                                            <th>Author</th>
-                                            <th>Category</th>
-                                            <th>Date</th>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <th>Name</th>
-                                            <th>Email</th>
-                                            {activeTab === 'verification' ? (
+                    {/* Data Table Card */}
+                    <div className="data-card">
+                        {loading ? (
+                            <div className="loading-state">
+                                <div className="spinner"></div>
+                                <p>Loading data...</p>
+                            </div>
+                        ) : (
+                            <div className="table-responsive-modern">
+                                <table className="admin-table-modern">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            {activeTab === 'posts' ? (
                                                 <>
-                                                    <th>Role</th>
-                                                    <th>Status</th>
+                                                    <th>Post Title</th>
+                                                    <th>Author</th>
+                                                    <th>Category</th>
+                                                    <th>Date</th>
+                                                    <th>Actions</th>
                                                 </>
                                             ) : (
-                                                <th>{activeTab === 'trainers' ? 'Specialties' : 'Goal'}</th>
+                                                <>
+                                                    <th>User</th>
+                                                    <th>Role</th>
+                                                    {activeTab !== 'trainers' && <th>Status</th>}
+                                                    <th className="details-col">Details</th>
+                                                    <th>Actions</th>
+                                                </>
                                             )}
-                                            {activeTab !== 'verification' && activeTab !== 'trainers' && <th>Role</th>}
-                                        </>
-                                    )}
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(activeTab === 'posts' ? posts : displayData).map(item => (
-                                    <tr key={item.id}>
-                                        <td>#{item.id}</td>
-                                        {activeTab === 'posts' ? (
-                                            <>
-                                                <td><div style={{ fontWeight: '500', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div></td>
-                                                <td>{item.author}</td>
-                                                <td><span className="badge badge-user" style={{ background: '#e0f2fe', color: '#0369a1' }}>{item.category}</span></td>
-                                                <td>{item.date}</td>
-                                                <td>
-                                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                                        <button
-                                                            onClick={() => handleDeletePost(item.id)}
-                                                            className="action-btn btn-delete"
-                                                            title="Delete Post"
-                                                        >
-                                                            <FiTrash2 /> <span>Delete</span>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <td>
-                                                    <div style={{ fontWeight: '500' }}>{item.name}</div>
-                                                </td>
-                                                <td>{item.email}</td>
-                                                {activeTab === 'verification' ? (
-                                                    <>
-                                                        <td>
-                                                            <span className={item.role === 'ROLE_TRAINER' ? "badge badge-trainer" : "badge badge-user"}>
-                                                                {item.role === 'ROLE_TRAINER' ? 'TRAINER' : 'USER'}
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            {item.verified ? (
-                                                                <span className="badge badge-verified">Verified</span>
-                                                            ) : item.verificationRequested ? (
-                                                                <span className="badge badge-pending">Pending</span>
-                                                            ) : (
-                                                                <span className="badge badge-unverified">Unverified</span>
-                                                            )}
-                                                        </td>
-                                                    </>
-                                                ) : (
-                                                    <td>
-                                                        {activeTab === 'trainers'
-                                                            ? (Array.isArray(item.specialties) ? item.specialties.join(', ') : item.specialties)
-                                                            : (item.fitnessGoal || 'N/A')
-                                                        }
-                                                    </td>
-                                                )}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {displayData.length > 0 ? (
+                                            displayData.map((item) => (
+                                                <tr key={item.id}>
+                                                    <td className="id-col">#{item.id}</td>
 
-                                                {activeTab !== 'verification' && activeTab !== 'trainers' && (
-                                                    <td>
-                                                        <span className={item.role === 'ROLE_TRAINER' ? "badge badge-trainer" : "badge badge-user"}>
-                                                            {item.role === 'ROLE_TRAINER' ? 'TRAINER' : 'USER'}
-                                                        </span>
-                                                    </td>
-                                                )}
-
-                                                <td>
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                                            <button
-                                                                onClick={() => handleViewDetails(item)}
-                                                                className="action-btn btn-detail"
-                                                                title="View Details"
-                                                            >
-                                                                <FiActivity /> <span>Details</span>
-                                                            </button>
-
-                                                            {activeTab === 'verification' && (
+                                                    {activeTab === 'posts' ? (
+                                                        <>
+                                                            <td className="title-col">
+                                                                <div className="post-title">{item.title}</div>
+                                                                <span className="post-excerpt">{item.excerpt?.substring(0, 40)}...</span>
+                                                            </td>
+                                                            <td>
+                                                                <div className="user-cell">
+                                                                    <div className="avatar-circle small">{item.author?.charAt(0)}</div>
+                                                                    <span>{item.author}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td><span className="badge-modern neutral">{item.category}</span></td>
+                                                            <td>{new Date(item.createdAt || Date.now()).toLocaleDateString()}</td>
+                                                            <td>
                                                                 <button
-                                                                    onClick={() => handleVerifyUser(item.id)}
-                                                                    className={`action-btn ${item.verified ? 'btn-revoke' : 'btn-verify'}`}
-                                                                    title={item.verified ? "Revoke Verification" : "Verify User"}
+                                                                    className="icon-btn delete"
+                                                                    onClick={() => handleDeletePost(item.id)}
+                                                                    title="Delete Post"
                                                                 >
-                                                                    {item.verified ? <><FiX /> <span>Revoke</span></> : <><FiUserCheck /> <span>Verify</span></>}
+                                                                    <FiTrash2 />
                                                                 </button>
+                                                            </td>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <td>
+                                                                <div className="user-info-cell">
+                                                                    <div className="avatar-circle">{item.name?.charAt(0)}</div>
+                                                                    <div>
+                                                                        <span className="name-text">{item.name}</span>
+                                                                        <span className="email-text">{item.email}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <span className={`badge-modern ${item.role === 'ROLE_TRAINER' ? 'trainer' : 'user'}`}>
+                                                                    {item.role?.replace('ROLE_', '')}
+                                                                </span>
+                                                            </td>
+                                                            {activeTab !== 'trainers' && (
+                                                                <td>
+                                                                    {item.verified ? (
+                                                                        <span className="status-indicator verified">
+                                                                            <span className="dot"></span> Verified
+                                                                        </span>
+                                                                    ) : item.verificationRequested ? (
+                                                                        <span className="status-indicator pending">
+                                                                            <span className="dot"></span> Pending
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="status-indicator unverified">
+                                                                            Unverified
+                                                                        </span>
+                                                                    )}
+                                                                </td>
                                                             )}
-                                                            <button
-                                                                onClick={() => {
-                                                                    if (activeTab === 'trainers') {
-                                                                        handleDeleteTrainer(item.id, item.email);
-                                                                    } else {
-                                                                        handleDeleteUser(item.id);
-                                                                    }
-                                                                }}
-                                                                className="action-btn btn-delete"
-                                                                title={activeTab === 'trainers' ? "Delete Trainer" : "Delete User"}
-                                                            >
-                                                                <FiTrash2 /> <span>Delete</span>
-                                                            </button>
-                                                        </div>
+                                                            <td className="details-col">
+                                                                {activeTab === 'trainers' ? (
+                                                                    <span className="detail-pill">{item.specialties?.[0] || 'Trainer'}</span>
+                                                                ) : (
+                                                                    <span className="detail-pill">{item.fitnessGoal?.replace(/_/g, ' ') || 'User'}</span>
+                                                                )}
+                                                            </td>
+                                                            <td>
+                                                                <div className="action-row">
+                                                                    <button className="icon-btn view" onClick={() => setSelectedUser(item)} title="View Details">
+                                                                        <FiActivity />
+                                                                    </button>
+
+                                                                    {activeTab === 'verification' && (
+                                                                        <button
+                                                                            className={`icon-btn ${item.verified ? 'warning' : 'success'}`}
+                                                                            onClick={() => handleVerifyUser(item.id)}
+                                                                            title={item.verified ? "Revoke" : "Approve"}
+                                                                        >
+                                                                            {item.verified ? <FiX /> : <FiUserCheck />}
+                                                                        </button>
+                                                                    )}
+
+                                                                    <button
+                                                                        className="icon-btn delete"
+                                                                        onClick={() => item.role === 'ROLE_TRAINER' ? handleDeleteTrainer(item.id, item.email) : handleDeleteUser(item.id)}
+                                                                        title="Delete"
+                                                                    >
+                                                                        <FiTrash2 />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </>
+                                                    )}
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="6" className="empty-state">
+                                                    <div className="empty-content">
+                                                        <FiSearch />
+                                                        <p>No results found</p>
                                                     </div>
                                                 </td>
-                                            </>
+                                            </tr>
                                         )}
-                                    </tr>
-                                ))}
-                                {(activeTab === 'posts' ? posts : displayData).length === 0 && (
-                                    <tr>
-                                        <td colSpan={activeTab === 'posts' ? "5" : "6"} className="state-message">No data found</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-
-            {/* Detail Modal */}
-            {selectedUser && (
-                <div className="modal-backdrop open" onClick={closeDetails}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>User Details</h2>
-                            <button onClick={closeDetails} className="ghost-btn" style={{ fontSize: '24px', padding: '4px' }}>
-                                <FiX />
-                            </button>
-                        </div>
-
-                        <div className="detail-grid">
-                            <div className="detail-item">
-                                <span className="detail-label">Name</span>
-                                <span className="detail-value">{selectedUser.name}</span>
+                                    </tbody>
+                                </table>
                             </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Email</span>
-                                <span className="detail-value">{selectedUser.email}</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Role</span>
-                                <span className="detail-value">{selectedUser.role}</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Phone</span>
-                                <span className="detail-value">{selectedUser.phone || 'N/A'}</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Gender</span>
-                                <span className="detail-value">{selectedUser.gender || 'N/A'}</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Age</span>
-                                <span className="detail-value">{selectedUser.age || 'N/A'}</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Height</span>
-                                <span className="detail-value">{selectedUser.heightCm ? `${selectedUser.heightCm} cm` : 'N/A'}</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Weight</span>
-                                <span className="detail-value">{selectedUser.weightKg ? `${selectedUser.weightKg} kg` : 'N/A'}</span>
-                            </div>
-                            <div className="detail-item full-width">
-                                <span className="detail-label">Fitness Goal</span>
-                                <span className="detail-value">{selectedUser.fitnessGoal?.replace(/_/g, ' ') || 'N/A'}</span>
-                            </div>
-                            {selectedUser.role === 'ROLE_TRAINER' && (
-                                <div className="detail-item full-width">
-                                    <span className="detail-label">Specialties</span>
-                                    <span className="detail-value">
-                                        {Array.isArray(selectedUser.specialties) ? selectedUser.specialties.join(', ') : selectedUser.specialties || 'N/A'}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-
-                        <div className="section-divider">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                                <h3 className="section-title" style={{ margin: 0 }}>Analytics Overview</h3>
-                                <button
-                                    onClick={viewFullAnalytics}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--primary)',
-                                        cursor: 'pointer',
-                                        fontSize: '14px',
-                                        fontWeight: 600,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px'
-                                    }}
-                                >
-                                    View Full Details <FiActivity />
-                                </button>
-                            </div>
-                            <div className="mini-analytics-grid">
-                                <div className="mini-stat-card">
-                                    <div className="mini-stat-value">
-                                        {userAnalytics?.workoutAnalytics?.totalWorkouts || 0}
-                                    </div>
-                                    <div className="mini-stat-label">Workouts</div>
-                                </div>
-                                <div className="mini-stat-card">
-                                    <div className="mini-stat-value">
-                                        {userAnalytics?.nutritionAnalytics?.avgDailyCalories?.toFixed(0) || 0}
-                                    </div>
-                                    <div className="mini-stat-label">Calories</div>
-                                </div>
-                                <div className="mini-stat-card">
-                                    <div className="mini-stat-value">
-                                        {userAnalytics?.streak || 0}
-                                    </div>
-                                    <div className="mini-stat-label">Streak</div>
-                                </div>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </div>
-            )}
-        </div>
+            </main >
+
+            {/* User Detail Modal */}
+            {
+                selectedUser && (
+                    <div className="modal-overlay" onClick={() => setSelectedUser(null)}>
+                        <div className="modal-panel" onClick={e => e.stopPropagation()}>
+                            <div className="modal-header-modern">
+                                <div className="user-header-info">
+                                    <div className="avatar-circle large">{selectedUser.name?.charAt(0)}</div>
+                                    <div>
+                                        <h2>{selectedUser.name}</h2>
+                                        <p>{selectedUser.email}</p>
+                                    </div>
+                                </div>
+                                <button className="close-btn" onClick={() => setSelectedUser(null)}>
+                                    <FiX />
+                                </button>
+                            </div>
+
+                            <div className="modal-body">
+                                <div className="info-grid">
+                                    <div className="info-item">
+                                        <label>Role</label>
+                                        <p>{selectedUser.role?.replace('ROLE_', '')}</p>
+                                    </div>
+                                    <div className="info-item">
+                                        <label>Status</label>
+                                        <p className={selectedUser.verified ? 'text-success' : ''}>
+                                            {selectedUser.verified ? 'Verified' : 'Unverified'}
+                                        </p>
+                                    </div>
+                                    <div className="info-item">
+                                        <label>Phone</label>
+                                        <p>{selectedUser.phone || 'N/A'}</p>
+                                    </div>
+                                    <div className="info-item">
+                                        <label>Gender</label>
+                                        <p>{selectedUser.gender || 'N/A'}</p>
+                                    </div>
+                                    <div className="info-item">
+                                        <label>Age & BMI</label>
+                                        <p>{selectedUser.age || '-'} yrs</p>
+                                    </div>
+                                    <div className="info-item">
+                                        <label>Dimensions</label>
+                                        <p>{selectedUser.heightCm ? `${selectedUser.heightCm}cm / ${selectedUser.weightKg}kg` : 'N/A'}</p>
+                                    </div>
+                                </div>
+
+                                {userAnalytics && (
+                                    <div className="analytics-preview">
+                                        <h3>Quick Stats</h3>
+                                        <div className="stats-row">
+                                            <div className="mini-stat">
+                                                <span>Workouts</span>
+                                                <strong>{userAnalytics.workoutAnalytics?.totalWorkouts || 0}</strong>
+                                            </div>
+                                            <div className="mini-stat">
+                                                <span>Calories (Avg)</span>
+                                                <strong>{userAnalytics.nutritionAnalytics?.avgDailyCalories?.toFixed(0) || 0}</strong>
+                                            </div>
+                                            <div className="mini-stat">
+                                                <span>Streak</span>
+                                                <strong>{userAnalytics.streak || 0} 🔥</strong>
+                                            </div>
+                                        </div>
+                                        <button className="view-full-btn" onClick={viewFullAnalytics}>
+                                            View Full Analytics <FiActivity />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };
 

@@ -5,6 +5,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
+  useLocation,
 } from "react-router-dom";
 
 // Icons removed
@@ -84,210 +85,224 @@ const App = () => {
     setUserRole(getUserRole());
   };
 
+  // Helper component to check location
+  const MainLayout = ({ children }) => {
+    const location = useLocation();
+    const hideNavbar = location.pathname.startsWith('/admin-dashboard');
+
+    return (
+      <>
+        {!hideNavbar && <Navbar isLoggedIn={isLoggedIn} userRole={userRole} />}
+        {children}
+      </>
+    );
+  };
+
   return (
     <Router>
       <Toaster position="top-right" toastOptions={{ style: { fontSize: '14px', fontWeight: 500 } }} />
-      <Navbar isLoggedIn={isLoggedIn} userRole={userRole} />
-      <ChatbotWidget isLoggedIn={isLoggedIn} />
+      <MainLayout>
+        <ChatbotWidget isLoggedIn={isLoggedIn} />
 
-      <main>
-        <Routes>
-          {/* Public routes */}
-          <Route
-            path="/"
-            element={<Login onLoginSuccess={handleLoginSuccess} />}
-          />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/support" element={<Support />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/support" element={<Support />} />
+        <main>
+          <Routes>
+            {/* Public routes */}
+            <Route
+              path="/"
+              element={<Login onLoginSuccess={handleLoginSuccess} />}
+            />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/support" element={<Support />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/support" element={<Support />} />
 
-          {/* Protected routes */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard onLogout={() => setIsLoggedIn(false)} />
-              </ProtectedRoute>
-            }
-          />
+            {/* Protected routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard onLogout={() => setIsLoggedIn(false)} />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/trackers"
-            element={
-              <ProtectedRoute>
-                <Trackers />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/trackers"
+              element={
+                <ProtectedRoute>
+                  <Trackers />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute>
-                <AnalyticsPage />
-              </ProtectedRoute>
-            }
-          />
-          {/* ... analytics sub-routes ... */}
-          <Route
-            path="/analytics/workout"
-            element={
-              <ProtectedRoute>
-                <WorkoutAnalyticsDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analytics/nutrition"
-            element={
-              <ProtectedRoute>
-                <NutritionAnalyticsDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analytics/sleep"
-            element={
-              <ProtectedRoute>
-                <SleepAnalyticsDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analytics/water"
-            element={
-              <ProtectedRoute>
-                <WaterIntakeAnalyticsDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analytics/goals"
-            element={
-              <ProtectedRoute>
-                <GoalProgressDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analytics/health"
-            element={
-              <ProtectedRoute>
-                <HealthMetricsDetail />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute>
+                  <AnalyticsPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* ... analytics sub-routes ... */}
+            <Route
+              path="/analytics/workout"
+              element={
+                <ProtectedRoute>
+                  <WorkoutAnalyticsDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analytics/nutrition"
+              element={
+                <ProtectedRoute>
+                  <NutritionAnalyticsDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analytics/sleep"
+              element={
+                <ProtectedRoute>
+                  <SleepAnalyticsDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analytics/water"
+              element={
+                <ProtectedRoute>
+                  <WaterIntakeAnalyticsDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analytics/goals"
+              element={
+                <ProtectedRoute>
+                  <GoalProgressDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analytics/health"
+              element={
+                <ProtectedRoute>
+                  <HealthMetricsDetail />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/leaderboard"
-            element={
-              <ProtectedRoute>
-                <LeaderboardPage />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/leaderboard"
+              element={
+                <ProtectedRoute>
+                  <LeaderboardPage />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/blog"
-            element={
-              <ProtectedRoute>
-                <Blog />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/blog/:id"
-            element={
-              <ProtectedRoute>
-                <BlogPost />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/blog"
+              element={
+                <ProtectedRoute>
+                  <Blog />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/blog/:id"
+              element={
+                <ProtectedRoute>
+                  <BlogPost />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/community"
-            element={
-              <ProtectedRoute>
-                <CommunityPage />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/community"
+              element={
+                <ProtectedRoute>
+                  <CommunityPage />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/trainers"
-            element={
-              <ProtectedRoute>
-                {userRole === 'ROLE_TRAINER' ? <ClientDetails /> : <TrainerMatching />}
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/trainers"
+              element={
+                <ProtectedRoute>
+                  {userRole === 'ROLE_TRAINER' ? <ClientDetails /> : <TrainerMatching />}
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/trainers/client/:clientId/analytics"
-            element={
-              <ProtectedRoute>
-                <ClientAnalyticsPage />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/trainers/client/:clientId/analytics"
+              element={
+                <ProtectedRoute>
+                  <ClientAnalyticsPage />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/my-trainers"
-            element={
-              <ProtectedRoute>
-                <MyTrainers />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/my-trainers"
+              element={
+                <ProtectedRoute>
+                  <MyTrainers />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/setup-profile"
-            element={
-              <ProtectedRoute>
-                <SetupProfile />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/setup-profile"
+              element={
+                <ProtectedRoute>
+                  <SetupProfile />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/notifications"
-            element={
-              <ProtectedRoute>
-                <Notifications />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/bmi-calculator"
-            element={
-              <ProtectedRoute>
-                <BmiCalculator />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin-dashboard"
-            element={
-              <AdminDashboard />
-            }
-          />
-        </Routes>
-      </main>
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <Notifications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bmi-calculator"
+              element={
+                <ProtectedRoute>
+                  <BmiCalculator />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin-dashboard"
+              element={
+                <AdminDashboard />
+              }
+            />
+          </Routes>
+        </main>
+      </MainLayout>
     </Router>
   );
 };
