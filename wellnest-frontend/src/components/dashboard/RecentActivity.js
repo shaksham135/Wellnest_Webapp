@@ -48,12 +48,25 @@ const RecentActivity = ({ workouts, meals, water, sleep }) => {
 
     const formatTime = (dateStr) => {
         if (!dateStr) return '';
-        const date = new Date(dateStr);
+
+        // Fix for backend sending UTC timestamps (LocalDateTime) without 'Z'
+        // If we don't append Z, browser treats '2023-10-27T12:00:00' as Local Time.
+        // But server meant 12:00 UTC. So we force it to be '2023-10-27T12:00:00Z'.
+        let dateInput = dateStr;
+        if (typeof dateStr === 'string' && dateStr.includes('T') && !dateStr.endsWith('Z')) {
+            dateInput = dateStr + 'Z';
+        }
+
+        const date = new Date(dateInput);
         const now = new Date();
         const diffMs = now - date;
         const diffHrs = diffMs / (1000 * 60 * 60);
 
         if (diffHrs < 1) return 'Just now';
+
+        // Handle future dates (if clock drift or timezone weirdness)
+        if (diffHrs < 0) return 'Just now';
+
         if (diffHrs < 24) return `${Math.floor(diffHrs)}h ago`;
         return date.toLocaleDateString();
     }

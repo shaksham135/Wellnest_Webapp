@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = 'wellnest_blog_posts';
-const CURRENT_USER = 'CurrentUser'; 
+
 
 const initialPosts = [
     {
@@ -68,7 +68,7 @@ export const createPost = (post) => {
         date: new Date().toISOString().split('T')[0],
         likes: 0,
         comments: [],
-        role: 'User' 
+        role: 'User'
     };
     const updatedPosts = [newPost, ...posts];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedPosts));
@@ -90,11 +90,9 @@ export const deletePost = (id) => {
 
 export const toggleLike = (id) => {
     const posts = getPosts();
-    let liked = false;
     const updatedPosts = posts.map(p => {
         if (p.id === id) {
             // Simple toggle mock showing like count increment/decrement
-            liked = true;
             return { ...p, likes: p.likes + 1 };
         }
         return p;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiRefreshCw, FiLock } from 'react-icons/fi';
+import { FiPlus, FiRefreshCw } from 'react-icons/fi';
 import CommunityPost from '../components/CommunityPost';
 import CreatePostModal from '../components/CreatePostModal';
 import { getPosts, createPost, updatePost } from '../api/blogApi';

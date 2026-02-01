@@ -32,11 +32,7 @@ const AdminDashboard = () => {
         navigate(`/trainers/client/${selectedUser.id}/analytics`, { state: { fromAdmin: true } });
     };
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchData = async () => {
+    const fetchData = React.useCallback(async () => {
         try {
             setLoading(true);
             const [usersRes, trainersRes, postsRes] = await Promise.all([
@@ -56,7 +52,11 @@ const AdminDashboard = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [navigate]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const handleDeleteUser = async (userId) => {
         if (!window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;

@@ -21,7 +21,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin
 public class AuthController {
 
     private final UserService userService;
@@ -123,10 +123,10 @@ public class AuthController {
         return ResponseEntity.ok("User registered successfully");
     }
 
-    @org.springframework.beans.factory.annotation.Value("${admin.username}")
+    @org.springframework.beans.factory.annotation.Value("${admin.username:admin123@gmail.com}")
     private String adminUsername;
 
-    @org.springframework.beans.factory.annotation.Value("${admin.password}")
+    @org.springframework.beans.factory.annotation.Value("${admin.password:admin123}")
     private String adminPassword;
 
     @jakarta.annotation.PostConstruct

@@ -11,10 +11,10 @@ import java.util.List;
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
-    @org.springframework.beans.factory.annotation.Value("${admin.username}")
+    @org.springframework.beans.factory.annotation.Value("${admin.username:admin123@gmail.com}")
     private String adminUsername;
 
-    @org.springframework.beans.factory.annotation.Value("${admin.password}")
+    @org.springframework.beans.factory.annotation.Value("${admin.password:admin123}")
     private String adminPassword;
 
     private final UserRepository repo;

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/weight-logs")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin
 public class WeightLogController {
 
         private final UserService userService;

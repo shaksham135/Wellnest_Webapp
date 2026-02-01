@@ -15,6 +15,9 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    @Value("${app.frontend.base-url:http://localhost:3000}")
+    private String frontendBaseUrl;
+
     public void sendContactMessage(String userEmail, String topic, String content) {
         try {
             jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
@@ -40,13 +43,20 @@ public class EmailService {
     }
 
     public void sendPasswordResetEmail(String toEmail, String token) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(toEmail);
-        message.setSubject("Password Reset Request");
-        message.setText("To reset your password, please click here: " +
-                "http://localhost:3000/reset-password?token=" + token);
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(toEmail);
+            message.setSubject("Password Reset Request");
+            message.setText("To reset your password, please click here: " +
+                    frontendBaseUrl + "/reset-password?token=" + token);
 
-        mailSender.send(message);
+            mailSender.send(message);
+            System.out.println("Password reset email sent successfully to " + toEmail);
+        } catch (Exception e) {
+            System.err.println(
+                    "CRITICAL ERROR: Failed to send password reset email to " + toEmail + ". Error: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

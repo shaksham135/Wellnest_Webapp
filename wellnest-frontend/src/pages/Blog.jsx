@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiRefreshCw, FiLock } from 'react-icons/fi';
+import { FiPlus, FiRefreshCw } from 'react-icons/fi';
 import BlogCard from '../components/BlogCard';
 import CreatePostModal from '../components/CreatePostModal';
 import apiClient from '../api/apiClient';
@@ -76,7 +76,7 @@ const Blog = () => {
     const handleCreatePost = async (newPostData) => {
         setCreateError('');
         try {
-            const response = await createPost(newPostData);
+            await createPost(newPostData);
             // Re-fetch to apply filter correctly or manually check
             fetchPosts();
             setShowCreateModal(false);

@@ -183,7 +183,7 @@ public class BlogService {
         });
     }
 
-    @org.springframework.beans.factory.annotation.Value("${admin.username}")
+    @org.springframework.beans.factory.annotation.Value("${admin.username:admin123@gmail.com}")
     private String adminUsername;
 
     @Transactional
