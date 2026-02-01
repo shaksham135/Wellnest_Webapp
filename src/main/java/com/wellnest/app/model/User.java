@@ -44,10 +44,10 @@ public class User {
 
     private Double targetWeightKg;
 
-    @Column(columnDefinition = "boolean default false")
+    @Column(nullable = false)
     private boolean isVerified = false;
 
-    @Column(columnDefinition = "boolean default false")
+    @Column(nullable = false)
     private boolean verificationRequested = false;
 
     @CreationTimestamp
