@@ -51,10 +51,16 @@ public class LeaderboardService {
         List<WaterIntake> waterIntakes = waterIntakeRepository.findByLoggedAtBetween(start, end);
         List<SleepLog> sleepLogs = sleepLogRepository.findBySleepDateBetween(startOfWeek, endOfWeek);
 
-        // 3. Initialize Scores for ALL users to 0.0
+        // 3. Initialize Scores (Identified Admins for exclusion)
         Map<Long, Double> userScores = new HashMap<>();
         List<User> allUsers = userRepository.findAll();
+        Set<Long> excludedUserIds = new HashSet<>();
+
         for (User user : allUsers) {
+            if ("ROLE_ADMIN".equals(user.getRole())) {
+                excludedUserIds.add(user.getId());
+                continue;
+            }
             userScores.put(user.getId(), 0.0);
         }
 
@@ -83,7 +89,14 @@ public class LeaderboardService {
         }
 
         // Ensure current user is in the map (redundant now but safe)
-        userScores.putIfAbsent(currentUserId, 0.0);
+        if (!excludedUserIds.contains(currentUserId)) {
+            userScores.putIfAbsent(currentUserId, 0.0);
+        }
+
+        // Remove excluded users who might have been added by activity merge
+        for (Long excludedId : excludedUserIds) {
+            userScores.remove(excludedId);
+        }
 
         // 4. Sort All Entries
         List<Map.Entry<Long, Double>> sortedEntries = userScores.entrySet().stream()

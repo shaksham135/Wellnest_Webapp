@@ -108,7 +108,10 @@ const BlogPost = () => {
         return (
             <div className="blog-page" style={{ textAlign: 'center', marginTop: 100 }}>
                 <h2>{error || 'Article not found'}</h2>
-                <Link to="/blog" className="ghost-btn" style={{ marginTop: 20 }}>Back to Blog</Link>
+                <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'center' }}>
+                    <Link to="/blog" className="ghost-btn">Back to Articles</Link>
+                    <Link to="/community" className="ghost-btn">Back to Community</Link>
+                </div>
             </div>
         );
     }
@@ -134,8 +137,8 @@ const BlogPost = () => {
                     Link copied to clipboard!
                 </div>
             )}
-            <Link to="/blog" className="ghost-btn" style={{ width: 'auto', marginBottom: 24, paddingLeft: 10 }}>
-                <FiArrowLeft /> Back to Articles
+            <Link to={post && post.role === 'User' ? '/community' : '/blog'} className="ghost-btn" style={{ width: 'auto', marginBottom: 24, paddingLeft: 10 }}>
+                <FiArrowLeft /> {post && post.role === 'User' ? 'Back to Community' : 'Back to Articles'}
             </Link>
 
             <div className="blog-detail-container">

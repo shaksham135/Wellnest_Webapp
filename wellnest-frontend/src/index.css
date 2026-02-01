@@ -39,6 +39,9 @@ body {
   --card-border: rgba(255, 255, 255, 0.1);
   /* Crisp white border */
 
+  --input-bg: rgba(0, 0, 0, 0.2);
+  --input-border: rgba(255, 255, 255, 0.1);
+
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
 
@@ -70,6 +73,9 @@ body {
   /* Whiter, less transparent */
   --card-border: #ffffff;
   /* pure white border for "cutout" look */
+
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
 
   --text-main: #1e1b4b;
   /* Deep Navy (High Contrast) */
@@ -577,9 +583,9 @@ main {
   border-radius: 14px;
   /* Rounder */
 
-  background: rgba(0, 0, 0, 0.2);
   /* Darker, cleaner background (removes milky effect) */
-  border: 1px solid var(--card-border);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
 
   color: var(--text-main);
   font-size: 15px;
@@ -860,7 +866,7 @@ main {
   margin: 20px auto 0;
 
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
   align-items: stretch;
 }

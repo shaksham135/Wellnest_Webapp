@@ -9,18 +9,20 @@ public class AuthResponse {
     private String token;
     private String message;
     private String role;
-    private boolean profileComplete;
     private Long userId;
+    private boolean profileComplete;
 
-    public AuthResponse() {
-    }
+    @com.fasterxml.jackson.annotation.JsonProperty("isVerified")
+    private boolean isVerified;
 
-    public AuthResponse(String token, String message, String role, boolean profileComplete, Long userId) {
+    public AuthResponse(String token, String message, String role, boolean profileComplete, Long userId,
+            boolean isVerified) {
         this.token = token;
         this.message = message;
         this.role = role;
         this.profileComplete = profileComplete;
         this.userId = userId;
+        this.isVerified = isVerified;
     }
 
 }

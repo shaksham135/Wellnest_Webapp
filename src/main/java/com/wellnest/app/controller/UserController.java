@@ -35,7 +35,9 @@ public class UserController {
                 user.getWeightKg(),
                 user.getGender(),
                 user.getFitnessGoal(),
-                user.getPhone());
+                user.getPhone(),
+                user.isVerified(),
+                user.isVerificationRequested());
         return ResponseEntity.ok(dto);
     }
 
@@ -71,7 +73,9 @@ public class UserController {
                 user.getWeightKg(),
                 user.getGender(),
                 user.getFitnessGoal(),
-                user.getPhone());
+                user.getPhone(),
+                user.isVerified(),
+                user.isVerificationRequested());
         return ResponseEntity.ok(dto);
     }
 
@@ -82,5 +86,18 @@ public class UserController {
         String email = auth.getName();
         userService.updateTargetWeight(email, req.getTargetWeightKg());
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/request-verification")
+    public ResponseEntity<?> requestVerification(Authentication authentication) {
+        if (authentication == null)
+            return ResponseEntity.status(401).build();
+        String email = authentication.getName();
+        User user = userService.findByEmail(email).orElseThrow();
+
+        user.setVerificationRequested(true);
+        userService.save(user);
+
+        return ResponseEntity.ok("Verification requested successfully");
     }
 }

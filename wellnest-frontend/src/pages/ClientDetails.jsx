@@ -108,14 +108,24 @@ const ClientDetails = () => {
                     lunch: res.data.lunch || '',
                     dinner: res.data.dinner || '',
                     snacks: res.data.snacks || '',
-                    additionalNotes: res.data.additionalNotes || ''
+                    additionalNotes: res.data.additionalNotes || '',
+                    workoutCalories: res.data.workoutCalories || '',
+                    waterLiters: res.data.waterLiters || '',
+                    sleepHours: res.data.sleepHours || '',
+                    stepsTarget: res.data.stepsTarget || ''
                 });
             } else {
-                setDietData({ breakfast: '', lunch: '', dinner: '', snacks: '', additionalNotes: '' });
+                setDietData({
+                    breakfast: '', lunch: '', dinner: '', snacks: '', additionalNotes: '',
+                    workoutCalories: '', waterLiters: '', sleepHours: '', stepsTarget: ''
+                });
             }
         } catch (error) {
             // If 404/empty, just clear
-            setDietData({ breakfast: '', lunch: '', dinner: '', snacks: '', additionalNotes: '' });
+            setDietData({
+                breakfast: '', lunch: '', dinner: '', snacks: '', additionalNotes: '',
+                workoutCalories: '', waterLiters: '', sleepHours: '', stepsTarget: ''
+            });
         } finally {
             setDietLoading(false);
         }
@@ -432,6 +442,26 @@ const ClientDetails = () => {
                                     <div className="diet-group">
                                         <label className="diet-label"><FiCheck className="diet-icon" /> Additional Notes</label>
                                         <textarea name="additionalNotes" value={dietData.additionalNotes} onChange={handleDietChange} className="diet-textarea" placeholder="Hydration goals, supplements, etc..." />
+                                    </div>
+
+                                    <h3 style={{ marginTop: '16px', fontSize: '1.1rem', color: 'var(--text-main)' }}>Activity & Health Targets</h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <div className="diet-group">
+                                            <label className="diet-label">Workout Burn (kcal)</label>
+                                            <input type="number" name="workoutCalories" value={dietData.workoutCalories} onChange={handleDietChange} className="diet-input" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text-main)' }} placeholder="e.g. 500" />
+                                        </div>
+                                        <div className="diet-group">
+                                            <label className="diet-label">Water Intake (L)</label>
+                                            <input type="number" step="0.1" name="waterLiters" value={dietData.waterLiters} onChange={handleDietChange} className="diet-input" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text-main)' }} placeholder="e.g. 3.5" />
+                                        </div>
+                                        <div className="diet-group">
+                                            <label className="diet-label">Sleep Goal (hrs)</label>
+                                            <input type="number" step="0.5" name="sleepHours" value={dietData.sleepHours} onChange={handleDietChange} className="diet-input" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text-main)' }} placeholder="e.g. 8" />
+                                        </div>
+                                        <div className="diet-group">
+                                            <label className="diet-label">Daily Steps</label>
+                                            <input type="number" name="stepsTarget" value={dietData.stepsTarget} onChange={handleDietChange} className="diet-input" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--input-border)', background: 'var(--input-bg)', color: 'var(--text-main)' }} placeholder="e.g. 10000" />
+                                        </div>
                                     </div>
 
                                     <div className="modal-footer">

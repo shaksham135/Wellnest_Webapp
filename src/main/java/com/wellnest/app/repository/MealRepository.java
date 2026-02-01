@@ -11,4 +11,6 @@ public interface MealRepository extends JpaRepository<Meal, Long> {
     List<Meal> findByUserIdAndLoggedAtBetween(Long userId, LocalDateTime startDateTime, LocalDateTime endDateTime);
 
     List<Meal> findByLoggedAtBetween(LocalDateTime startDateTime, LocalDateTime endDateTime);
+
+    void deleteByUserId(Long userId);
 }

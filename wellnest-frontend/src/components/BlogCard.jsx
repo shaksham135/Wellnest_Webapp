@@ -1,16 +1,28 @@
 import React, { useState } from 'react';
-import { FiClock, FiMessageSquare, FiHeart, FiTrash2 } from 'react-icons/fi';
+import { FiClock, FiMessageSquare, FiHeart, FiTrash2, FiEdit2 } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { toggleLike, deletePost } from '../api/blogApi';
 
-const BlogCard = ({ post, onRefresh }) => {
+const BlogCard = ({ post, onRefresh, onEdit }) => {
     const [likes, setLikes] = useState(post.likes);
     const [isLiked, setIsLiked] = useState(post.isLiked || false);
     const [isLiking, setIsLiking] = useState(false);
 
     const currentUserId = localStorage.getItem('userId');
+    const getUserRole = () => {
+        const token = localStorage.getItem("token");
+        if (!token) return null;
+        try {
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            return payload.role;
+        } catch (e) {
+            return null;
+        }
+    };
+
     // Check if user is owner (or if you want to allow admin, check role too)
-    const canDelete = post.authorId && String(post.authorId) === String(currentUserId);
+    const userRole = getUserRole();
+    const canDelete = (post.authorId && String(post.authorId) === String(currentUserId)) || userRole === 'ROLE_ADMIN';
 
     const handleLike = async (e) => {
         e.preventDefault();
@@ -53,37 +65,83 @@ const BlogCard = ({ post, onRefresh }) => {
     };
 
     return (
-        <div className="blog-card" style={{ background: 'var(--card-bg)', boxShadow: 'var(--shadow-md)', border: '1px solid var(--card-border)', overflow: 'hidden', borderRadius: '16px' }}>
-            <div style={{ height: 160, overflow: 'hidden', background: '#f1f5f9', position: 'relative' }}>
+        <div className="blog-card" style={{
+            background: 'var(--card-bg)',
+            boxShadow: post.role === 'Admin' ? '0 4px 20px rgba(139, 92, 246, 0.3)' : 'var(--shadow-md)',
+            border: post.role === 'Admin' ? '2px solid var(--primary)' : '1px solid var(--card-border)',
+            overflow: 'hidden',
+            borderRadius: '16px',
+            position: 'relative',
+            transform: post.role === 'Admin' ? 'scale(1.02)' : 'none',
+            transition: 'all 0.3s ease'
+        }}>
+            {post.role === 'Admin' && (
+                <div style={{
+                    position: 'absolute',
+                    top: 10,
+                    left: 10,
+                    zIndex: 10,
+                    background: 'var(--primary)',
+                    color: 'white',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}>
+                    Admin Choice
+                </div>
+            )}
+            <div style={{ height: 160, overflow: 'hidden', background: 'rgba(0,0,0,0.05)', position: 'relative' }}>
                 {post.image ? (
                     <img src={post.image} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                    <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #e2e8f0, #cbd5e1)' }} />
+                    <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, rgba(128,128,128,0.1), rgba(128,128,128,0.2))' }} />
                 )}
 
                 {canDelete && (
-                    <button
-                        onClick={handleDelete}
-                        style={{
-                            position: 'absolute',
-                            top: 8,
-                            right: 8,
-                            background: 'rgba(255, 255, 255, 0.9)',
-                            color: '#ef4444',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '32px',
-                            height: '32px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                        }}
-                        title="Delete Post"
-                    >
-                        <FiTrash2 size={16} />
-                    </button>
+                    <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4 }}>
+                        {onEdit && (
+                            <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(post); }}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.9)',
+                                    color: '#2563eb',
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    width: '32px',
+                                    height: '32px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                }}
+                                title="Edit Post"
+                            >
+                                <FiEdit2 size={16} />
+                            </button>
+                        )}
+                        <button
+                            onClick={handleDelete}
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.9)',
+                                color: '#ef4444',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '32px',
+                                height: '32px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            }}
+                            title="Delete Post"
+                        >
+                            <FiTrash2 size={16} />
+                        </button>
+                    </div>
                 )}
             </div>
             <div className="blog-card-content" style={{ padding: '20px' }}>
@@ -116,7 +174,7 @@ const BlogCard = ({ post, onRefresh }) => {
                 </div>
             </div>
             <Link to={`/blog/${post.id}`} className="primary-btn" style={{ borderRadius: 0, width: '100%', justifyContent: 'center', display: 'flex', padding: '12px', background: 'var(--bg-main)', color: 'var(--text-main)', borderTop: '1px solid var(--card-border)', fontWeight: 600 }}>
-                Read Article
+                {post.role === 'User' ? 'View Post' : 'Read Article'}
             </Link>
         </div>
     );

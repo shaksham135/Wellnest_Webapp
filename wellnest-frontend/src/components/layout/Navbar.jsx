@@ -38,7 +38,7 @@ const Navbar = ({ isLoggedIn, userRole }) => {
     return (
         <header className="top-nav">
             <div className="nav-bar-header">
-                <Link to={isLoggedIn ? "/dashboard" : "/"} className="logo-link">
+                <Link to={isLoggedIn ? (userRole === 'ROLE_ADMIN' ? "/admin-dashboard" : "/dashboard") : "/"} className="logo-link">
                     <img src={logo} alt="Wellnest" className="logo-image" />
                     <span className="logo-text">Wellnest</span>
                 </Link>
@@ -74,54 +74,94 @@ const Navbar = ({ isLoggedIn, userRole }) => {
                 {/* Logged in AND not on auth page */}
                 {showAuthenticated && (
                     <>
-                        <NavLink to="/dashboard" className="nav-link" onClick={closeMenu}>
-                            <FiBarChart2 />
-                            <span>Dashboard</span>
-                        </NavLink>
-
-                        <NavLink to="/trackers" className="nav-link" onClick={closeMenu}>
-                            <FiActivity />
-                            <span>Trackers</span>
-                        </NavLink>
-
-                        <NavLink to="/analytics" className="nav-link" onClick={closeMenu}>
-                            <FiTrendingUp />
-                            <span>Analytics</span>
-                        </NavLink>
-
-                        {/* Community Dropdown */}
-                        <div className="nav-dropdown-container">
-                            <button className="nav-link dropdown-trigger" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                                <FiUsers />
-                                <span style={{ fontFamily: 'inherit' }}>Community</span>
-                                <FiChevronDown style={{ marginLeft: '4px', fontSize: '14px' }} />
-                            </button>
-                            <div className="nav-dropdown-menu">
-                                <NavLink to="/leaderboard" className="nav-link" onClick={closeMenu}>
-                                    <FiAward />
-                                    <span>Leaderboard</span>
+                        {userRole === 'ROLE_ADMIN' ? (
+                            // ADMIN NAVIGATION
+                            <>
+                                <NavLink to="/admin-dashboard" className="nav-link" onClick={closeMenu}>
+                                    <FiBarChart2 />
+                                    <span>Dashboard</span>
                                 </NavLink>
-                                <NavLink to="/blog" className="nav-link" onClick={closeMenu}>
-                                    <FiBookOpen />
-                                    <span>Health Blog</span>
-                                </NavLink>
-                                <NavLink to="/trainers" className="nav-link" onClick={closeMenu}>
-                                    <FiUsers />
-                                    <span>{userRole === 'ROLE_TRAINER' ? 'My Clients' : 'Trainer Matching'}</span>
-                                </NavLink>
-                                {userRole === 'ROLE_USER' && (
-                                    <NavLink to="/my-trainers" className="nav-link" onClick={closeMenu}>
-                                        <FiCheck />
-                                        <span>My Trainers</span>
-                                    </NavLink>
-                                )}
-                            </div>
-                        </div>
 
-                        <NavLink to="/profile" className="nav-link" onClick={closeMenu}>
-                            <FiUser />
-                            <span>Profile</span>
-                        </NavLink>
+                                {/* Community Dropdown for Admin */}
+                                <div className="nav-dropdown-container">
+                                    <button className="nav-link dropdown-trigger" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                                        <FiUsers />
+                                        <span style={{ fontFamily: 'inherit' }}>Community</span>
+                                        <FiChevronDown style={{ marginLeft: '4px', fontSize: '14px' }} />
+                                    </button>
+                                    <div className="nav-dropdown-menu">
+                                        <NavLink to="/leaderboard" className="nav-link" onClick={closeMenu}>
+                                            <FiAward />
+                                            <span>Leaderboard</span>
+                                        </NavLink>
+                                        <NavLink to="/blog" className="nav-link" onClick={closeMenu}>
+                                            <FiBookOpen />
+                                            <span>Articles</span>
+                                        </NavLink>
+                                        <NavLink to="/community" className="nav-link" onClick={closeMenu}>
+                                            <FiUsers />
+                                            <span>Community Feed</span>
+                                        </NavLink>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            // USER / TRAINER NAVIGATION
+                            <>
+                                <NavLink to="/dashboard" className="nav-link" onClick={closeMenu}>
+                                    <FiBarChart2 />
+                                    <span>Dashboard</span>
+                                </NavLink>
+
+                                <NavLink to="/trackers" className="nav-link" onClick={closeMenu}>
+                                    <FiActivity />
+                                    <span>Trackers</span>
+                                </NavLink>
+
+                                <NavLink to="/analytics" className="nav-link" onClick={closeMenu}>
+                                    <FiTrendingUp />
+                                    <span>Analytics</span>
+                                </NavLink>
+
+                                {/* Community Dropdown */}
+                                <div className="nav-dropdown-container">
+                                    <button className="nav-link dropdown-trigger" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                                        <FiUsers />
+                                        <span style={{ fontFamily: 'inherit' }}>Community</span>
+                                        <FiChevronDown style={{ marginLeft: '4px', fontSize: '14px' }} />
+                                    </button>
+                                    <div className="nav-dropdown-menu">
+                                        <NavLink to="/leaderboard" className="nav-link" onClick={closeMenu}>
+                                            <FiAward />
+                                            <span>Leaderboard</span>
+                                        </NavLink>
+                                        <NavLink to="/blog" className="nav-link" onClick={closeMenu}>
+                                            <FiBookOpen />
+                                            <span>Articles</span>
+                                        </NavLink>
+                                        <NavLink to="/community" className="nav-link" onClick={closeMenu}>
+                                            <FiUsers />
+                                            <span>Community Feed</span>
+                                        </NavLink>
+                                        <NavLink to="/trainers" className="nav-link" onClick={closeMenu}>
+                                            <FiUsers />
+                                            <span>{userRole === 'ROLE_TRAINER' ? 'My Clients' : 'Trainer Matching'}</span>
+                                        </NavLink>
+                                        {userRole === 'ROLE_USER' && (
+                                            <NavLink to="/my-trainers" className="nav-link" onClick={closeMenu}>
+                                                <FiCheck />
+                                                <span>My Trainers</span>
+                                            </NavLink>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <NavLink to="/profile" className="nav-link" onClick={closeMenu}>
+                                    <FiUser />
+                                    <span>Profile</span>
+                                </NavLink>
+                            </>
+                        )}
                     </>
                 )}
 

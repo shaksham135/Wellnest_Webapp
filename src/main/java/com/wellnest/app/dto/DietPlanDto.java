@@ -9,6 +9,12 @@ public class DietPlanDto {
     private String snacks;
     private String additionalNotes;
 
+    // Assignment Fields
+    private Integer workoutCalories;
+    private Double waterLiters;
+    private Double sleepHours;
+    private Integer stepsTarget;
+
     // Getters and Setters
     public Long getTrainerId() {
         return trainerId;
@@ -64,5 +70,37 @@ public class DietPlanDto {
 
     public void setAdditionalNotes(String additionalNotes) {
         this.additionalNotes = additionalNotes;
+    }
+
+    public Integer getWorkoutCalories() {
+        return workoutCalories;
+    }
+
+    public void setWorkoutCalories(Integer workoutCalories) {
+        this.workoutCalories = workoutCalories;
+    }
+
+    public Double getWaterLiters() {
+        return waterLiters;
+    }
+
+    public void setWaterLiters(Double waterLiters) {
+        this.waterLiters = waterLiters;
+    }
+
+    public Double getSleepHours() {
+        return sleepHours;
+    }
+
+    public void setSleepHours(Double sleepHours) {
+        this.sleepHours = sleepHours;
+    }
+
+    public Integer getStepsTarget() {
+        return stepsTarget;
+    }
+
+    public void setStepsTarget(Integer stepsTarget) {
+        this.stepsTarget = stepsTarget;
     }
 }

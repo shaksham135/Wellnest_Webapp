@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getClientAnalytics, getClientDetails } from '../api/trainerApi';
 import CalorieBalanceChart from '../components/dashboard/CalorieBalanceChart';
 import { FiArrowLeft, FiUser } from 'react-icons/fi';
@@ -28,6 +28,7 @@ ChartJS.register(
 const ClientAnalyticsPage = () => {
     const { clientId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [analytics, setAnalytics] = useState(null);
     const [client, setClient] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -112,7 +113,7 @@ const ClientAnalyticsPage = () => {
                         width: 'fit-content'
                     }}
                 >
-                    <FiArrowLeft style={{ marginRight: '8px' }} /> Back to Clients
+                    <FiArrowLeft style={{ marginRight: '8px' }} /> {location.state?.fromAdmin ? "Back to Dashboard" : "Back to Clients"}
                 </button>
 
                 {/* Header Card */}

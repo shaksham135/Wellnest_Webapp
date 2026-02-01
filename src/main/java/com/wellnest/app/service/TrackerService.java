@@ -223,4 +223,13 @@ public class TrackerService {
         }
         sleepLogRepository.delete(s);
     }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void cleanupUserData(Long userId) {
+        Assert.notNull(userId, "userId is required");
+        workoutRepository.deleteByUserId(userId);
+        mealRepository.deleteByUserId(userId);
+        waterIntakeRepository.deleteByUserId(userId);
+        sleepLogRepository.deleteByUserId(userId);
+    }
 }

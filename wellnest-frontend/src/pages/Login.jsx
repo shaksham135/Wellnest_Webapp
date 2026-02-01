@@ -30,13 +30,21 @@ const Login = ({ onLoginSuccess }) => {
 
     try {
       const res = await apiClient.post("/auth/login", form);
-      const { token, profileComplete, userId } = res.data;
+      const { token, profileComplete, userId, role, isVerified } = res.data;
 
       if (token) {
         localStorage.setItem("token", token);
         if (userId) localStorage.setItem("userId", userId);
+        if (role) localStorage.setItem("role", role);
+        if (isVerified) localStorage.setItem("isVerified", "true");
+        else localStorage.removeItem("isVerified");
       }
       onLoginSuccess?.();
+
+      if (role === "ROLE_ADMIN") {
+        setTimeout(() => navigate("/admin-dashboard"), 600);
+        return;
+      }
 
       setTimeout(() => {
         navigate(profileComplete ? "/dashboard" : "/setup-profile");

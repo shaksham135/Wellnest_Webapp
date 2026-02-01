@@ -12,6 +12,7 @@ public class BlogPostDto {
     private String author;
     private String category;
     private String image;
+    private boolean isCommunity = false;
 
     public BlogPostDto() {
     }

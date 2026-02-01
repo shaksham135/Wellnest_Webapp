@@ -45,6 +45,14 @@ public class AuthController {
         this.trainerRepository = trainerRepository;
     }
 
+    // ---------- EXCEPTION HANDLER ----------
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleException(Exception e) {
+        System.err.println("AUTH CONTROLLER EXCEPTION: " + e.getMessage());
+        e.printStackTrace();
+        return ResponseEntity.status(500).body("Global Auth Error: " + e.getMessage());
+    }
+
     // ---------- REGISTER ----------
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
@@ -115,17 +123,93 @@ public class AuthController {
         return ResponseEntity.ok("User registered successfully");
     }
 
+    @org.springframework.beans.factory.annotation.Value("${admin.username}")
+    private String adminUsername;
+
+    @org.springframework.beans.factory.annotation.Value("${admin.password}")
+    private String adminPassword;
+
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        String email = (adminUsername != null && !adminUsername.isBlank()) ? adminUsername : "admin123@gmail.com";
+        String pass = (adminPassword != null && !adminPassword.isBlank()) ? adminPassword : "admin123";
+
+        System.out.println("AUTH CONTROLLER INIT: Checking AdminUser=" + email);
+
+        if (!userService.emailExists(email)) {
+            System.out.println("Creating Admin User in DB...");
+            User admin = new User();
+            admin.setName("Admin");
+            admin.setEmail(email);
+            admin.setPassword(passwordEncoder.encode(pass));
+            admin.setRole("ROLE_ADMIN");
+            admin.setVerified(true);
+            admin.setAge(30);
+            admin.setHeightCm(175.0);
+            admin.setWeightKg(70.0);
+            admin.setFitnessGoal("MAINTENANCE");
+            admin.setGender("Male");
+
+            userService.save(admin);
+            System.out.println("Admin User created successfully.");
+        }
+    }
+
     // ---------- LOGIN ----------
-    @PostMapping("/login")
+    @PostMapping(value = "/login", consumes = "application/json", produces = "application/json")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
-
         try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            req.getEmail(),
-                            req.getPassword()));
+            // Trim inputs to avoid whitespace issues
+            String email = (req.getEmail() != null) ? req.getEmail().trim() : "";
+            String password = (req.getPassword() != null) ? req.getPassword().trim() : "";
 
-            User user = userService.findByEmail(req.getEmail()).orElseThrow();
+            System.out.println("LOGIN ATTEMPT: " + email);
+
+            // 1. Check Admin Credentials (Properties/Hardcoded Fallback)
+            String effectiveAdminUser = (adminUsername != null && !adminUsername.isBlank()) ? adminUsername
+                    : "admin123@gmail.com";
+            String effectiveAdminPass = (adminPassword != null && !adminPassword.isBlank()) ? adminPassword
+                    : "admin123";
+
+            if (email.equalsIgnoreCase(effectiveAdminUser)) {
+                if (password.equals(effectiveAdminPass)) {
+                    System.out.println("LOGIN SUCCESS: Admin user verified via properties.");
+
+                    UserDetails adminDetails = new org.springframework.security.core.userdetails.User(
+                            effectiveAdminUser,
+                            "",
+                            java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority(
+                                    "ROLE_ADMIN")));
+
+                    String jwtToken = jwtService.generateToken(adminDetails);
+
+                    // Fetch real ID from DB if possible
+                    Long adminId = 0L;
+                    Optional<User> dbAdmin = userService.findByEmail(effectiveAdminUser);
+                    if (dbAdmin.isPresent()) {
+                        adminId = dbAdmin.get().getId();
+                    }
+
+                    return ResponseEntity.ok(new AuthResponse(
+                            jwtToken,
+                            "Admin Login Successful",
+                            "ROLE_ADMIN",
+                            true,
+                            adminId,
+                            true // isVerified
+                    ));
+                } else {
+                    System.out.println("LOGIN FAILED: Admin password mismatch.");
+                    return ResponseEntity.status(401).body("Invalid email or password");
+                }
+            }
+
+            // 2. Database User Authentication
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, password));
+
+            User user = userService.findByEmail(email).orElseThrow();
+            System.out.println("LOGIN SUCCESS: Database user found: " + user.getEmail());
 
             UserDetails userDetails = new org.springframework.security.core.userdetails.User(
                     user.getEmail(),
@@ -140,17 +224,21 @@ public class AuthController {
                     user.getWeightKg() != null &&
                     user.getFitnessGoal() != null;
 
-            AuthResponse response = new AuthResponse(
+            return ResponseEntity.ok(new AuthResponse(
                     jwtToken,
                     "Login successful",
                     user.getRole(),
                     profileComplete,
-                    user.getId());
-
-            return ResponseEntity.ok(response);
+                    user.getId(),
+                    user.isVerified()));
 
         } catch (BadCredentialsException ex) {
+            System.out.println("LOGIN FAILED: Bad credentials for database user.");
             return ResponseEntity.status(401).body("Invalid email or password");
+        } catch (Exception e) {
+            System.err.println("LOGIN ERROR: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Internal Login Error: " + e.getMessage());
         }
     }
 

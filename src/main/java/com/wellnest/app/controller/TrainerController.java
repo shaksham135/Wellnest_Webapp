@@ -95,6 +95,16 @@ public class TrainerController {
         return ResponseEntity.ok(plan);
     }
 
+    @GetMapping("/diet-plan/my-plan")
+    public ResponseEntity<DietPlanDto> getMyPlan(Authentication authentication) {
+        String email = authentication.getName();
+        com.wellnest.app.model.User user = userService.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        DietPlanDto plan = trainerService.getDietPlanForUser(user.getId());
+        return ResponseEntity.ok(plan);
+    }
+
     @PostMapping("/{id}/rate")
     public ResponseEntity<TrainerResponse> rateTrainer(
             @PathVariable Long id,

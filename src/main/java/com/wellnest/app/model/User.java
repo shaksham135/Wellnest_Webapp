@@ -44,6 +44,12 @@ public class User {
 
     private Double targetWeightKg;
 
+    @Column(columnDefinition = "boolean default false")
+    private boolean isVerified = false;
+
+    @Column(columnDefinition = "boolean default false")
+    private boolean verificationRequested = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

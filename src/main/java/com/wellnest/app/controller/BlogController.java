@@ -63,13 +63,13 @@ public class BlogController {
 
     // DELETE /api/blog/posts/{id} - Delete a blog post
     @DeleteMapping("/posts/{id}")
-    public ResponseEntity<Void> deletePost(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<?> deletePost(@PathVariable Long id, Authentication authentication) {
         String email = authentication != null ? authentication.getName() : null;
         try {
             blogService.deletePost(id, email);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.status(403).build();
+            return ResponseEntity.status(403).body(e.getMessage());
         }
     }
 

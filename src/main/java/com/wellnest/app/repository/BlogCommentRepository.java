@@ -12,4 +12,6 @@ public interface BlogCommentRepository extends JpaRepository<BlogComment, Long> 
     List<BlogComment> findByPostIdOrderByCreatedAtAsc(Long postId);
 
     void deleteByPostId(Long postId);
+
+    void deleteByUserId(Long userId);
 }
