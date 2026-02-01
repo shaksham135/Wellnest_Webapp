@@ -159,12 +159,17 @@ public class TrainerService {
         plan.setDinner(dto.getDinner());
         plan.setSnacks(dto.getSnacks());
         plan.setAdditionalNotes(dto.getAdditionalNotes());
+        // New Assignment Fields
+        plan.setWorkoutCalories(dto.getWorkoutCalories());
+        plan.setWaterLiters(dto.getWaterLiters());
+        plan.setSleepHours(dto.getSleepHours());
+        plan.setStepsTarget(dto.getStepsTarget());
         plan.setUpdatedAt(LocalDateTime.now());
 
         dietPlanRepository.save(plan);
 
-        notificationService.createNotification(dto.getClientId(), "Diet Plan Updated",
-                "Trainer " + trainer.getName() + " has updated your diet plan.", "INFO");
+        notificationService.createNotification(dto.getClientId(), "Plan Updated",
+                "Trainer " + trainer.getName() + " has updated your diet & activity plan.", "INFO");
     }
 
     public DietPlanDto getDietPlan(Long trainerId, Long clientId) {
@@ -182,6 +187,36 @@ public class TrainerService {
         dto.setDinner(plan.getDinner());
         dto.setSnacks(plan.getSnacks());
         dto.setAdditionalNotes(plan.getAdditionalNotes());
+        dto.setWorkoutCalories(plan.getWorkoutCalories());
+        dto.setWaterLiters(plan.getWaterLiters());
+        dto.setSleepHours(plan.getSleepHours());
+        dto.setStepsTarget(plan.getStepsTarget());
+        return dto;
+    }
+
+    public DietPlanDto getDietPlanForUser(Long userId) {
+        // Find latest plan for user? Or from any trainer?
+        // We can just find the first one for now, or use repository to find by UserId
+        // We need to add findByUserId to repo.
+        List<DietPlan> plans = dietPlanRepository.findByUserId(userId);
+        if (plans.isEmpty())
+            return null;
+
+        // Return latest
+        DietPlan plan = plans.get(plans.size() - 1);
+
+        DietPlanDto dto = new DietPlanDto();
+        dto.setTrainerId(plan.getTrainerId());
+        dto.setClientId(plan.getUserId());
+        dto.setBreakfast(plan.getBreakfast());
+        dto.setLunch(plan.getLunch());
+        dto.setDinner(plan.getDinner());
+        dto.setSnacks(plan.getSnacks());
+        dto.setAdditionalNotes(plan.getAdditionalNotes());
+        dto.setWorkoutCalories(plan.getWorkoutCalories());
+        dto.setWaterLiters(plan.getWaterLiters());
+        dto.setSleepHours(plan.getSleepHours());
+        dto.setStepsTarget(plan.getStepsTarget());
         return dto;
     }
 

@@ -16,4 +16,6 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Long> {
     List<BlogPost> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     List<BlogPost> findByAuthorContainingIgnoreCaseOrderByCreatedAtDesc(String author);
+
+    List<BlogPost> findByLikedByContaining(com.wellnest.app.model.User user);
 }

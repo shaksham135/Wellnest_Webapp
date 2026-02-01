@@ -58,10 +58,12 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Allow
-                                                                                                         // pre-flight
-                        .requestMatchers("/api/auth/**").permitAll() // login/register open
-                        .requestMatchers("/health", "/").permitAll() // UptimeRobot health check
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password",
+                                "/api/auth/reset-password")
+                        .permitAll()
+                        .requestMatchers("/api/auth/**").permitAll() // Fallback
+                        .requestMatchers("/health", "/error").permitAll()
                         // Blog endpoints - allow public reading
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/blog/**").permitAll()
                         // Trainer endpoints - allow public reading
@@ -70,6 +72,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/api/contact/**").permitAll() // Contact form public access
                         .requestMatchers("/api/chat/**").permitAll() // Chatbot public access
+                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated() // rest require token
                 )
                 .authenticationProvider(authProvider())

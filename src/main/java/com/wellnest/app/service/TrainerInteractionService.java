@@ -146,9 +146,14 @@ public class TrainerInteractionService {
         }
 
         public void verifyTrainerAccess(String trainerEmail, Long clientId) {
-                User trainerUser = userRepository.findByEmail(trainerEmail)
+                User currentUser = userRepository.findByEmail(trainerEmail)
                                 .orElseThrow(() -> new RuntimeException("User not found"));
-                Trainer trainer = trainerRepository.findByUserId(trainerUser.getId())
+
+                if ("ROLE_ADMIN".equals(currentUser.getRole())) {
+                        return; // Admins have full access
+                }
+
+                Trainer trainer = trainerRepository.findByUserId(currentUser.getId())
                                 .orElseThrow(() -> new RuntimeException("Trainer not found"));
 
                 boolean isConnected = trainerClientRepository.findByTrainerIdAndClientId(trainer.getId(), clientId)

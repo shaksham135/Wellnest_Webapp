@@ -10,11 +10,13 @@ import {
 } from "react-icons/fi";
 
 import { getWorkouts, getMeals, getWater, getSleep } from "../../api/trackerApi";
+import { getMyDietPlan } from "../../api/trainerApi"; // Import
 import apiClient from "../../api/apiClient";
 import GoalProgress from "./GoalProgress";
 import QuickActions from "./QuickActions";
 import DailyProgress from "./DailyProgress";
 import RecentActivity from "./RecentActivity";
+import AssignedPlan from "./AssignedPlan"; // Import
 
 const UserDashboard = ({ user }) => {
     const [loading, setLoading] = useState(true);
@@ -24,6 +26,7 @@ const UserDashboard = ({ user }) => {
     const [water, setWater] = useState([]);
     const [sleep, setSleep] = useState([]);
     const [goalData, setGoalData] = useState(null);
+    const [dietPlan, setDietPlan] = useState(null); // State for plan
 
     const [healthTip, setHealthTip] = useState("");
     const [tipLoading, setTipLoading] = useState(true);
@@ -32,12 +35,13 @@ const UserDashboard = ({ user }) => {
     useEffect(() => {
         const loadTrackers = async () => {
             try {
-                const [w, m, wa, s, g] = await Promise.all([
+                const [w, m, wa, s, g, p] = await Promise.all([
                     getWorkouts().catch(() => ({ data: [] })),
                     getMeals().catch(() => ({ data: [] })),
                     getWater().catch(() => ({ data: [] })),
                     getSleep().catch(() => ({ data: [] })),
-                    apiClient.get('/analytics/summary').catch(() => ({ data: {} }))
+                    apiClient.get('/analytics/summary').catch(() => ({ data: {} })),
+                    getMyDietPlan().catch(() => ({ data: null }))
                 ]);
 
                 setWorkouts(w.data || []);
@@ -47,6 +51,9 @@ const UserDashboard = ({ user }) => {
 
                 const d = g.data || {};
                 setGoalData(d.goalProgress || null);
+
+                setDietPlan(p.data || null);
+
             } catch { } finally {
                 setLoading(false);
             }
@@ -155,6 +162,9 @@ const UserDashboard = ({ user }) => {
 
             {/* --- DIVIDER --- */}
             <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid var(--card-border)' }} />
+
+            {/* Assigned Plan from Trainer */}
+            <AssignedPlan plan={dietPlan} />
 
             {/* 2. Daily Progress */}
             <DailyProgress workouts={workouts} meals={meals} water={water} />

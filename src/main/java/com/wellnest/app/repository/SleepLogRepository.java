@@ -11,4 +11,6 @@ public interface SleepLogRepository extends JpaRepository<SleepLog, Long> {
     List<SleepLog> findByUserIdAndSleepDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
 
     List<SleepLog> findBySleepDateBetween(LocalDate startDate, LocalDate endDate);
+
+    void deleteByUserId(Long userId);
 }

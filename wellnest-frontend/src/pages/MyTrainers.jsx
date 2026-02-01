@@ -121,6 +121,39 @@ const MyTrainers = () => {
                                             </div>
                                         )
                                     ))}
+
+                                    {/* Activity Targets Section */}
+                                    {(viewDietData.workoutCalories || viewDietData.waterLiters || viewDietData.sleepHours || viewDietData.stepsTarget) && (
+                                        <div style={{ marginTop: '20px', borderTop: '1px solid var(--card-border)', paddingTop: '16px' }}>
+                                            <h4 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: 'var(--text-main)' }}>Activity & Health Targets</h4>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                                {viewDietData.workoutCalories && (
+                                                    <div className="detail-box">
+                                                        <label className="detail-label">Workout Burn</label>
+                                                        <div className="detail-value">{viewDietData.workoutCalories} kcal</div>
+                                                    </div>
+                                                )}
+                                                {viewDietData.waterLiters && (
+                                                    <div className="detail-box">
+                                                        <label className="detail-label">Water Intake</label>
+                                                        <div className="detail-value">{viewDietData.waterLiters} L</div>
+                                                    </div>
+                                                )}
+                                                {viewDietData.sleepHours && (
+                                                    <div className="detail-box">
+                                                        <label className="detail-label">Sleep Goal</label>
+                                                        <div className="detail-value">{viewDietData.sleepHours} hrs</div>
+                                                    </div>
+                                                )}
+                                                {viewDietData.stepsTarget && (
+                                                    <div className="detail-box">
+                                                        <label className="detail-label">Daily Steps</label>
+                                                        <div className="detail-value">{viewDietData.stepsTarget}</div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                     {Object.values(viewDietData).every(v => !v || typeof v !== 'string' || !v.trim()) && (
                                         <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Empty diet plan.</p>
                                     )}

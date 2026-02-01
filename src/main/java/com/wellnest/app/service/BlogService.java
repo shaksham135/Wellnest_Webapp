@@ -100,7 +100,33 @@ public class BlogService {
 
     @Transactional
     public BlogPostResponse createPost(BlogPostDto dto, String userEmail) {
+        System.out.println("Creating post for user: " + userEmail);
         User user = userRepository.findByEmail(userEmail).orElse(null);
+
+        if (user == null) {
+            throw new RuntimeException("User must be logged in.");
+        }
+
+        // Logic check: Articles vs Community Posts
+        // Logic check: Articles vs Community Posts
+        if (dto.isCommunity()) {
+            // Community Post: strictly for Users
+            // Req: "this option should not be able for trainer and admin"
+            String userRole = user.getRole();
+            if ("ROLE_ADMIN".equals(userRole) || "ROLE_TRAINER".equals(userRole)) {
+                throw new RuntimeException(
+                        "Admins and Trainers serve as moderators and cannot create community posts.");
+            }
+
+        } else {
+            // Article: Strict Validation
+            String userRole = user.getRole();
+            boolean isExpert = "ROLE_ADMIN".equals(userRole) || "ROLE_TRAINER".equals(userRole) || user.isVerified();
+
+            if (!isExpert) {
+                throw new RuntimeException("Only Admins, Trainers, and Verified Users can publish articles.");
+            }
+        }
 
         BlogPost post = new BlogPost();
         post.setTitle(dto.getTitle());
@@ -110,23 +136,30 @@ public class BlogService {
         post.setImage(dto.getImage());
         post.setLikes(0);
 
-        if (user != null) {
-            post.setUser(user);
-            // Prioritize user's actual name from DB over DTO placeholder
-            post.setAuthor(user.getName() != null && !user.getName().isEmpty() ? user.getName() : dto.getAuthor());
+        post.setUser(user);
 
-            // Set role based on user role
+        // Set Author Name
+        if ("ROLE_ADMIN".equals(user.getRole())) {
+            post.setAuthor("Admin");
+        } else {
+            post.setAuthor(user.getName() != null && !user.getName().isEmpty() ? user.getName() : "Anonymous");
+        }
+
+        // Set role based on logic
+        if (dto.isCommunity()) {
+            post.setRole("User"); // Forces it to appear in Community Feed
+        } else {
+            // Article Roles
             String userRole = user.getRole();
             if ("ROLE_TRAINER".equals(userRole)) {
                 post.setRole("Trainer");
             } else if ("ROLE_ADMIN".equals(userRole)) {
                 post.setRole("Admin");
+            } else if (user.isVerified()) {
+                post.setRole("Verified User");
             } else {
-                post.setRole("User");
+                post.setRole("User"); // Should not happen due to check above, but fallback
             }
-        } else {
-            post.setAuthor(dto.getAuthor() != null ? dto.getAuthor() : "Anonymous");
-            post.setRole("User");
         }
 
         BlogPost saved = blogPostRepository.save(post);
@@ -150,20 +183,48 @@ public class BlogService {
         });
     }
 
+    @org.springframework.beans.factory.annotation.Value("${admin.username}")
+    private String adminUsername;
+
     @Transactional
     public void deletePost(Long id, String userEmail) {
         BlogPost post = blogPostRepository.findById(id).orElseThrow(() -> new RuntimeException("Post not found"));
+
+        // Super Admin Bypass (from properties)
+        if (userEmail != null && userEmail.equals(adminUsername)) {
+            System.out.println("Super Admin deleting post: " + id);
+            // Allow delete
+            // Clear likes to prevent Foreign Key constraint violations
+            post.getLikedBy().clear();
+            blogPostRepository.saveAndFlush(post); // Apply clearing of join table
+            blogCommentRepository.deleteByPostId(id);
+            blogPostRepository.delete(post);
+            return;
+        }
+
         User user = userRepository.findByEmail(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Ownership check
+        // Check if user is Admin (loose check for "ADMIN" in role)
+        String userRole = user.getRole();
+        boolean isAdmin = userRole != null && userRole.toUpperCase().contains("ADMIN");
+
+        System.out.println("Delete Post Request: PostID=" + id + ", User=" + user.getEmail() + ", Role=" + userRole
+                + ", Admin=" + isAdmin);
+
+        // Ownership check: If not owner and not admin, deny
         if (post.getUser() == null || !post.getUser().getId().equals(user.getId())) {
-            if (!"ROLE_ADMIN".equals(user.getRole())) {
-                throw new RuntimeException("Permission denied");
+            if (!isAdmin) {
+                System.out.println("Permission denied: Not Owner and Not Admin");
+                throw new RuntimeException("Permission denied: Not Owner and Not Admin");
             }
         }
 
+        // Clear likes to prevent Foreign Key constraint violations
+        post.getLikedBy().clear();
+        blogPostRepository.saveAndFlush(post); // Apply clearing of join table
+
         blogCommentRepository.deleteByPostId(id);
-        blogPostRepository.deleteById(id);
+        blogPostRepository.delete(post);
     }
 
     @Transactional
@@ -185,14 +246,26 @@ public class BlogService {
     public void deleteComment(Long commentId, String userEmail) {
         BlogComment comment = blogCommentRepository.findById(commentId)
                 .orElseThrow(() -> new RuntimeException("Comment not found"));
+
+        // Super Admin Bypass (from properties)
+        if (userEmail != null && userEmail.equals(adminUsername)) {
+            blogCommentRepository.deleteById(commentId);
+            return;
+        }
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        String userRole = user.getRole();
+        boolean isAdmin = userRole != null && userRole.toUpperCase().contains("ADMIN");
+
         boolean isCommentOwner = comment.getUser() != null && comment.getUser().getId().equals(user.getId());
+
+        // Check post ownership (handle null user for default posts)
         boolean isPostOwner = comment.getPost().getUser() != null
                 && comment.getPost().getUser().getId().equals(user.getId());
 
-        if (!isCommentOwner && !isPostOwner && !"ROLE_ADMIN".equals(user.getRole())) {
+        if (!isCommentOwner && !isPostOwner && !isAdmin) {
             throw new RuntimeException("Permission denied");
         }
 
@@ -257,5 +330,35 @@ public class BlogService {
 
         response.setComments(getComments(post.getId()));
         return response;
+    }
+
+    @Transactional
+    public void cleanupUserContent(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow();
+
+        // 1. Remove Likes from all posts
+        List<BlogPost> likedPosts = blogPostRepository.findByLikedByContaining(user);
+        for (BlogPost p : likedPosts) {
+            p.getLikedBy().remove(user);
+            p.setLikes(p.getLikedBy().size());
+            blogPostRepository.save(p);
+        }
+
+        // 2. Delete Comments by User
+        blogCommentRepository.deleteByUserId(userId);
+
+        // 3. Delete Posts by User
+        List<BlogPost> userPosts = blogPostRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        for (BlogPost post : userPosts) {
+            // Clear likes on THIS post
+            post.getLikedBy().clear();
+            blogPostRepository.saveAndFlush(post);
+
+            // Delete comments on THIS post
+            blogCommentRepository.deleteByPostId(post.getId());
+
+            // Delete post
+            blogPostRepository.delete(post);
+        }
     }
 }

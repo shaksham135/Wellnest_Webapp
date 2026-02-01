@@ -16,6 +16,7 @@ public interface WorkoutRepository extends JpaRepository<Workout, Long> {
 
         @org.springframework.data.jpa.repository.Query(value = "SELECT w.user_id, SUM(w.duration_minutes) as totalMinutes FROM workouts w WHERE w.performed_at BETWEEN :start AND :end GROUP BY w.user_id ORDER BY totalMinutes DESC LIMIT 10", nativeQuery = true)
         List<Object[]> findTopUsersByDuration(
-                        @org.springframework.data.repository.query.Param("start") LocalDateTime start,
                         @org.springframework.data.repository.query.Param("end") LocalDateTime end);
+
+        void deleteByUserId(Long userId);
 }

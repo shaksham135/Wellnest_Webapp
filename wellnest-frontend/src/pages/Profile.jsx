@@ -1,8 +1,9 @@
 // src/pages/Profile.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget } from "react-icons/fi";
+import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget, FiCheck } from "react-icons/fi";
 import { fetchCurrentUser, updateUserProfile } from "../api/userApi";
+import apiClient from "../api/apiClient";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -43,9 +44,6 @@ const Profile = () => {
   const handleSave = async () => {
     setSaveLoading(true);
     try {
-      // Backend expects the full object logic we saw in Controller, 
-      // but strictly defined in ProfileUpdateRequest.
-      // We pass the formData which matches the fields.
       const payload = {
         age: formData.age ? parseInt(formData.age) : null,
         heightCm: formData.heightCm ? parseFloat(formData.heightCm) : null,
@@ -56,8 +54,6 @@ const Profile = () => {
       };
 
       await updateUserProfile(payload);
-
-      // Refresh user data (or just update local state)
       setUser({ ...user, ...payload });
       setIsEditing(false);
     } catch (err) {
@@ -71,6 +67,17 @@ const Profile = () => {
   const handleCancel = () => {
     setFormData(user); // Reset to original
     setIsEditing(false);
+  };
+
+  const handleRequestVerification = async () => {
+    try {
+      await apiClient.post("/users/request-verification");
+      setUser({ ...user, verificationRequested: true });
+      alert("Verification requested successfully!");
+    } catch (error) {
+      console.error("Verification request failed:", error);
+      alert("Failed to request verification.");
+    }
   };
 
   if (loading) return <div className="dashboard-page"><div className="dashboard-card">Loading...</div></div>;
@@ -108,6 +115,28 @@ const Profile = () => {
               <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>Role</strong>
               {user.role?.replace('ROLE_', '')}
             </div>
+
+            {/* Verification Status */}
+            {user.role === 'ROLE_USER' && (
+              <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+                <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>Verification</strong>
+                <div style={{ marginTop: '5px' }}>
+                  {user.isVerified ? (
+                    <span style={{ color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>Verified <FiCheck /></span>
+                  ) : user.verificationRequested ? (
+                    <span style={{ color: '#ea580c', fontWeight: 'bold' }}>Pending Approval</span>
+                  ) : (
+                    <button
+                      onClick={handleRequestVerification}
+                      className="ghost-btn"
+                      style={{ fontSize: '12px', width: '100%', padding: '6px', border: '1px solid var(--primary)', color: 'var(--primary)' }}
+                    >
+                      Request Verification
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <button className="secondary-btn" onClick={handleLogout} style={{ marginTop: 'auto', width: '100%', borderColor: '#ef4444', color: '#ef4444' }}>

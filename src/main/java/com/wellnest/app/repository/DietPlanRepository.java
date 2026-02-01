@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface DietPlanRepository extends JpaRepository<DietPlan, Long> {
     Optional<DietPlan> findByTrainerIdAndUserId(Long trainerId, Long userId);
+
+    java.util.List<DietPlan> findByUserId(Long userId);
 }

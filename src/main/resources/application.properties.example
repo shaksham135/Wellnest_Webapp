@@ -1,8 +1,8 @@
 spring.application.name=app
 
 spring.datasource.url=jdbc:mysql://localhost:3306/wellnest_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-spring.datasource.username= your username
-spring.datasource.password=your password
+spring.datasource.username=root
+spring.datasource.password=root
 
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 
@@ -11,15 +11,17 @@ spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
 
 # Allow large POSTs for Base64 images
-server.tomcat.max-http-post-size=10MB
-spring.servlet.multipart.max-file-size=10MB
-spring.servlet.multipart.max-request-size=10MB
+# Allow large POSTs for Base64 images
+server.tomcat.max-http-post-size=50MB
+spring.servlet.multipart.max-file-size=50MB
+spring.servlet.multipart.max-request-size=50MB
+server.tomcat.max-swallow-size=50MB
 
 # ===== EMAIL CONFIG =====
 spring.mail.host=smtp.gmail.com
 spring.mail.port=587
-spring.mail.username=${MAIL_USERNAME:your_email@gmail.com}
-spring.mail.password=${MAIL_PASSWORD:your_app_password}
+spring.mail.username=xyz@gmail.com
+spring.mail.password=xyz
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
 
@@ -27,4 +29,8 @@ spring.mail.properties.mail.smtp.starttls.enable=true
 app.frontend.base-url=${FRONTEND_URL:http://localhost:3000}
 
 # ===== AI CONFIG (Groq - Llama 3) =====
-groq.api.key=${GROQ_API_KEY:YOUR_GROQ_API_KEY}
+groq.api.key=apikey1234
+
+# ===== ADMIN CREDENTIALS =====
+admin.username=admin123@gmail.com
+admin.password=admin123

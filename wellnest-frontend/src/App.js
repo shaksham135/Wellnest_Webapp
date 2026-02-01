@@ -32,6 +32,8 @@ import Notifications from "./pages/Notifications";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import Support from "./pages/Support";
+import AdminDashboard from "./pages/AdminDashboard";
+import CommunityPage from "./pages/CommunityPage";
 
 // Analytics Detail Pages
 import WorkoutAnalyticsDetail from "./pages/detailed-analytics/WorkoutAnalyticsDetail";
@@ -209,6 +211,15 @@ const App = () => {
           />
 
           <Route
+            path="/community"
+            element={
+              <ProtectedRoute>
+                <CommunityPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/trainers"
             element={
               <ProtectedRoute>
@@ -267,6 +278,12 @@ const App = () => {
               <ProtectedRoute>
                 <BmiCalculator />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-dashboard"
+            element={
+              <AdminDashboard />
             }
           />
         </Routes>

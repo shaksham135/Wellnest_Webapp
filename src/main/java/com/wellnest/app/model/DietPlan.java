@@ -27,13 +27,20 @@ public class DietPlan {
     @Column(columnDefinition = "TEXT")
     private String additionalNotes;
 
+    // Assignment Fields
+    private Integer workoutCalories;
+    private Double waterLiters;
+    private Double sleepHours;
+    private Integer stepsTarget;
+
     private LocalDateTime updatedAt;
 
     public DietPlan() {
     }
 
     public DietPlan(Long trainerId, Long userId, String breakfast, String lunch, String dinner, String snacks,
-            String additionalNotes) {
+            String additionalNotes, Integer workoutCalories, Double waterLiters, Double sleepHours,
+            Integer stepsTarget) {
         this.trainerId = trainerId;
         this.userId = userId;
         this.breakfast = breakfast;
@@ -41,6 +48,10 @@ public class DietPlan {
         this.dinner = dinner;
         this.snacks = snacks;
         this.additionalNotes = additionalNotes;
+        this.workoutCalories = workoutCalories;
+        this.waterLiters = waterLiters;
+        this.sleepHours = sleepHours;
+        this.stepsTarget = stepsTarget;
         this.updatedAt = LocalDateTime.now();
     }
 
@@ -114,5 +125,37 @@ public class DietPlan {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Integer getWorkoutCalories() {
+        return workoutCalories;
+    }
+
+    public void setWorkoutCalories(Integer workoutCalories) {
+        this.workoutCalories = workoutCalories;
+    }
+
+    public Double getWaterLiters() {
+        return waterLiters;
+    }
+
+    public void setWaterLiters(Double waterLiters) {
+        this.waterLiters = waterLiters;
+    }
+
+    public Double getSleepHours() {
+        return sleepHours;
+    }
+
+    public void setSleepHours(Double sleepHours) {
+        this.sleepHours = sleepHours;
+    }
+
+    public Integer getStepsTarget() {
+        return stepsTarget;
+    }
+
+    public void setStepsTarget(Integer stepsTarget) {
+        this.stepsTarget = stepsTarget;
     }
 }

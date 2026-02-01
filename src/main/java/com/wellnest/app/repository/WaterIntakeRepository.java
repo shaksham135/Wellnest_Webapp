@@ -12,4 +12,6 @@ public interface WaterIntakeRepository extends JpaRepository<WaterIntake, Long> 
             LocalDateTime endDateTime);
 
     List<WaterIntake> findByLoggedAtBetween(LocalDateTime startDateTime, LocalDateTime endDateTime);
+
+    void deleteByUserId(Long userId);
 }

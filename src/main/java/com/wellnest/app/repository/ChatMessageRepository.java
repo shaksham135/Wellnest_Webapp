@@ -11,4 +11,6 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     // Find messages between two users ordered by timestamp
     List<ChatMessage> findBySenderIdAndReceiverIdOrSenderIdAndReceiverIdOrderByTimestampAsc(
             Long senderId1, Long receiverId1, Long senderId2, Long receiverId2);
+
+    void deleteBySenderIdOrReceiverId(Long senderId, Long receiverId);
 }
