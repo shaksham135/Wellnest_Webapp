@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FiRefreshCw } from 'react-icons/fi';
 
 const PullToRefresh = ({ onRefresh, children, disabled = false }) => {
