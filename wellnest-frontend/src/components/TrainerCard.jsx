@@ -121,7 +121,20 @@ const TrainerCard = ({ trainer, connectionStatus, onConnectRefresh, onViewDiet }
                         className="trainer-avatar"
                     />
                     <div className="trainer-info">
-                        <h3>{trainer.name}</h3>
+                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            {trainer.name}
+                            {trainer.verified && (
+                                <span title="Verified Trainer" style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                    background: 'linear-gradient(135deg, #2563eb, #4f46e5)',
+                                    color: 'white', fontSize: '11px', fontWeight: 700,
+                                    padding: '2px 8px', borderRadius: '99px',
+                                    letterSpacing: '0.02em', whiteSpace: 'nowrap'
+                                }}>
+                                    ✓ Verified
+                                </span>
+                            )}
+                        </h3>
                         <div className="trainer-meta" style={{ display: 'flex', alignItems: 'center' }}>
                             <div
                                 style={{ display: 'flex', gap: '2px', cursor: 'pointer', marginRight: '6px' }}

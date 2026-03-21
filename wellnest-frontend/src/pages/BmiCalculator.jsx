@@ -77,38 +77,40 @@ const BmiCalculator = () => {
       alignItems: "center",
       justifyContent: "center",
       padding: "24px",
-      background: "radial-gradient(circle at top left, #1e1b4b, #0f172a)"
+      background: "var(--bg-main)",
+      transition: "background 0.3s ease"
     }}>
       <div style={{
         width: "100%",
         maxWidth: "500px",
-        background: "rgba(30, 41, 59, 0.7)",
+        background: "var(--card-bg)",
         backdropFilter: "blur(20px)",
-        borderRadius: "24px",
+        borderRadius: "28px",
         padding: "32px",
-        border: "1px solid rgba(255, 255, 255, 0.1)",
-        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)"
+        border: "1px solid var(--card-border)",
+        boxShadow: "0 20px 40px rgba(0, 0, 0, 0.1)",
+        transition: "all 0.3s ease"
       }}>
         <div style={{ marginBottom: "24px", textAlign: "center" }}>
           <div style={{
             width: "60px", height: "60px",
-            background: "linear-gradient(135deg, #6366f1, #a855f7)",
-            borderRadius: "16px",
+            background: "linear-gradient(135deg, var(--primary), var(--secondary))",
+            borderRadius: "18px",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: "28px", color: "white",
-            margin: "0 auto 16px",
-            boxShadow: "0 10px 20px rgba(99, 102, 241, 0.3)"
+            margin: "0 auto 20px",
+            boxShadow: "0 10px 20px rgba(99, 102, 241, 0.2)"
           }}>
             <FiActivity />
           </div>
-          <h2 style={{ fontSize: "2rem", fontWeight: "800", color: "white", marginBottom: "8px" }}>BMI Calculator</h2>
-          <p style={{ color: "#9ca3af" }}>Understand your body stats instantly.</p>
+          <h2 style={{ fontSize: "1.85rem", fontWeight: "850", color: "var(--text-main)", marginBottom: "8px", letterSpacing: "-0.02em" }}>BMI Calculator</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>Understand your body stats instantly.</p>
         </div>
 
-        <form onSubmit={calculateBMI} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <form onSubmit={calculateBMI} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div>
-              <label style={{ display: "block", color: "#cbd5e1", fontSize: "14px", fontWeight: "500", marginBottom: "8px" }}>Height (cm)</label>
+              <label style={{ display: "block", color: "var(--text-main)", fontSize: "14px", fontWeight: "600", marginBottom: "8px" }}>Height (cm)</label>
               <input
                 type="number"
                 name="heightCm"
@@ -118,18 +120,19 @@ const BmiCalculator = () => {
                 style={{
                   width: "100%",
                   padding: "14px",
-                  borderRadius: "12px",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  background: "rgba(0, 0, 0, 0.2)",
-                  color: "white",
+                  borderRadius: "14px",
+                  border: "1px solid var(--input-border)",
+                  background: "var(--input-bg)",
+                  color: "var(--text-main)",
                   fontSize: "16px",
-                  outline: "none"
+                  outline: "none",
+                  transition: "border-color 0.2s"
                 }}
                 required
               />
             </div>
             <div>
-              <label style={{ display: "block", color: "#cbd5e1", fontSize: "14px", fontWeight: "500", marginBottom: "8px" }}>Weight (kg)</label>
+              <label style={{ display: "block", color: "var(--text-main)", fontSize: "14px", fontWeight: "600", marginBottom: "8px" }}>Weight (kg)</label>
               <input
                 type="number"
                 name="weightKg"
@@ -139,34 +142,25 @@ const BmiCalculator = () => {
                 style={{
                   width: "100%",
                   padding: "14px",
-                  borderRadius: "12px",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  background: "rgba(0, 0, 0, 0.2)",
-                  color: "white",
+                  borderRadius: "14px",
+                  border: "1px solid var(--input-border)",
+                  background: "var(--input-bg)",
+                  color: "var(--text-main)",
                   fontSize: "16px",
-                  outline: "none"
+                  outline: "none",
+                  transition: "border-color 0.2s"
                 }}
                 required
               />
             </div>
           </div>
 
-          <button type="submit" style={{
-            marginTop: "8px",
-            padding: "16px",
-            borderRadius: "12px",
-            border: "none",
-            background: "linear-gradient(to right, #6366f1, #8b5cf6)",
-            color: "white",
+          <button type="submit" className="primary-btn" style={{
+            marginTop: "10px",
+            height: "56px",
             fontSize: "16px",
-            fontWeight: "700",
-            cursor: "pointer",
-            transition: "transform 0.2s",
-            boxShadow: "0 4px 12px rgba(99, 102, 241, 0.4)"
-          }}
-            onMouseOver={(e) => e.target.style.transform = "scale(1.02)"}
-            onMouseOut={(e) => e.target.style.transform = "scale(1)"}
-          >
+            fontWeight: "700"
+          }}>
             Calculate Now
           </button>
         </form>
@@ -174,28 +168,28 @@ const BmiCalculator = () => {
         {result && (
           <div style={{
             marginTop: "32px",
-            background: "rgba(255, 255, 255, 0.05)",
-            borderRadius: "16px",
+            background: "var(--bg-main)",
+            borderRadius: "20px",
             padding: "24px",
-            border: `1px solid ${result.color}40`,
+            border: `1px solid ${result.color}60`,
             position: "relative",
             overflow: "hidden"
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "16px" }}>
               <div>
-                <p style={{ color: "#9ca3af", fontSize: "14px", fontWeight: "600", marginBottom: "4px" }}>YOUR BMI</p>
-                <h3 style={{ fontSize: "3rem", fontWeight: "800", color: "white", lineHeight: 1 }}>{result.bmi}</h3>
+                <p style={{ color: "var(--text-muted)", fontSize: "13px", fontWeight: "600", marginBottom: "4px", textTransform: "uppercase" }}>Your BMI</p>
+                <h3 style={{ fontSize: "3.2rem", fontWeight: "850", color: "var(--text-main)", lineHeight: 1, letterSpacing: "-0.04em" }}>{result.bmi}</h3>
               </div>
               <div style={{ textAlign: "right" }}>
                 <span style={{
                   display: "inline-block",
-                  padding: "6px 12px",
+                  padding: "8px 16px",
                   borderRadius: "99px",
-                  background: `${result.color}20`,
+                  background: `${result.color}15`,
                   color: result.color,
-                  fontWeight: "700",
+                  fontWeight: "750",
                   fontSize: "14px",
-                  border: `1px solid ${result.color}40`
+                  border: `1px solid ${result.color}30`
                 }}>
                   {result.category}
                 </span>
@@ -203,39 +197,29 @@ const BmiCalculator = () => {
             </div>
 
             {/* Visual Bar */}
-            <div style={{ height: "8px", background: "rgba(255, 255, 255, 0.1)", borderRadius: "4px", marginBottom: "16px", position: "relative" }}>
+            <div style={{ height: "10px", background: "var(--card-border)", borderRadius: "5px", marginBottom: "16px", position: "relative", overflow: "hidden" }}>
               <div style={{
                 position: "absolute",
                 left: 0, top: 0, bottom: 0,
                 width: `${Math.min(result.widthPercent, 100)}%`,
                 background: result.color,
-                borderRadius: "4px",
-                transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)"
+                borderRadius: "5px",
+                transition: "width 1.2s cubic-bezier(0.16, 1, 0.3, 1)"
               }}></div>
             </div>
 
-            <p style={{ color: "#cbd5e1", fontSize: "15px", lineHeight: "1.5" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: "15px", lineHeight: "1.6" }}>
               {result.message}
             </p>
           </div>
         )}
 
-        <button onClick={() => navigate("/dashboard")} style={{
+        <button onClick={() => navigate("/dashboard")} className="ghost-btn" style={{
           marginTop: "24px",
-          background: "transparent",
-          border: "none",
-          color: "#9ca3af",
-          cursor: "pointer",
-          display: "flex", alignItems: "center", gap: "8px",
-          fontSize: "14px",
-          fontWeight: "500",
-          padding: "8px",
-          margin: "0 auto",
-          transition: "color 0.2s"
-        }}
-          onMouseOver={(e) => e.target.style.color = "white"}
-          onMouseOut={(e) => e.target.style.color = "#9ca3af"}
-        >
+          width: "100%",
+          gap: "8px",
+          color: "var(--text-muted)"
+        }}>
           <FiArrowLeft /> Back to Dashboard
         </button>
       </div>

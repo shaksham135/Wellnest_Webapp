@@ -56,7 +56,7 @@ const ResetPassword = () => {
           {!token && (
             <input
               type="text"
-              placeholder="Reset token"
+              placeholder="6-digit OTP"
               value={token}
               onChange={(e) => setToken(e.target.value)}
               required

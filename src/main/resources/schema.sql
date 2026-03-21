@@ -15,6 +15,13 @@ CREATE TABLE IF NOT EXISTS users (
     target_weight_kg DOUBLE,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     verification_requested BOOLEAN NOT NULL DEFAULT FALSE,
+    fcm_token VARCHAR(255),
+    target_steps INT,
+    target_water_liters DOUBLE,
+    target_sleep_hours DOUBLE,
+    target_workouts_per_week INT,
+    target_active_calories DOUBLE,
+    target_distance_km DOUBLE,
     created_at DATETIME(6)
 ) ENGINE=InnoDB;
 
@@ -123,6 +130,11 @@ CREATE TABLE IF NOT EXISTS trainers (
     phone VARCHAR(255),
     user_id BIGINT,
     created_at DATETIME(6),
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    verification_requested BOOLEAN NOT NULL DEFAULT FALSE,
+    certificate_1 LONGTEXT,
+    certificate_2 LONGTEXT,
+    certificate_3 LONGTEXT,
     FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB;
 

@@ -4,6 +4,7 @@ import com.wellnest.app.dto.DietPlanDto;
 import com.wellnest.app.dto.TrainerFiltersDto;
 import com.wellnest.app.dto.TrainerResponse;
 import com.wellnest.app.dto.TrainerUpdateDto;
+import com.wellnest.app.dto.VerificationRequestDto;
 import com.wellnest.app.model.DietPlan;
 import com.wellnest.app.model.Trainer;
 import com.wellnest.app.repository.DietPlanRepository;
@@ -92,7 +93,7 @@ public class TrainerService {
     private TrainerResponse toResponse(Trainer trainer) {
         Long userId = trainer.getUser() != null ? trainer.getUser().getId() : null;
 
-        return new TrainerResponse(
+        TrainerResponse response = new TrainerResponse(
                 trainer.getId(),
                 userId,
                 trainer.getName(),
@@ -105,6 +106,18 @@ public class TrainerService {
                 trainer.getImage(),
                 trainer.getEmail(),
                 trainer.getPhone());
+
+        response.setVerified(trainer.isVerified());
+        response.setVerificationRequested(trainer.isVerificationRequested());
+
+        // Count how many certificates have been uploaded
+        int count = 0;
+        if (trainer.getCertificate1() != null && !trainer.getCertificate1().isEmpty()) count++;
+        if (trainer.getCertificate2() != null && !trainer.getCertificate2().isEmpty()) count++;
+        if (trainer.getCertificate3() != null && !trainer.getCertificate3().isEmpty()) count++;
+        response.setCertificateCount(count);
+
+        return response;
     }
 
     public com.wellnest.app.dto.TrainerFiltersDto getFilters() {
@@ -135,6 +148,18 @@ public class TrainerService {
             trainer.setBio(dto.getBio());
         if (dto.getSpecialties() != null)
             trainer.setSpecialties(dto.getSpecialties());
+
+        return toResponse(trainerRepository.save(trainer));
+    }
+
+    public TrainerResponse submitVerification(String email, VerificationRequestDto dto) {
+        Trainer trainer = trainerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Trainer not found"));
+
+        if (dto.getCertificate1() != null) trainer.setCertificate1(dto.getCertificate1());
+        if (dto.getCertificate2() != null) trainer.setCertificate2(dto.getCertificate2());
+        if (dto.getCertificate3() != null) trainer.setCertificate3(dto.getCertificate3());
+        trainer.setVerificationRequested(true);
 
         return toResponse(trainerRepository.save(trainer));
     }

@@ -20,6 +20,9 @@ public class TrainerResponse {
     private String image;
     private String email;
     private String phone;
+    private boolean verified;
+    private boolean verificationRequested;
+    private int certificateCount;
 
     public TrainerResponse() {
     }

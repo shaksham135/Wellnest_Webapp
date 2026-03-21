@@ -12,11 +12,11 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // Demo ke liye – project me ENV se lena
-    private static final String SECRET_KEY = "this_is_a_very_long_secret_key_change_it_to_secure_one_123456";
+    @org.springframework.beans.factory.annotation.Value("${app.jwt.secret:this_is_a_very_long_secret_key_change_it_to_secure_one_123456}")
+    private String secretKey;
 
     private Key getSignInKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
     public String extractUsername(String token) {
@@ -38,7 +38,7 @@ public class JwtService {
 
     public String generateToken(UserDetails userDetails) {
         long now = System.currentTimeMillis();
-        long expiry = now + 1000 * 60 * 60 * 24; // 24 hours
+        long expiry = now + 1000L * 60 * 60 * 24 * 30; // 30 days
 
         // Extract role
         String role = userDetails.getAuthorities().stream()

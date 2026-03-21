@@ -12,6 +12,9 @@ import com.wellnest.app.repository.MealRepository;
 import com.wellnest.app.repository.SleepLogRepository;
 import com.wellnest.app.repository.WaterIntakeRepository;
 import com.wellnest.app.repository.WorkoutRepository;
+import com.wellnest.app.repository.DailyActivityRepository;
+import com.wellnest.app.model.DailyActivity;
+import com.wellnest.app.dto.DailyActivityDto;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
@@ -26,15 +29,18 @@ public class TrackerService {
     private final MealRepository mealRepository;
     private final WaterIntakeRepository waterIntakeRepository;
     private final SleepLogRepository sleepLogRepository;
+    private final DailyActivityRepository dailyActivityRepository;
 
     public TrackerService(WorkoutRepository workoutRepository,
             MealRepository mealRepository,
             WaterIntakeRepository waterIntakeRepository,
-            SleepLogRepository sleepLogRepository) {
+            SleepLogRepository sleepLogRepository,
+            DailyActivityRepository dailyActivityRepository) {
         this.workoutRepository = workoutRepository;
         this.mealRepository = mealRepository;
         this.waterIntakeRepository = waterIntakeRepository;
         this.sleepLogRepository = sleepLogRepository;
+        this.dailyActivityRepository = dailyActivityRepository;
     }
 
     // -------------------- WORKOUT --------------------
@@ -222,6 +228,55 @@ public class TrackerService {
             throw new RuntimeException("Not authorized to delete this sleep log");
         }
         sleepLogRepository.delete(s);
+    }
+
+    // -------------------- DAILY ACTIVITY (Steps, Calories, Distance) --------------------
+
+    public DailyActivity logDailyActivity(Long userId, DailyActivityDto dto) {
+        Assert.notNull(userId, "userId is required");
+        Assert.notNull(dto, "daily activity dto is required");
+
+        LocalDate targetDate = dto.getDate() != null ? dto.getDate() : LocalDate.now();
+
+        // Enforce Limit: Max 1 Daily Activity record per day. 
+        // If it exists, we update it instead of creating a new one (Upsert behavior).
+        DailyActivity activity = dailyActivityRepository.findByUserIdAndDate(userId, targetDate)
+                .orElse(new DailyActivity());
+
+        if (activity.getId() == null) {
+            // It's a brand new record
+            com.wellnest.app.model.User userRef = new com.wellnest.app.model.User();
+            userRef.setId(userId);
+            activity.setUser(userRef);
+            activity.setDate(targetDate);
+        }
+
+        // Add to existing values if the user logs multiple times a day manually
+        activity.setSteps(activity.getSteps() + (dto.getSteps() != null ? dto.getSteps() : 0));
+        activity.setActiveCalories(activity.getActiveCalories() + (dto.getActiveCalories() != null ? dto.getActiveCalories() : 0));
+        activity.setDistanceKm(activity.getDistanceKm() + (dto.getDistanceKm() != null ? dto.getDistanceKm() : 0.0));
+
+        return dailyActivityRepository.save(activity);
+    }
+
+    public List<DailyActivity> getDailyActivities(Long userId, LocalDate startDate, LocalDate endDate) {
+        Assert.notNull(userId, "userId is required");
+        // Default to fetching the last 30 days if range is not provided
+        LocalDate start = startDate != null ? startDate : LocalDate.now().minusDays(30);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        
+        return dailyActivityRepository.findByUserIdAndDateBetweenOrderByDateAsc(userId, start, end);
+    }
+
+    public void deleteDailyActivity(Long userId, Long activityId) {
+        Assert.notNull(userId, "userId is required");
+        Assert.notNull(activityId, "activityId is required");
+        DailyActivity a = dailyActivityRepository.findById(activityId)
+                .orElseThrow(() -> new RuntimeException("Daily activity log not found"));
+        if (!a.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Not authorized to delete this activity log");
+        }
+        dailyActivityRepository.delete(a);
     }
 
     @org.springframework.transaction.annotation.Transactional

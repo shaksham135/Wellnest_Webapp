@@ -6,6 +6,8 @@ import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     List<Notification> findByUser_IdOrderByCreatedAtDesc(Long userId);
+    
+    boolean existsByUser_IdAndTitleAndCreatedAtAfter(Long userId, String title, java.time.LocalDateTime createdAt);
 
     long countByUser_IdAndIsReadFalse(Long userId);
 

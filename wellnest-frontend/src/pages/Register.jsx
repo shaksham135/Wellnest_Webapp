@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import {
   FiUserPlus,
   FiUser,
@@ -115,6 +116,45 @@ const Register = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await apiClient.post("/auth/google", {
+        token: credentialResponse.credential,
+        role: form.role,
+        fitnessGoal: form.fitnessGoal
+      });
+      const { token, profileComplete, userId, role, isVerified } = res.data;
+
+      if (token) {
+        localStorage.setItem("token", token);
+        if (userId) localStorage.setItem("userId", userId);
+        if (role) localStorage.setItem("role", role);
+        if (isVerified) localStorage.setItem("isVerified", "true");
+        else localStorage.removeItem("isVerified");
+      }
+
+      if (role === "ROLE_ADMIN") {
+        setTimeout(() => navigate("/admin-dashboard"), 600);
+        return;
+      }
+
+      setTimeout(() => {
+        navigate(profileComplete ? "/dashboard" : "/setup-profile");
+      }, 600);
+    } catch (err) {
+      console.error(err);
+      setMessage("Google registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setMessage("Google registration was cancelled or failed.");
   };
 
   return (
@@ -258,6 +298,15 @@ const Register = () => {
             {loading ? "Creating..." : "Register"}
           </button>
         </form>
+
+        <div style={{ margin: "20px 0", display: "flex", justifyContent: "center" }}>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            useOneTap
+            text="signup_with"
+          />
+        </div>
 
         {message && <p className="auth-message">{message}</p>}
 

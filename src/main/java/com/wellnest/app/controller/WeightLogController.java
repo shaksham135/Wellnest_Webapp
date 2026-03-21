@@ -32,14 +32,14 @@ public class WeightLogController {
                         Authentication authentication) {
 
                 System.out.println("DEBUG WEIGHT: Request received");
-                // 🔐 AUTH CHECK
+                // AUTH CHECK
                 if (authentication == null || authentication.getName() == null) {
                         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
                 }
 
                 Double weight = request.getWeightKg();
 
-                // ✅ STRICT VALIDATION
+                // STRICT VALIDATION
                 if (weight == null) {
                         return ResponseEntity.badRequest().body("Weight is required");
                 }
@@ -51,7 +51,7 @@ public class WeightLogController {
                 User user = userRepository.findByEmail(authentication.getName())
                                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-                // 🔄 DELEGATE TO SERVICE
+                // DELEGATE TO SERVICE
                 // This handles:
                 // 1. Backfilling logic (if no history or only-today history exists)
                 // 2. Same-day overwrite logic

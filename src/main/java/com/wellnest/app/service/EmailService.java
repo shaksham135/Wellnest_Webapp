@@ -42,14 +42,17 @@ public class EmailService {
         }
     }
 
-    public void sendPasswordResetEmail(String toEmail, String token) {
+    public void sendPasswordResetEmail(String toEmail, String otp) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(toEmail);
-            message.setSubject("Password Reset Request");
-            message.setText("To reset your password, please click here: " +
-                    frontendBaseUrl + "/reset-password?token=" + token);
+            message.setSubject("Wellnest Password Reset OTP");
+            message.setText("Hello,\n\n" +
+                    "Your One-Time Password (OTP) for password reset is: " + otp + "\n\n" +
+                    "This code will expire in 10 minutes. Please enter this on the website to set your new password.\n\n" +
+                    "If you did not request this, please ignore this email.\n\n" +
+                    "Thank you,\nThe Wellnest Team");
 
             mailSender.send(message);
             System.out.println("Password reset email sent successfully to " + toEmail);

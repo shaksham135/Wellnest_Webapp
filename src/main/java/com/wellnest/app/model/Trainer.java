@@ -59,6 +59,21 @@ public class Trainer {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "is_verified", nullable = false)
+    private boolean verified = false;
+
+    @Column(name = "verification_requested", nullable = false)
+    private boolean verificationRequested = false;
+
+    @Column(name = "certificate_1", columnDefinition = "LONGTEXT")
+    private String certificate1;
+
+    @Column(name = "certificate_2", columnDefinition = "LONGTEXT")
+    private String certificate2;
+
+    @Column(name = "certificate_3", columnDefinition = "LONGTEXT")
+    private String certificate3;
+
     public Trainer() {
     }
 

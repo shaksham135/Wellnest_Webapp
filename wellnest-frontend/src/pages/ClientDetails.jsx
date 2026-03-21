@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { FiMessageSquare, FiUsers, FiClock, FiCheck, FiX, FiSend, FiActivity, FiSun, FiMoon, FiCoffee, FiSunrise } from 'react-icons/fi';
+import { FiMessageSquare, FiUsers, FiClock, FiCheck, FiX, FiSend, FiActivity, FiArrowLeft, FiSun, FiMoon, FiCoffee, FiSunrise } from 'react-icons/fi';
 import { getTrainerRequests, updateRequestStatus, getChatHistory, sendMessage, getClientDetails, saveDietPlan, getDietPlanForClient } from '../api/trainerApi';
 
 const ClientDetails = () => {
@@ -284,10 +284,8 @@ const ClientDetails = () => {
                                         <button
                                             className="mobile-back-btn"
                                             onClick={() => setSelectedChatUser(null)}
-                                            style={{ marginRight: '10px', background: 'none', border: 'none', color: 'var(--text-main)', cursor: 'pointer' }}
                                         >
-                                            <FiActivity style={{ transform: 'rotate(180deg)' }} /> {/* Using generic icon as arrow if ArrowLeft not imported, but wait, let's use a simpler char or import ArrowLeft if needed. I see FiCheck, FiX etc imported. I'll use < back arrow symbol or add import. */}
-                                            {/* Checking imports: FiMessageSquare, FiUsers, FiClock, FiCheck, FiX, FiSend, FiActivity... No ArrowLeft. I'll add it to imports or use text '<' for now to be safe, then fix styles. */}
+                                            <FiArrowLeft size={20} />
                                             Back
                                         </button>
                                         <div className="chat-user-avatar">

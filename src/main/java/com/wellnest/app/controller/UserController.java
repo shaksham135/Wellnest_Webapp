@@ -3,6 +3,7 @@ package com.wellnest.app.controller;
 import com.wellnest.app.dto.ProfileUpdateRequest;
 import com.wellnest.app.dto.UpdateTargetWeightRequest;
 import com.wellnest.app.dto.UserProfileResponse;
+import com.wellnest.app.dto.GoalTargetsDto;
 import com.wellnest.app.model.User;
 import com.wellnest.app.service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,14 @@ public class UserController {
         String email = auth.getName();
         User user = userService.findByEmail(email).orElseThrow();
 
+        GoalTargetsDto targets = new GoalTargetsDto();
+        targets.setTargetSteps(user.getTargetSteps());
+        targets.setTargetWaterLiters(user.getTargetWaterLiters());
+        targets.setTargetSleepHours(user.getTargetSleepHours());
+        targets.setTargetWorkoutsPerWeek(user.getTargetWorkoutsPerWeek());
+        targets.setTargetActiveCalories(user.getTargetActiveCalories());
+        targets.setTargetDistanceKm(user.getTargetDistanceKm());
+
         UserProfileResponse dto = new UserProfileResponse(
                 user.getName(),
                 user.getEmail(),
@@ -37,7 +46,8 @@ public class UserController {
                 user.getFitnessGoal(),
                 user.getPhone(),
                 user.isVerified(),
-                user.isVerificationRequested());
+                user.isVerificationRequested(),
+                targets);
         return ResponseEntity.ok(dto);
     }
 
@@ -64,6 +74,14 @@ public class UserController {
 
         userService.save(user);
 
+        GoalTargetsDto targets = new GoalTargetsDto();
+        targets.setTargetSteps(user.getTargetSteps());
+        targets.setTargetWaterLiters(user.getTargetWaterLiters());
+        targets.setTargetSleepHours(user.getTargetSleepHours());
+        targets.setTargetWorkoutsPerWeek(user.getTargetWorkoutsPerWeek());
+        targets.setTargetActiveCalories(user.getTargetActiveCalories());
+        targets.setTargetDistanceKm(user.getTargetDistanceKm());
+
         UserProfileResponse dto = new UserProfileResponse(
                 user.getName(),
                 user.getEmail(),
@@ -75,7 +93,8 @@ public class UserController {
                 user.getFitnessGoal(),
                 user.getPhone(),
                 user.isVerified(),
-                user.isVerificationRequested());
+                user.isVerificationRequested(),
+                targets);
         return ResponseEntity.ok(dto);
     }
 
@@ -99,5 +118,30 @@ public class UserController {
         userService.save(user);
 
         return ResponseEntity.ok("Verification requested successfully");
+    }
+
+    @PutMapping("/targets")
+    public ResponseEntity<Void> updateTargets(@RequestBody GoalTargetsDto req, Authentication auth) {
+        String email = auth.getName();
+        User user = userService.findByEmail(email).orElseThrow();
+
+        user.setTargetSteps(req.getTargetSteps());
+        user.setTargetWaterLiters(req.getTargetWaterLiters());
+        user.setTargetSleepHours(req.getTargetSleepHours());
+        user.setTargetWorkoutsPerWeek(req.getTargetWorkoutsPerWeek());
+        user.setTargetActiveCalories(req.getTargetActiveCalories());
+        user.setTargetDistanceKm(req.getTargetDistanceKm());
+
+        userService.save(user);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/me/fcm-token")
+    public ResponseEntity<Void> updateFcmToken(@RequestBody java.util.Map<String, String> payload, Authentication auth) {
+        String email = auth.getName();
+        User user = userService.findByEmail(email).orElseThrow();
+        user.setFcmToken(payload.get("token"));
+        userService.save(user);
+        return ResponseEntity.ok().build();
     }
 }

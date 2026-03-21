@@ -25,6 +25,13 @@ public class GroqService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    public String generateNotification(String role, String name, String context) {
+        String systemPrompt = "You are a personalized health and wellness coach for the Wellnest app. " +
+                "Generate a short, encouraging notification (max 100 chars) for a " + role + " named " + name + ". " +
+                "Context: " + context + ". Do not use placeholders. Be direct and motivating.";
+        return getResponse(systemPrompt);
+    }
+
     public String getResponse(String prompt) {
         try {
             RestTemplate restTemplate = new RestTemplate();

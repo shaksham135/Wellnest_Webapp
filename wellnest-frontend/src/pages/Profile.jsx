@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget, FiCheck } from "react-icons/fi";
 import { fetchCurrentUser, updateUserProfile } from "../api/userApi";
 import apiClient from "../api/apiClient";
+import VerificationUpload from "../components/VerificationUpload";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -272,6 +273,17 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Trainer Verification Section */}
+      {user.role === 'ROLE_TRAINER' && (
+        <div style={{ maxWidth: '1200px', marginTop: '24px' }}>
+          <div style={{ marginBottom: '12px' }}>
+            <h3 style={{ margin: '0 0 4px', color: 'var(--text-main)' }}>🛡️ Trainer Verification</h3>
+            <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>Upload your certifications to get a verified badge on your profile.</p>
+          </div>
+          <VerificationUpload />
+        </div>
+      )}
 
       <style>{`
             .profile-grid {

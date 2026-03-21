@@ -53,4 +53,14 @@ export const getDietPlanForTrainer = (trainerId) => apiClient.get(`/trainers/die
 
 export const getClientAnalytics = (clientId) => apiClient.get(`/analytics/client/${clientId}`);
 
+// Trainer Verification API
+export const getMyTrainerProfile = () => apiClient.get('/trainers/me');
+export const submitVerification = (data) => apiClient.post('/trainers/verification/submit', data);
+
+// Admin Verification API
+export const getPendingVerifications = () => apiClient.get('/admin/trainers/pending-verifications');
+export const verifyTrainer = (id) => apiClient.put(`/admin/trainers/${id}/verify`);
+export const rejectTrainerVerification = (id) => apiClient.put(`/admin/trainers/${id}/reject`);
+
+
 

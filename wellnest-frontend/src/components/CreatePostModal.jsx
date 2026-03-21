@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { FiX } from 'react-icons/fi';
+import { FiX, FiImage, FiType, FiFileText, FiPlus } from 'react-icons/fi';
+import BottomSheet from './common/BottomSheet';
 
 const CreatePostModal = ({ onClose, onCreate, error, initialData = null, isCommunity = false }) => {
     const [formData, setFormData] = useState({
@@ -73,15 +74,12 @@ const CreatePostModal = ({ onClose, onCreate, error, initialData = null, isCommu
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-                <div className="modal-header">
-                    <h2 className="auth-title" style={{ margin: 0, fontSize: 24 }}>{initialData ? 'Edit Post' : 'Create New Post'}</h2>
-                    <button className="modal-close" onClick={onClose}>
-                        <FiX />
-                    </button>
-                </div>
-
+        <BottomSheet 
+            isOpen={true} 
+            onClose={onClose} 
+            title={initialData ? 'Edit Post' : 'Create New Post'}
+        >
+            <form className="auth-form" onSubmit={handleSubmit} style={{ padding: '0' }}>
                 {error && (
                     <div style={{
                         background: 'rgba(220, 38, 38, 0.1)',
@@ -96,9 +94,10 @@ const CreatePostModal = ({ onClose, onCreate, error, initialData = null, isCommu
                     </div>
                 )}
 
-                <form className="auth-form" onSubmit={handleSubmit}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {!isCommunity && (
                         <div className="input-group">
+                            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>Title</label>
                             <input
                                 type="text"
                                 name="title"
@@ -112,6 +111,7 @@ const CreatePostModal = ({ onClose, onCreate, error, initialData = null, isCommu
 
                     {!isCommunity && (
                         <div className="input-group">
+                            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>Category</label>
                             <select
                                 name="category"
                                 className="role-select"
@@ -128,51 +128,74 @@ const CreatePostModal = ({ onClose, onCreate, error, initialData = null, isCommu
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: 10, margin: '4px 0', fontSize: 13 }}>
-                        <span
-                            onClick={() => setUseUrl(true)}
-                            style={{ cursor: 'pointer', color: useUrl ? 'var(--primary)' : 'var(--text-muted)', fontWeight: useUrl ? 600 : 400 }}
-                        >
-                            Image URL
-                        </span>
-                        <span style={{ color: 'var(--text-muted)' }}>|</span>
-                        <span
-                            onClick={() => setUseUrl(false)}
-                            style={{ cursor: 'pointer', color: !useUrl ? 'var(--primary)' : 'var(--text-muted)', fontWeight: !useUrl ? 600 : 400 }}
-                        >
-                            Upload Image
-                        </span>
-                    </div>
+                    <div className="input-group">
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Featured Image</label>
+                        <div style={{ 
+                            display: 'flex', 
+                            background: 'var(--input-bg)', 
+                            borderRadius: '12px', 
+                            padding: '4px',
+                            border: '1px solid var(--card-border)',
+                            marginBottom: '15px'
+                        }}>
+                            <button 
+                                type="button"
+                                onClick={() => setUseUrl(true)}
+                                style={{ 
+                                    flex: 1, padding: '8px', borderRadius: '8px', border: 'none', 
+                                    background: useUrl ? 'var(--primary)' : 'transparent',
+                                    color: useUrl ? 'white' : 'var(--text-muted)',
+                                    fontSize: '13px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+                                }}
+                            >
+                                <FiImage style={{ marginRight: '6px' }} /> URL
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => setUseUrl(false)}
+                                style={{ 
+                                    flex: 1, padding: '8px', borderRadius: '8px', border: 'none', 
+                                    background: !useUrl ? 'var(--primary)' : 'transparent',
+                                    color: !useUrl ? 'white' : 'var(--text-muted)',
+                                    fontSize: '13px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+                                }}
+                            >
+                                <FiPlus style={{ marginRight: '6px' }} /> Upload
+                            </button>
+                        </div>
 
-                    {useUrl ? (
-                        <div className="input-group">
+                        {useUrl ? (
                             <input
                                 type="text"
                                 name="image"
-                                placeholder="Image URL (e.g. from Unsplash)"
+                                placeholder="https://example.com/image.jpg"
                                 value={formData.image || ''}
                                 onChange={handleChange}
+                                style={{ marginBottom: '10px' }}
                             />
-                        </div>
-                    ) : (
-                        <div className="input-group">
+                        ) : (
                             <input
                                 type="file"
                                 accept="image/*"
                                 onChange={handleFileChange}
-                                style={{ padding: '8px', color: 'var(--text-muted)' }}
+                                style={{ 
+                                    padding: '12px', color: 'var(--text-muted)', background: 'var(--input-bg)', 
+                                    borderRadius: '12px', border: '1px solid var(--card-border)', width: '100%',
+                                    marginBottom: '10px', fontSize: '14px'
+                                }}
                             />
-                        </div>
-                    )}
+                        )}
 
-                    {formData.image && (
-                        <div style={{ width: '100%', height: 120, borderRadius: 10, overflow: 'hidden', marginTop: 4, border: '1px solid var(--card-border)' }}>
-                            <img src={formData.image} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </div>
-                    )}
+                        {formData.image && (
+                            <div style={{ width: '100%', height: 120, borderRadius: 10, overflow: 'hidden', marginTop: 8, border: '1px solid var(--card-border)' }}>
+                                <img src={formData.image} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
+                        )}
+                    </div>
 
                     {!isCommunity && (
                         <div className="input-group">
+                            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>Excerpt</label>
                             <input
                                 type="text"
                                 name="excerpt"
@@ -185,9 +208,10 @@ const CreatePostModal = ({ onClose, onCreate, error, initialData = null, isCommu
                     )}
 
                     <div className="input-group">
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', display: 'block' }}>Content</label>
                         <textarea
                             name="content"
-                            placeholder="Write your post content here..."
+                            placeholder={isCommunity ? "What's on your mind?" : "Write your post content here..."}
                             value={formData.content}
                             onChange={handleChange}
                             style={{
@@ -197,7 +221,7 @@ const CreatePostModal = ({ onClose, onCreate, error, initialData = null, isCommu
                                 borderRadius: '14px',
                                 padding: '14px',
                                 color: 'var(--text-main)',
-                                minHeight: '200px',
+                                minHeight: '150px',
                                 fontSize: '15px',
                                 resize: 'vertical',
                                 outline: 'none'
@@ -206,12 +230,12 @@ const CreatePostModal = ({ onClose, onCreate, error, initialData = null, isCommu
                         />
                     </div>
 
-                    <button type="submit" className="primary-btn" style={{ marginTop: 12 }}>
+                    <button type="submit" className="primary-btn" style={{ marginTop: 12, height: '50px', fontSize: '16px' }}>
                         {initialData ? 'Update Post' : 'Publish Post'}
                     </button>
-                </form>
-            </div>
-        </div>
+                </div>
+            </form>
+        </BottomSheet>
     );
 };
 

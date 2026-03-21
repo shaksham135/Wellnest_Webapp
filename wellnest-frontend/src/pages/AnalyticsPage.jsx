@@ -9,6 +9,7 @@ import WaterIntakeAnalytics from "../components/dashboard/WaterIntakeAnalytics";
 import HealthMetrics from "../components/dashboard/HealthMetrics";
 import WorkoutConsistency from "../components/dashboard/WorkoutConsistency";
 import CalorieBalanceChart from "../components/dashboard/CalorieBalanceChart";
+import DailyActivitySummary from "../components/dashboard/DailyActivitySummary";
 import './AnalyticsPage.css';
 
 const AnalyticsPage = () => {
@@ -70,6 +71,10 @@ const AnalyticsPage = () => {
                 <div className="analytics-box">
                     <WaterIntakeAnalytics data={analyticsData.waterIntakeAnalytics} />
                     <Link to="/analytics/water" className="view-details-button">View Details</Link>
+                </div>
+                <div className="analytics-box">
+                    <DailyActivitySummary data={analyticsData.dailyActivityAnalytics} />
+                    <Link to="/analytics/activity" className="view-details-button">View Details</Link>
                 </div>
                 {analyticsData.healthMetrics &&
                     <div className="analytics-box">

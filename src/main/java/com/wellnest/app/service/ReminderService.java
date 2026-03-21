@@ -1,0 +1,113 @@
+package com.wellnest.app.service;
+
+import com.wellnest.app.model.User;
+import com.wellnest.app.repository.UserRepository;
+import com.wellnest.app.repository.WaterIntakeRepository;
+import com.wellnest.app.repository.DailyActivityRepository;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Random;
+
+@Service
+public class ReminderService {
+
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
+    private final WaterIntakeRepository waterIntakeRepository;
+    private final DailyActivityRepository dailyActivityRepository;
+    private final GroqService groqService;
+    private final Random random = new Random();
+
+    private final String[] waterReminders = {
+        "Time for a sip! Drink a glass of water to stay hydrated. 💧",
+        "Hydration check! Your body needs water to function at its best. 🚰",
+        "Feeling a bit tired? A glass of water might be just what you need! 🥤",
+        "Stay fresh! Keep your hydration levels up. 🌊"
+    };
+
+    private final String[] workoutReminders = {
+        "Did you move today? A quick 15-minute workout can boost your mood! 🏃‍♂️",
+        "Consistency is key! Don't forget to track your activity today. 💪",
+        "Healthy mind, healthy body. Ready for a quick stretch? 🧘‍♀️",
+        "Your goals are waiting! Let's get that workout in. 🏋️‍♂️"
+    };
+
+    public ReminderService(NotificationService notificationService, 
+                           UserRepository userRepository,
+                           WaterIntakeRepository waterIntakeRepository,
+                           DailyActivityRepository dailyActivityRepository,
+                           GroqService groqService) {
+        this.notificationService = notificationService;
+        this.userRepository = userRepository;
+        this.waterIntakeRepository = waterIntakeRepository;
+        this.dailyActivityRepository = dailyActivityRepository;
+        this.groqService = groqService;
+    }
+
+    private final String[] healthTips = {
+        "Pro tip: Drinking water before meals can aid digestion and weight management. 💡",
+        "Consistency check: Even a 5-minute walk is better than no walk at all! 🚶‍♀️",
+        "Better sleep tip: Try to avoid screens 30 minutes before bedtime for deeper rest. 💤",
+        "Posture matters: Take a moment to roll your shoulders back and sit up tall. 🧘‍♂️",
+        "Healthy eating: Aim for a variety of colorful vegetables in your next meal. 🥦"
+    };
+
+    // Every 4 hours during the day
+    @Scheduled(fixedRate = 14400000) 
+    public void sendWaterReminders() {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
+        
+        List<User> users = userRepository.findAll();
+        for (User user : users) {
+            // Smart Check: Only remind if they haven't logged water today
+            boolean hasLoggedWater = !waterIntakeRepository.findByUserIdAndLoggedAtBetween(user.getId(), startOfDay, endOfDay).isEmpty();
+            
+            if (!hasLoggedWater) {
+                String name = user.getName() != null ? user.getName() : "Hero";
+                String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
+                String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "stay healthy";
+                
+                String message = groqService.generateNotification(role, name, "Goal: " + goal + ". Needs a hydration reminder.");
+                
+                // Fallback if AI message is error or too long
+                if (message.contains("Error") || message.length() > 150) {
+                    message = waterReminders[random.nextInt(waterReminders.length)];
+                }
+                
+                notificationService.createNotification(user.getId(), "Hydration Reminder", message, "INFO");
+            }
+        }
+    }
+
+    // Every 8 hours
+    @Scheduled(fixedRate = 28800000)
+    public void sendWorkoutReminders() {
+        LocalDate today = LocalDate.now();
+        List<User> users = userRepository.findAll();
+        for (User user : users) {
+            // Smart Check: Only remind if they haven't logged activity today
+            boolean hasLoggedActivity = dailyActivityRepository.findByUserIdAndDate(user.getId(), today).isPresent();
+            
+            if (!hasLoggedActivity) {
+                String name = user.getName() != null ? user.getName() : "Hero";
+                String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
+                String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "fitness progress";
+
+                String message = groqService.generateNotification(role, name, "Goal: " + goal + ". Needs a motivation push to log a workout.");
+
+                // Fallback
+                if (message.contains("Error") || message.length() > 150) {
+                    message = workoutReminders[random.nextInt(workoutReminders.length)];
+                }
+
+                notificationService.createNotification(user.getId(), "Activity Check", message, "SUCCESS");
+            }
+        }
+    }
+}

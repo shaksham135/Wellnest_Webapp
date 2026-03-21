@@ -14,4 +14,5 @@ public class AnalyticsSummary {
     private GoalProgress goalProgress;
     private HealthMetrics healthMetrics;
     private WorkoutConsistency workoutConsistency;
+    private DailyActivityAnalytics dailyActivityAnalytics;
 }

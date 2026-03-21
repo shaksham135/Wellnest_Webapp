@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiRefreshCw } from 'react-icons/fi';
 import CommunityPost from '../components/CommunityPost';
 import CreatePostModal from '../components/CreatePostModal';
 import { getPosts, createPost, updatePost } from '../api/blogApi';
+import SkeletonUI from '../components/common/SkeletonUI';
+import PullToRefresh from '../components/common/PullToRefresh';
+import BottomSheet from '../components/common/BottomSheet';
+import { FiPlus, FiRefreshCw, FiFilter, FiInbox, FiClock, FiCalendar } from 'react-icons/fi';
 
 const CommunityPage = () => {
     const [posts, setPosts] = useState([]);
@@ -12,6 +15,7 @@ const CommunityPage = () => {
     const [error, setError] = useState('');
     const [createError, setCreateError] = useState('');
     const [editingPost, setEditingPost] = useState(null); // Track post being edited
+    const [isSortOpen, setIsSortOpen] = useState(false);
 
     // Check if user is logged in
     const isLoggedIn = !!localStorage.getItem('token');
@@ -105,7 +109,8 @@ const CommunityPage = () => {
     });
 
     return (
-        <div className="blog-page" style={{ minHeight: '100vh', paddingBottom: '60px' }}>
+        <PullToRefresh onRefresh={fetchPosts}>
+            <div className="blog-page" style={{ minHeight: '100vh', paddingBottom: '60px' }}>
             <div className="blog-header" style={{ maxWidth: '680px', margin: '0 auto', padding: '30px 0 20px' }}>
                 <div>
                     <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>Community Feed</h1>
@@ -137,19 +142,60 @@ const CommunityPage = () => {
                 </div>
             </div>
 
-            {/* Sorting Dropdown */}
+            {/* Sorting Trigger (Mobile Optimized) */}
             <div style={{ maxWidth: '680px', margin: '0 auto 24px', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
-                <label style={{ marginRight: 10, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500 }}>Sort By:</label>
-                <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="role-select"
-                    style={{ width: 'auto', minWidth: 160, display: 'inline-block', background: 'var(--input-bg)', border: '1px solid var(--input-border)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                <button 
+                    className="ghost-btn" 
+                    onClick={() => setIsSortOpen(true)}
+                    style={{ 
+                        background: 'var(--card-bg)', 
+                        gap: '8px', 
+                        padding: '10px 16px',
+                        border: '1px solid var(--card-border)',
+                        color: 'var(--text-main)',
+                        fontWeight: 600
+                    }}
                 >
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                </select>
+                    <FiFilter /> Sort: {sortBy === 'newest' ? 'Newest First' : 'Oldest First'}
+                </button>
             </div>
+
+            <BottomSheet 
+                isOpen={isSortOpen} 
+                onClose={() => setIsSortOpen(false)} 
+                title="Sort Community Feed"
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <button 
+                        className={`sort-option-item ${sortBy === 'newest' ? 'active' : ''}`}
+                        onClick={() => { setSortBy('newest'); setIsSortOpen(false); }}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '15px', padding: '16px', 
+                            borderRadius: '16px', background: sortBy === 'newest' ? 'var(--primary-light)' : 'var(--input-bg)',
+                            border: '1px solid', borderColor: sortBy === 'newest' ? 'var(--primary)' : 'var(--card-border)',
+                            color: sortBy === 'newest' ? 'var(--primary)' : 'var(--text-main)',
+                            fontWeight: 600, width: '100%', textAlign: 'left', cursor: 'pointer'
+                        }}
+                    >
+                        <FiClock style={{ fontSize: '20px' }} />
+                        <span>Newest First</span>
+                    </button>
+                    <button 
+                        className={`sort-option-item ${sortBy === 'oldest' ? 'active' : ''}`}
+                        onClick={() => { setSortBy('oldest'); setIsSortOpen(false); }}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '15px', padding: '16px', 
+                            borderRadius: '16px', background: sortBy === 'oldest' ? 'var(--primary-light)' : 'var(--input-bg)',
+                            border: '1px solid', borderColor: sortBy === 'oldest' ? 'var(--primary)' : 'var(--card-border)',
+                            color: sortBy === 'oldest' ? 'var(--primary)' : 'var(--text-main)',
+                            fontWeight: 600, width: '100%', textAlign: 'left', cursor: 'pointer'
+                        }}
+                    >
+                        <FiCalendar style={{ fontSize: '20px' }} />
+                        <span>Oldest First</span>
+                    </button>
+                </div>
+            </BottomSheet>
 
             {/* Error Message */}
             {error && (
@@ -165,18 +211,30 @@ const CommunityPage = () => {
                 </div>
             )}
 
-            {/* Loading State */}
+            {/* Loading State - Skeletons */}
             {loading && posts.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
-                    <p>Loading community feed...</p>
+                <div className="community-feed-container" style={{ maxWidth: '680px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {[1, 2, 3].map(i => (
+                        <SkeletonUI key={i} variant="post" />
+                    ))}
                 </div>
             )}
 
-            {/* Posts Feed */}
+            {/* Posts Feed - Empty State */}
             {!loading && posts.length === 0 && !error && (
-                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
-                    <h3 style={{ color: 'var(--text-main)' }}>No posts found</h3>
-                    <p>Be the first to share your thoughts!</p>
+                <div className="empty-state-container" style={{ maxWidth: '600px', margin: '40px auto' }}>
+                    <div className="empty-state-icon">
+                        <FiInbox />
+                    </div>
+                    <h3 className="empty-state-title">No posts yet</h3>
+                    <p className="empty-state-text">
+                        The community wall is quiet. Be the first to share your health journey or ask a question!
+                    </p>
+                    {canCreatePost && (
+                        <button className="primary-btn" style={{ width: 'auto', padding: '12px 24px' }} onClick={handleNewPostClick}>
+                            <FiPlus style={{ marginRight: '8px' }} /> Create First Post
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -198,7 +256,8 @@ const CommunityPage = () => {
                     isCommunity={true}
                 />
             )}
-        </div>
+            </div>
+        </PullToRefresh>
     );
 };
 

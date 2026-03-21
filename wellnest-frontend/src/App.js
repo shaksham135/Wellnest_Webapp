@@ -44,24 +44,53 @@ import SleepAnalyticsDetail from "./pages/detailed-analytics/SleepAnalyticsDetai
 import WaterIntakeAnalyticsDetail from "./pages/detailed-analytics/WaterIntakeAnalyticsDetail";
 import GoalProgressDetail from "./pages/detailed-analytics/GoalProgressDetail";
 import HealthMetricsDetail from "./pages/detailed-analytics/HealthMetricsDetail";
+import ActivityAnalyticsDetail from "./pages/detailed-analytics/ActivityAnalyticsDetail";
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
 import ChatbotWidget from "./components/common/ChatbotWidget";
+import BottomNav from "./components/layout/BottomNav";
+import { NotificationProvider } from "./context/NotificationContext";
 
 // Styles
 import "./index.css";
 import "./trainer.css";
 
 const getUserRole = () => {
-  const token = localStorage.getItem("token");
-  if (!token) return null;
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.role;
-  } catch (e) {
-    return null;
-  }
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        return payload.role;
+    } catch (e) {
+        return null;
+    }
+};
+
+// MainLayout moved outside to prevent re-mounting on every App render
+const MainLayout = ({ children, isLoggedIn, userRole, isMenuOpen, toggleMenu, closeMenu }) => {
+    const location = useLocation();
+    const hideNavbar = location.pathname.startsWith('/admin-dashboard');
+
+    return (
+        <>
+            {!hideNavbar && (
+                <Navbar
+                    isLoggedIn={isLoggedIn}
+                    userRole={userRole}
+                    isOpen={isMenuOpen}
+                    onToggle={toggleMenu}
+                    onClose={closeMenu}
+                />
+            )}
+            {children}
+            <BottomNav
+                isLoggedIn={isLoggedIn}
+                userRole={userRole}
+                onToggleMenu={toggleMenu}
+            />
+        </>
+    );
 };
 
 const App = () => {
@@ -69,6 +98,10 @@ const App = () => {
     !!localStorage.getItem("token")
   );
   const [userRole, setUserRole] = useState(getUserRole());
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const toggleMenu = () => setIsMenuOpen(prev => !prev);
+  const closeMenu = () => setIsMenuOpen(false);
 
   useEffect(() => {
     const handleStorage = () => {
@@ -77,7 +110,25 @@ const App = () => {
     };
 
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+
+    // Native Back Button Handler
+    let backListener = null;
+    if (window.Capacitor && window.Capacitor.getPlatform() !== 'web') {
+      import('@capacitor/app').then(m => {
+        backListener = m.App.addListener('backButton', ({ canGoBack }) => {
+          if (canGoBack) {
+            window.history.back();
+          } else {
+            // If at root, the OS handles it (usually exits or minimizes)
+          }
+        });
+      });
+    }
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      if (backListener) backListener.remove();
+    };
   }, []);
 
   const handleLoginSuccess = () => {
@@ -85,23 +136,18 @@ const App = () => {
     setUserRole(getUserRole());
   };
 
-  // Helper component to check location
-  const MainLayout = ({ children }) => {
-    const location = useLocation();
-    const hideNavbar = location.pathname.startsWith('/admin-dashboard');
-
-    return (
-      <>
-        {!hideNavbar && <Navbar isLoggedIn={isLoggedIn} userRole={userRole} />}
-        {children}
-      </>
-    );
-  };
 
   return (
-    <Router>
-      <Toaster position="top-right" toastOptions={{ style: { fontSize: '14px', fontWeight: 500 } }} />
-      <MainLayout>
+    <NotificationProvider>
+      <Router>
+        <Toaster position="top-right" toastOptions={{ style: { fontSize: '14px', fontWeight: 500 } }} />
+      <MainLayout 
+        isLoggedIn={isLoggedIn} 
+        userRole={userRole} 
+        isMenuOpen={isMenuOpen} 
+        toggleMenu={toggleMenu} 
+        closeMenu={closeMenu}
+      >
         <ChatbotWidget isLoggedIn={isLoggedIn} />
 
         <main>
@@ -178,6 +224,14 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <WaterIntakeAnalyticsDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analytics/activity"
+              element={
+                <ProtectedRoute>
+                  <ActivityAnalyticsDetail />
                 </ProtectedRoute>
               }
             />
@@ -304,6 +358,7 @@ const App = () => {
         </main>
       </MainLayout>
     </Router>
+    </NotificationProvider>
   );
 };
 

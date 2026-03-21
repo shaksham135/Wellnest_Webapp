@@ -30,4 +30,6 @@ public interface TrainerRepository extends JpaRepository<Trainer, Long> {
     Optional<Trainer> findByUserId(Long userId);
 
     Optional<Trainer> findByEmail(String email);
+
+    List<Trainer> findByVerificationRequestedTrue();
 }

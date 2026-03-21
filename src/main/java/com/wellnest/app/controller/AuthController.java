@@ -1,6 +1,11 @@
 package com.wellnest.app.controller;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.wellnest.app.dto.AuthResponse;
+import com.wellnest.app.dto.GoogleAuthRequest;
 import com.wellnest.app.dto.LoginRequest;
 import com.wellnest.app.dto.RegisterRequest;
 import com.wellnest.app.model.User;
@@ -16,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -155,6 +161,104 @@ public class AuthController {
         }
     }
 
+    // ---------- GOOGLE LOGIN / REGISTER ----------
+    @PostMapping("/google")
+    public ResponseEntity<?> googleLogin(@RequestBody GoogleAuthRequest req) {
+        try {
+            // Replace with the user's Client ID
+            String clientId = "824393698796-2a2k17e527hbnd9irvhjv72pnngc5jc7.apps.googleusercontent.com";
+            
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                    .setAudience(Collections.singletonList(clientId))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(req.getToken());
+            if (idToken != null) {
+                GoogleIdToken.Payload payload = idToken.getPayload();
+
+                String email = payload.getEmail();
+                String name = (String) payload.get("name");
+
+                Optional<User> existingUserOpt = userService.findByEmail(email);
+                User user;
+
+                if (existingUserOpt.isPresent()) {
+                    // User exists, log them in
+                    user = existingUserOpt.get();
+                    System.out.println("GOOGLE LOGIN: Existing user found: " + email);
+                    // Ensure role matches requested role only if they were newly created,
+                    // but since they exist, we keep their DB role.
+                } else {
+                    // New user, register them automatically
+                    System.out.println("GOOGLE LOGIN: Registering new user: " + email);
+                    user = new User();
+                    user.setEmail(email);
+                    user.setName(name != null ? name : email.substring(0, email.indexOf("@")));
+                    // Create a random strong password since they use Google
+                    String randomPassword = UUID.randomUUID().toString();
+                    user.setPassword(passwordEncoder.encode(randomPassword));
+                    
+                    // Determine Role
+                    String finalRole = "ROLE_USER";
+                    if (req.getRole() != null && req.getRole().equalsIgnoreCase("TRAINER")) {
+                        finalRole = "ROLE_TRAINER";
+                    }
+                    user.setRole(finalRole);
+                    user.setVerified(true);
+                    
+                    if ("ROLE_TRAINER".equals(finalRole)) {
+                        com.wellnest.app.model.Trainer trainer = new com.wellnest.app.model.Trainer();
+                        trainer.setName(user.getName());
+                        trainer.setEmail(user.getEmail());
+                        
+                        String specialty = (req.getFitnessGoal() != null && !req.getFitnessGoal().isEmpty()) 
+                                ? req.getFitnessGoal() : "General Fitness";
+                        trainer.setSpecialties(new java.util.ArrayList<>(java.util.List.of(specialty)));
+                        trainer.setExperience(0);
+                        trainer.setRating(5.0);
+                        trainer.setLocation("Online");
+                        trainer.setAvailability(new java.util.ArrayList<>(java.util.List.of("Mon", "Wed", "Fri")));
+                        trainer.setBio("Certified fitness trainer eager to help you reach your goals.");
+                        trainer.setImage("https://via.placeholder.com/150");
+                        
+                        userService.registerTrainer(user, trainer);
+                    } else {
+                        userService.save(user);
+                    }
+                }
+
+                // Generate Custom JWT for our app
+                UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+                        user.getEmail(),
+                        user.getPassword(),
+                        java.util.List.of(
+                                new org.springframework.security.core.authority.SimpleGrantedAuthority(user.getRole())));
+
+                String jwtToken = jwtService.generateToken(userDetails);
+
+                boolean profileComplete = user.getAge() != null &&
+                        user.getHeightCm() != null &&
+                        user.getWeightKg() != null &&
+                        user.getFitnessGoal() != null;
+
+                return ResponseEntity.ok(new AuthResponse(
+                        jwtToken,
+                        "Google Login successful",
+                        user.getRole(),
+                        profileComplete,
+                        user.getId(),
+                        user.isVerified()));
+
+            } else {
+                return ResponseEntity.status(401).body("Invalid Google ID token.");
+            }
+        } catch (Exception e) {
+            System.err.println("GOOGLE LOGIN ERROR: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Internal Server Error during Google Auth");
+        }
+    }
+
     // ---------- LOGIN ----------
     @PostMapping(value = "/login", consumes = "application/json", produces = "application/json")
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
@@ -242,38 +346,40 @@ public class AuthController {
         }
     }
 
-    // ---------- FORGOT PASSWORD ----------
+    // ---------- FORGOT PASSWORD (OTP) ----------
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam String email) {
         Optional<User> optionalUser = userService.findByEmail(email);
 
         if (optionalUser.isEmpty()) {
             // security best practice: generic message
-            return ResponseEntity.ok("If this email exists, a reset link has been sent.");
+            return ResponseEntity.ok("If this email exists, an OTP has been sent.");
         }
 
         User user = optionalUser.get();
 
-        String token = UUID.randomUUID().toString();
-        user.setResetToken(token);
-        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
+        // Generate 6-digit OTP
+        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+        user.setResetToken(otp); // Repurposing resetToken field to store the OTP
+        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(10));
 
         userService.save(user);
 
-        // send email with reset link
-        emailService.sendPasswordResetEmail(user.getEmail(), token);
+        // send email with the OTP
+        emailService.sendPasswordResetEmail(user.getEmail(), otp);
 
-        return ResponseEntity.ok("If this email exists, a reset link has been sent.");
+        return ResponseEntity.ok("If this email exists, an OTP has been sent.");
     }
 
-    // ---------- RESET PASSWORD ----------
+    // ---------- RESET PASSWORD (OTP) ----------
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestParam String token,
             @RequestParam String newPassword) {
+        // Here `token` from the URL parameter will actually be the 6-digit OTP typed by the user
         Optional<User> optionalUser = userService.findByResetToken(token);
 
         if (optionalUser.isEmpty()) {
-            return ResponseEntity.badRequest().body("Invalid reset token");
+            return ResponseEntity.badRequest().body("Invalid or expired OTP");
         }
 
         User user = optionalUser.get();

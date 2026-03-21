@@ -8,6 +8,8 @@ import com.wellnest.app.model.Meal;
 import com.wellnest.app.model.SleepLog;
 import com.wellnest.app.model.WaterIntake;
 import com.wellnest.app.model.Workout;
+import com.wellnest.app.model.DailyActivity;
+import com.wellnest.app.dto.DailyActivityDto;
 import com.wellnest.app.service.AppUserService;
 import com.wellnest.app.service.TrackerService;
 import jakarta.validation.Valid;
@@ -130,6 +132,33 @@ public class TrackerController {
     public ResponseEntity<Void> deleteSleep(@PathVariable Long id, Authentication authentication) {
         Long userId = appUserService.getUserIdFromAuthentication(authentication);
         trackerService.deleteSleep(userId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // -------------------- DAILY ACTIVITY (Steps, Calories) --------------------
+
+    @PostMapping("/activity")
+    public ResponseEntity<DailyActivity> createDailyActivity(@Valid @RequestBody DailyActivityDto dto,
+            Authentication authentication) {
+        Long userId = appUserService.getUserIdFromAuthentication(authentication);
+        DailyActivity created = trackerService.logDailyActivity(userId, dto);
+        return ResponseEntity.ok(created);
+    }
+
+    @GetMapping("/activity")
+    public ResponseEntity<List<DailyActivity>> getDailyActivities(
+            Authentication authentication,
+            @RequestParam(required = false) java.time.LocalDate startDate,
+            @RequestParam(required = false) java.time.LocalDate endDate) {
+        Long userId = appUserService.getUserIdFromAuthentication(authentication);
+        List<DailyActivity> list = trackerService.getDailyActivities(userId, startDate, endDate);
+        return ResponseEntity.ok(list);
+    }
+
+    @DeleteMapping("/activity/{id}")
+    public ResponseEntity<Void> deleteDailyActivity(@PathVariable Long id, Authentication authentication) {
+        Long userId = appUserService.getUserIdFromAuthentication(authentication);
+        trackerService.deleteDailyActivity(userId, id);
         return ResponseEntity.noContent().build();
     }
 }

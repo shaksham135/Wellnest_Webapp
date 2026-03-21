@@ -1,6 +1,7 @@
 package com.wellnest.app.controller;
 
 import com.wellnest.app.dto.TrainerResponse;
+import com.wellnest.app.dto.VerificationRequestDto;
 import com.wellnest.app.service.TrainerService;
 import com.wellnest.app.dto.DietPlanDto;
 import com.wellnest.app.service.UserService;
@@ -110,5 +111,23 @@ public class TrainerController {
             @PathVariable Long id,
             @RequestBody com.wellnest.app.dto.RatingDto ratingDto) {
         return ResponseEntity.ok(trainerService.rateTrainer(id, ratingDto.getRating()));
+    }
+
+    // GET /api/trainers/me — get logged-in trainer's own profile (with verification status)
+    @GetMapping("/me")
+    public ResponseEntity<TrainerResponse> getMyTrainerProfile(Authentication authentication) {
+        String email = authentication.getName();
+        com.wellnest.app.model.Trainer trainer = trainerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Trainer not found"));
+        return ResponseEntity.ok(trainerService.getTrainerById(trainer.getId()));
+    }
+
+    // POST /api/trainers/verification/submit — trainer submits their certificates
+    @PostMapping("/verification/submit")
+    public ResponseEntity<TrainerResponse> submitVerification(
+            @RequestBody VerificationRequestDto dto,
+            Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(trainerService.submitVerification(email, dto));
     }
 }

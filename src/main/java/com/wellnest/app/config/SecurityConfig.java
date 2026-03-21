@@ -89,12 +89,20 @@ public class SecurityConfig {
      * - If you set allowCredentials(true), Access-Control-Allow-Origin cannot be
      * "*".
      */
+    @org.springframework.beans.factory.annotation.Value("${app.frontend.base-url:http://localhost:3000}")
+    private String allowedOrigin;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Allow all origins with credentials using pattern matching
-        config.setAllowedOriginPatterns(List.of("*"));
+        // Use restricted origins for production + native mobile safety
+        config.setAllowedOrigins(List.of(
+            allowedOrigin, 
+            "http://localhost:3000",
+            "capacitor://localhost",
+            "http://localhost"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

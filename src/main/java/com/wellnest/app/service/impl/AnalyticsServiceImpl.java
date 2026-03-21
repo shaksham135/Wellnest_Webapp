@@ -25,6 +25,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final AppUserService appUserService;
     private final UserRepository userRepository;
     private final WeightLogRepository weightLogRepository;
+    private final DailyActivityRepository dailyActivityRepository;
 
     public AnalyticsServiceImpl(WorkoutRepository workoutRepository,
             MealRepository mealRepository,
@@ -32,7 +33,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             WaterIntakeRepository waterIntakeRepository,
             AppUserService appUserService,
             UserRepository userRepository,
-            WeightLogRepository weightLogRepository) {
+            WeightLogRepository weightLogRepository,
+            DailyActivityRepository dailyActivityRepository) {
         this.workoutRepository = workoutRepository;
         this.mealRepository = mealRepository;
         this.sleepLogRepository = sleepLogRepository;
@@ -40,6 +42,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         this.appUserService = appUserService;
         this.userRepository = userRepository;
         this.weightLogRepository = weightLogRepository;
+        this.dailyActivityRepository = dailyActivityRepository;
     }
 
     @Override
@@ -83,11 +86,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         summary.setWorkoutAnalytics(calculateWorkoutAnalytics(userId, startDateTime, endDateTime));
         long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
         summary.setNutritionAnalytics(calculateNutritionAnalytics(userId, startDateTime, endDateTime, days));
-        summary.setSleepAnalytics(calculateSleepAnalytics(userId, startDate, endDate)); // Uses LocalDate
-        summary.setWaterIntakeAnalytics(calculateWaterIntakeAnalytics(userId, startDateTime, endDateTime));
+        summary.setSleepAnalytics(calculateSleepAnalytics(user, startDate, endDate)); // Uses LocalDate
+        summary.setWaterIntakeAnalytics(calculateWaterIntakeAnalytics(user, startDateTime, endDateTime));
         summary.setGoalProgress(calculateGoalProgress(user, startDateTime, endDateTime));
         summary.setHealthMetrics(calculateHealthMetrics(user));
         summary.setWorkoutConsistency(calculateWorkoutConsistency(userId));
+        summary.setDailyActivityAnalytics(calculateDailyActivityAnalytics(user, startDate, endDate, days));
 
         return summary;
     }
@@ -168,8 +172,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return analytics;
     }
 
-    private SleepAnalytics calculateSleepAnalytics(Long userId, LocalDate startDate, LocalDate endDate) {
-        List<SleepLog> sleepLogs = sleepLogRepository.findByUserIdAndSleepDateBetween(userId, startDate, endDate);
+    private SleepAnalytics calculateSleepAnalytics(User user, LocalDate startDate, LocalDate endDate) {
+        List<SleepLog> sleepLogs = sleepLogRepository.findByUserIdAndSleepDateBetween(user.getId(), startDate, endDate);
         SleepAnalytics analytics = new SleepAnalytics();
 
         if (sleepLogs.isEmpty()) {
@@ -219,13 +223,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return analytics;
     }
 
-    private WaterIntakeAnalytics calculateWaterIntakeAnalytics(Long userId, LocalDateTime startDateTime,
+    private WaterIntakeAnalytics calculateWaterIntakeAnalytics(User user, LocalDateTime startDateTime,
             LocalDateTime endDateTime) {
-        List<WaterIntake> waterIntakes = waterIntakeRepository.findByUserIdAndLoggedAtBetween(userId, startDateTime,
+        List<WaterIntake> waterIntakes = waterIntakeRepository.findByUserIdAndLoggedAtBetween(user.getId(), startDateTime,
                 endDateTime);
         WaterIntakeAnalytics analytics = new WaterIntakeAnalytics();
-        // Assuming a default target, this could be user-specific in the future
-        double targetIntake = 2000; // ml
+        
+        double targetIntake = user.getTargetWaterLiters() != null ? user.getTargetWaterLiters() * 1000 : 2000; // ml
         analytics.setTargetDailyIntake(targetIntake);
 
         if (waterIntakes.isEmpty()) {
@@ -356,10 +360,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             // Existing workout frequency logic remains the same
             List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(user.getId(), startDateTime,
                     endDateTime);
-            // Assume goal is 4 workouts per week
+            // Assume goal is custom configured or 4 workouts per week
             long days = ChronoUnit.DAYS.between(startDateTime.toLocalDate(), endDateTime.toLocalDate()) + 1;
             double weeks = days / 7.0;
-            double targetWorkouts = 4 * weeks;
+            int targetWorkoutsWeekly = user.getTargetWorkoutsPerWeek() != null ? user.getTargetWorkoutsPerWeek() : 4;
+            double targetWorkouts = targetWorkoutsWeekly * weeks;
 
             progress.setCurrentValue(workouts.size());
             progress.setTargetValue(targetWorkouts);
@@ -427,6 +432,67 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         consistency.setWorkoutCounts(workoutCounts);
 
         return consistency;
+    }
+
+    private DailyActivityAnalytics calculateDailyActivityAnalytics(User user, LocalDate startDate, LocalDate endDate, long days) {
+        List<DailyActivity> activities = dailyActivityRepository.findByUserIdAndDateBetweenOrderByDateAsc(user.getId(), startDate, endDate);
+        DailyActivityAnalytics analytics = new DailyActivityAnalytics();
+        
+        int targetSteps = user.getTargetSteps() != null ? user.getTargetSteps() : 10000;
+        double targetCalories = user.getTargetActiveCalories() != null ? user.getTargetActiveCalories() : 500.0;
+        double targetDistance = user.getTargetDistanceKm() != null ? user.getTargetDistanceKm() : 5.0;
+
+        analytics.setTargetSteps(targetSteps);
+        analytics.setTargetCalories(targetCalories);
+        analytics.setTargetDistance(targetDistance);
+
+        if (activities.isEmpty()) {
+            analytics.setAvgDailySteps(0);
+            analytics.setAvgDailyCalories(0);
+            analytics.setAvgDailyDistance(0);
+            analytics.setDaysMetStepsGoal(0);
+            analytics.setDaysMetCaloriesGoal(0);
+            analytics.setDaysMetDistanceGoal(0);
+            analytics.setWeeklyStepsTrend(Collections.emptyMap());
+            analytics.setWeeklyCaloriesTrend(Collections.emptyMap());
+            analytics.setWeeklyDistanceTrend(Collections.emptyMap());
+            return analytics;
+        }
+
+        double totalSteps = 0, totalCal = 0, totalDist = 0;
+        long daysMetSteps = 0, daysMetCal = 0, daysMetDist = 0;
+        Map<String, Integer> weeklyStepsTrend = new HashMap<>();
+        Map<String, Double> weeklyCaloriesTrend = new HashMap<>();
+        Map<String, Double> weeklyDistanceTrend = new HashMap<>();
+
+        for (DailyActivity act : activities) {
+            totalSteps += act.getSteps();
+            totalCal += act.getActiveCalories();
+            totalDist += act.getDistanceKm();
+
+            if (act.getSteps() >= targetSteps) daysMetSteps++;
+            if (act.getActiveCalories() >= targetCalories) daysMetCal++;
+            if (act.getDistanceKm() >= targetDistance) daysMetDist++;
+
+            String dateStr = act.getDate().toString();
+            weeklyStepsTrend.put(dateStr, act.getSteps());
+            weeklyCaloriesTrend.put(dateStr, (double) act.getActiveCalories());
+            weeklyDistanceTrend.put(dateStr, act.getDistanceKm());
+        }
+
+        analytics.setAvgDailySteps(totalSteps / days);
+        analytics.setAvgDailyCalories(totalCal / days);
+        analytics.setAvgDailyDistance(totalDist / days);
+
+        analytics.setDaysMetStepsGoal((int) daysMetSteps);
+        analytics.setDaysMetCaloriesGoal((int) daysMetCal);
+        analytics.setDaysMetDistanceGoal((int) daysMetDist);
+
+        analytics.setWeeklyStepsTrend(weeklyStepsTrend);
+        analytics.setWeeklyCaloriesTrend(weeklyCaloriesTrend);
+        analytics.setWeeklyDistanceTrend(weeklyDistanceTrend);
+
+        return analytics;
     }
 
     private double calculateStandardDeviation(List<Double> values) {

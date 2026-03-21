@@ -44,11 +44,20 @@ public class User {
 
     private Double targetWeightKg;
 
+    private Integer targetSteps;
+    private Double targetWaterLiters;
+    private Double targetSleepHours;
+    private Integer targetWorkoutsPerWeek;
+    private Double targetActiveCalories;
+    private Double targetDistanceKm;
+
     @Column(nullable = false)
     private boolean isVerified = false;
 
     @Column(nullable = false)
     private boolean verificationRequested = false;
+
+    private String fcmToken;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
