@@ -1,7 +1,6 @@
 // src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiUser } from "react-icons/fi";
 
 import { fetchCurrentUser } from "../api/userApi";
 import UserDashboard from "../components/dashboard/UserDashboard";

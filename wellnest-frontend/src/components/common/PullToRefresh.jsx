@@ -10,33 +10,30 @@ const PullToRefresh = ({ onRefresh, children, disabled = false }) => {
 
     const pullThreshold = 80; // Distance to trigger refresh
 
-    const handleStart = (pageY) => {
-        if (disabled || isRefreshing || window.scrollY > 5) return; // Buffer for small scrolls
+    const handleStart = useCallback((pageY) => {
+        if (disabled || isRefreshing || window.scrollY > 5) return;
         touchStartRef.current = pageY;
         pullingRef.current = true;
-    };
+    }, [disabled, isRefreshing]);
 
-    const handleMove = (pageY, e) => {
+    const handleMove = useCallback((pageY, e) => {
         if (!pullingRef.current) return;
         
         const diff = pageY - touchStartRef.current;
         
         if (diff > 0) {
-            // Add some resistance
             const dampenedDiff = Math.pow(diff, 0.85);
             setPullDistance(dampenedDiff);
             
-            // Prevent scrolling when pulling past a small deadzone
             if (diff > 5 && e.cancelable) {
                 e.preventDefault();
             }
         } else {
-            // If they pull up, cancel the pull
             setPullDistance(0);
         }
-    };
+    }, []);
 
-    const handleEnd = async () => {
+    const handleEnd = useCallback(async () => {
         if (!pullingRef.current) return;
         pullingRef.current = false;
 
@@ -49,26 +46,24 @@ const PullToRefresh = ({ onRefresh, children, disabled = false }) => {
                 setTimeout(() => {
                     setIsRefreshing(false);
                     setPullDistance(0);
-                }, 300); // Small delay for smooth feel
+                }, 300);
             }
         } else {
             setPullDistance(0);
         }
-    };
+    }, [pullDistance, onRefresh]);
 
     useEffect(() => {
         const target = containerRef.current;
         if (!target) return;
 
-        // Touch Events
         const onTouchStart = (e) => handleStart(e.touches[0].pageY);
         const onTouchMove = (e) => handleMove(e.touches[0].pageY, e);
         
-        // Mouse Events (for Desktop testing)
         const onMouseDown = (e) => handleStart(e.pageY);
         const onMouseMove = (e) => {
-            if (e.buttons === 1) handleMove(e.pageY, e); // Only if left mouse button is held
-            else pullingRef.current = false; // Reset if button released elsewhere
+            if (e.buttons === 1) handleMove(e.pageY, e);
+            else pullingRef.current = false;
         };
         const onMouseUp = () => handleEnd();
 
@@ -89,7 +84,7 @@ const PullToRefresh = ({ onRefresh, children, disabled = false }) => {
             window.removeEventListener('mousemove', onMouseMove);
             window.removeEventListener('mouseup', onMouseUp);
         };
-    }, [pullDistance, isRefreshing, disabled, onRefresh]);
+    }, [handleStart, handleMove, handleEnd]);
 
     return (
         <div ref={containerRef} style={{ position: 'relative', minHeight: '100%' }}>

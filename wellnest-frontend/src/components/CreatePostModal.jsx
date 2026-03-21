@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiX, FiImage, FiType, FiFileText, FiPlus } from 'react-icons/fi';
+import { FiImage, FiPlus } from 'react-icons/fi';
 import BottomSheet from './common/BottomSheet';
 
 const CreatePostModal = ({ onClose, onCreate, error, initialData = null, isCommunity = false }) => {

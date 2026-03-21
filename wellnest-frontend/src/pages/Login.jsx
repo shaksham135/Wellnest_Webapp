@@ -6,10 +6,6 @@ import {
   FiLock,
   FiEye,
   FiEyeOff,
-  FiActivity,
-  FiTrendingUp,
-  FiShield,
-  FiUsers,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import apiClient from "../api/apiClient";
