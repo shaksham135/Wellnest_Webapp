@@ -97,20 +97,26 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // Use restricted origins for production + native mobile safety
+        // Use restricted origin patterns for production + native mobile safety
+        // setAllowedOriginPatterns allows wildcards while still permitting credentials
+        config.setAllowedOriginPatterns(List.of(
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "capacitor://*",
+            "http://localhost",
+            "https://*.vercel.app",
+            "https://*.onrender.com"
+        ));
+
+        // Fallback for the specific allowedOrigin environment variable if it's set 
         if (allowedOrigin != null && !allowedOrigin.isEmpty()) {
             config.addAllowedOrigin(allowedOrigin);
-            // Also allow the version without trailing slash if one exists
             if (allowedOrigin.endsWith("/")) {
                 config.addAllowedOrigin(allowedOrigin.substring(0, allowedOrigin.length() - 1));
             } else {
                 config.addAllowedOrigin(allowedOrigin + "/");
             }
         }
-        
-        config.addAllowedOrigin("http://localhost:3000");
-        config.addAllowedOrigin("http://localhost:5173"); // common Vite port
-        config.addAllowedOrigin("capacitor://localhost");
-        config.addAllowedOrigin("http://localhost");
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
