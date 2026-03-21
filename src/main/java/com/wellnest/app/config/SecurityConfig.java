@@ -97,12 +97,20 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // Use restricted origins for production + native mobile safety
-        config.setAllowedOrigins(List.of(
-            allowedOrigin, 
-            "http://localhost:3000",
-            "capacitor://localhost",
-            "http://localhost"
-        ));
+        if (allowedOrigin != null && !allowedOrigin.isEmpty()) {
+            config.addAllowedOrigin(allowedOrigin);
+            // Also allow the version without trailing slash if one exists
+            if (allowedOrigin.endsWith("/")) {
+                config.addAllowedOrigin(allowedOrigin.substring(0, allowedOrigin.length() - 1));
+            } else {
+                config.addAllowedOrigin(allowedOrigin + "/");
+            }
+        }
+        
+        config.addAllowedOrigin("http://localhost:3000");
+        config.addAllowedOrigin("http://localhost:5173"); // common Vite port
+        config.addAllowedOrigin("capacitor://localhost");
+        config.addAllowedOrigin("http://localhost");
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
