@@ -59,10 +59,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password",
-                                "/api/auth/reset-password")
-                        .permitAll()
-                        .requestMatchers("/api/auth/**").permitAll() // Fallback
+                        .requestMatchers("/api/auth/**").permitAll() // PRIORITIZE AUTH
                         .requestMatchers("/health", "/error").permitAll()
                         // Blog endpoints - allow public reading
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/blog/**").permitAll()

@@ -15,17 +15,30 @@ public class FirebaseConfig {
     @PostConstruct
     public void initialize() {
         try {
-            // If service-account.json exists, use it. Otherwise, look for GOOGLE_APPLICATION_CREDENTIALS
             if (FirebaseApp.getApps().isEmpty()) {
+                String firebaseJson = System.getenv("FIREBASE_JSON");
+                GoogleCredentials credentials;
+
+                if (firebaseJson != null && !firebaseJson.isBlank()) {
+                    System.out.println("Initializing Firebase using FIREBASE_JSON environment variable...");
+                    credentials = GoogleCredentials.fromStream(
+                        new java.io.ByteArrayInputStream(firebaseJson.getBytes())
+                    );
+                } else {
+                    System.out.println("Initializing Firebase using Application Default Credentials...");
+                    credentials = GoogleCredentials.getApplicationDefault();
+                }
+
                 FirebaseOptions options = FirebaseOptions.builder()
-                        .setCredentials(GoogleCredentials.getApplicationDefault())
+                        .setCredentials(credentials)
                         .build();
 
                 FirebaseApp.initializeApp(options);
-                System.out.println("Firebase Application has been initialized");
+                System.out.println("Firebase Application has been initialized successfully.");
             }
         } catch (IOException e) {
-            System.err.println("Firebase initialization failed: Default credentials not found. Push notifications will be disabled until setup.");
+            System.err.println("Firebase initialization failed: " + e.getMessage());
+            System.err.println("Push notifications will be disabled. To fix this on Render, set the FIREBASE_JSON environment variable.");
         }
     }
 }

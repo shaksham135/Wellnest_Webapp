@@ -40,8 +40,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
 
         // 🔹 Auth endpoints pe JWT check hi mat karo
-        // Also skip OPTIONS requests (CORS preflight)
-        if (path.startsWith("/api/auth") || "OPTIONS".equalsIgnoreCase(request.getMethod())) {
+        // Use a more robust check for /api/auth path
+        if (path.contains("/api/auth/") || "OPTIONS".equalsIgnoreCase(request.getMethod())) {
             filterChain.doFilter(request, response);
             return;
         }
