@@ -177,6 +177,12 @@ CREATE TABLE IF NOT EXISTS weight_logs (
     FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS workouts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    type VARCHAR(64) NOT NULL,
+    duration_minutes INT,
+    calories_burned INT,
     performed_at DATETIME(6),
     notes TEXT
 ) ENGINE=InnoDB;
