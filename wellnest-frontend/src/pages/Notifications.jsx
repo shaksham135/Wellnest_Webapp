@@ -2,7 +2,7 @@
 import React from "react";
 import { 
     FiBell, FiCheck, FiArrowLeft, FiDroplet, FiActivity, 
-    FiShield, FiAward, FiInfo, FiCheckCircle, FiZap 
+    FiShield, FiAward, FiZap 
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { markAsRead, markAllAsRead } from "../api/notificationApi";

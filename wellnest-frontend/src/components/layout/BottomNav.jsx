@@ -4,8 +4,6 @@ import {
     FiBarChart2, 
     FiActivity, 
     FiUsers, 
-    FiUser,
-    FiMenu,
     FiTrendingUp
 } from 'react-icons/fi';
 
