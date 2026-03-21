@@ -177,14 +177,19 @@ CREATE TABLE IF NOT EXISTS weight_logs (
     FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS workouts (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    type VARCHAR(64) NOT NULL,
-    duration_minutes INT,
-    calories_burned INT,
     performed_at DATETIME(6),
     notes TEXT
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS daily_activity (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    date DATE NOT NULL,
+    steps INT DEFAULT 0,
+    active_calories INT DEFAULT 0,
+    distance_km DOUBLE DEFAULT 0.0,
+    created_at DATETIME(6),
+    FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB;
 
 -- ---------- PRODUCTION MIGRATIONS (Safe for TiDB/MySQL) ----------
@@ -216,3 +221,8 @@ ALTER TABLE trainers ADD COLUMN IF NOT EXISTS verification_requested BOOLEAN NOT
 ALTER TABLE trainers ADD COLUMN IF NOT EXISTS certificate_1 LONGTEXT;
 ALTER TABLE trainers ADD COLUMN IF NOT EXISTS certificate_2 LONGTEXT;
 ALTER TABLE trainers ADD COLUMN IF NOT EXISTS certificate_3 LONGTEXT;
+
+-- For Daily Activity table
+ALTER TABLE daily_activity ADD COLUMN IF NOT EXISTS steps INT DEFAULT 0;
+ALTER TABLE daily_activity ADD COLUMN IF NOT EXISTS active_calories INT DEFAULT 0;
+ALTER TABLE daily_activity ADD COLUMN IF NOT EXISTS distance_km DOUBLE DEFAULT 0.0;
