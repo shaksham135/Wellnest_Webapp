@@ -69,6 +69,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/api/contact/**").permitAll() // Contact form public access
                         .requestMatchers("/api/chat/**").permitAll() // Chatbot public access
+                        .requestMatchers("/api/activity/**").authenticated() // For mobile sync
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated() // rest require token
                 )

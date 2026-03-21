@@ -76,9 +76,6 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
 
-        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, startDateTime,
-                endDateTime);
-
         AnalyticsSummary summary = new AnalyticsSummary();
         summary.setStartDate(startDate);
         summary.setEndDate(endDate);
@@ -86,9 +83,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         summary.setWorkoutAnalytics(calculateWorkoutAnalytics(userId, startDateTime, endDateTime));
         long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
         summary.setNutritionAnalytics(calculateNutritionAnalytics(userId, startDateTime, endDateTime, days));
-        summary.setSleepAnalytics(calculateSleepAnalytics(user, startDate, endDate)); // Uses LocalDate
+        summary.setSleepAnalytics(calculateSleepAnalytics(user, startDate, endDate));
         summary.setWaterIntakeAnalytics(calculateWaterIntakeAnalytics(user, startDateTime, endDateTime));
-        summary.setGoalProgress(calculateGoalProgress(user, startDateTime, endDateTime));
+        
+        // Safety: Ensure GoalProgress doesn't return null
+        GoalProgress goalProgress = calculateGoalProgress(user, startDateTime, endDateTime);
+        summary.setGoalProgress(goalProgress != null ? goalProgress : new GoalProgress());
+        
         summary.setHealthMetrics(calculateHealthMetrics(user));
         summary.setWorkoutConsistency(calculateWorkoutConsistency(userId));
         summary.setDailyActivityAnalytics(calculateDailyActivityAnalytics(user, startDate, endDate, days));
@@ -267,7 +268,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         GoalProgress progress = new GoalProgress();
         String goal = user.getFitnessGoal();
         if (goal == null || goal.isEmpty()) {
-            return null; // No goal set
+            return new GoalProgress(); // Return empty object instead of null to prevent frontend crashes
         }
 
         progress.setGoalType(goal);
@@ -278,7 +279,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         if ("WEIGHT_LOSS".equals(normalizedGoal) || "MUSCLE_GAIN".equals(normalizedGoal)) {
             Double targetWeight = user.getTargetWeightKg();
             if (targetWeight == null) {
-                return null; // No target weight set
+                return progress; // Return what we have so far
             }
 
             Double currentWeight = user.getWeightKg();
