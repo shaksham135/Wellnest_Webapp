@@ -26,13 +26,6 @@ import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 
 // Capacitor Native Bridge setup (Conditional imports to avoid web crashes)
-let Health = null;
-let Capacitor = null;
-try {
-  if (window.Capacitor) {
-    Capacitor = window.Capacitor;
-  }
-} catch (e) { console.log("Native bridge not found"); }
 
 const Trackers = () => {
   const location = useLocation();
@@ -117,7 +110,6 @@ const Trackers = () => {
   // Mobile Sync State
   const [isSyncing, setIsSyncing] = useState(false);
   const [liveSteps, setLiveSteps] = useState(0);
-  const [permissionState, setPermissionState] = useState("unsupported"); // unsupported, prompt, granted, active
 
   const handleOpenEditGoal = (goalKey, currentValue) => {
     setEditingGoal(goalKey);
@@ -198,14 +190,12 @@ const Trackers = () => {
         const response = await DeviceMotionEvent.requestPermission();
         if (response === 'granted') {
           setIsSyncing(true);
-          setPermissionState("active");
         }
       } catch (err) {
         toast.error("Motion permission denied");
       }
     } else {
       setIsSyncing(true);
-      setPermissionState("active");
     }
   };
 
@@ -304,7 +294,6 @@ const Trackers = () => {
       if (healthStatus === "disconnected") {
         setLiveSteps(0);
         setIsSyncing(false);
-        setPermissionState("granted");
       }
       
       const res = await getActivity();

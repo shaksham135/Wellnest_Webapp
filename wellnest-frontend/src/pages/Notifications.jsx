@@ -2,10 +2,10 @@
 import React from "react";
 import { 
     FiBell, FiCheck, FiArrowLeft, FiDroplet, FiActivity, 
-    FiShield, FiAward, FiInfo, FiCheckCircle, FiUser, FiZap 
+    FiShield, FiAward, FiInfo, FiCheckCircle, FiZap 
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
-import { getNotifications, markAsRead, markAllAsRead } from "../api/notificationApi";
+import { markAsRead, markAllAsRead } from "../api/notificationApi";
 
 import { useNotifications } from "../context/NotificationContext";
 import { toast } from "react-hot-toast";
@@ -13,16 +13,6 @@ import { toast } from "react-hot-toast";
 const Notifications = () => {
     const navigate = useNavigate();
     const { notifications, refreshNotifications, permissionStatus, requestPermission } = useNotifications();
-    const [loading, setLoading] = React.useState(false);
-
-    React.useEffect(() => {
-        refreshNotifications();
-    }, []);
-
-    const handleMarkRead = async (id) => {
-        await markAsRead(id);
-        refreshNotifications();
-    };
 
     const handleMarkAll = async () => {
         await markAllAsRead();
@@ -145,9 +135,7 @@ const Notifications = () => {
 
                 {/* List */}
                 <div className="notifications-list" style={{ padding: '0' }}>
-                    {loading ? (
-                        <p style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading updates...</p>
-                    ) : notifications.length === 0 ? (
+                    {notifications.length === 0 ? (
                         <div style={{
                             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                             minHeight: '400px', padding: '40px', color: 'var(--text-muted)', textAlign: 'center'
