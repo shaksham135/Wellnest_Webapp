@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { getNotifications } from '../api/notificationApi';
 import { updateFcmToken } from '../api/userApi';
 import { toast } from 'react-hot-toast';
@@ -13,7 +13,18 @@ export const NotificationProvider = ({ children }) => {
     );
     const lastNotifiedId = useRef(null);
 
-    const fetchNotifications = async () => {
+    const showSystemNotification = useCallback((n) => {
+        if (!("Notification" in window)) return;
+        
+        if (permissionStatus === "granted") {
+            new Notification(n.title, {
+                body: n.message,
+                icon: '/logo192.png'
+            });
+        }
+    }, [permissionStatus]);
+
+    const fetchNotifications = useCallback(async () => {
         try {
             const data = await getNotifications();
             setNotifications(data);
@@ -31,7 +42,7 @@ export const NotificationProvider = ({ children }) => {
         } catch (err) {
             console.error('Error fetching notifications:', err);
         }
-    };
+    }, [showSystemNotification]);
 
     const requestPermission = async () => {
         // Handle Native Mobile Push Permissions
@@ -121,18 +132,7 @@ export const NotificationProvider = ({ children }) => {
         setupNativePush();
 
         return () => clearInterval(interval);
-    }, []);
-
-    const showSystemNotification = (n) => {
-        if (!("Notification" in window)) return;
-        
-        if (permissionStatus === "granted") {
-            new Notification(n.title, {
-                body: n.message,
-                icon: '/logo192.png'
-            });
-        }
-    };
+    }, [fetchNotifications]);
 
     const sendTestNotification = () => {
         showSystemNotification({
