@@ -173,32 +173,12 @@ const Trackers = () => {
 
 
 
-  const syncNativeHealthData = async () => {
-    setHealthStatus("syncing");
-    try {
-      const { Health } = await import('@capgo/capacitor-health');
-      const now = new Date();
-      const startDate = new Date();
-      startDate.setHours(0, 0, 0, 0);
-      const options = { startDate: startDate.toISOString(), endDate: now.toISOString() };
-      const stepData = await Health.queryAggregated({ ...options, dataType: 'steps' });
-      const calorieData = await Health.queryAggregated({ ...options, dataType: 'active_calories' });
-      const distanceData = await Health.queryAggregated({ ...options, dataType: 'distance' });
-      const fetchedSteps = stepData.value || 0;
-      const fetchedCalories = Math.round(calorieData.value || 0);
-      const fetchedDistance = Number((distanceData.value / 1000 || 0).toFixed(2));
-      setActivity(prev => ({ ...prev, steps: fetchedSteps, activeCalories: fetchedCalories, distanceKm: fetchedDistance }));
-      setLiveSteps(fetchedSteps); 
-      setHealthStatus("authorized");
-    } catch (err) {
-      setHealthStatus("authorized");
-    }
-  };
+
 
   const handleSyncToCloud = async () => {
-    const stepsToSync = healthStatus !== "disconnected" ? activity.steps : liveSteps;
-    const caloriesToSync = healthStatus !== "disconnected" ? activity.activeCalories : Math.round(liveSteps * 0.04);
-    const distanceToSync = healthStatus !== "disconnected" ? activity.distanceKm : Number((liveSteps * 0.0008).toFixed(2));
+    const stepsToSync = liveSteps;
+    const caloriesToSync = Math.round(liveSteps * 0.04);
+    const distanceToSync = Number((liveSteps * 0.0008).toFixed(2));
 
     if (stepsToSync === 0) {
       toast.error("No activity recorded to sync");
@@ -209,10 +189,8 @@ const Trackers = () => {
       const payload = { steps: stepsToSync, activeCalories: caloriesToSync, distanceKm: distanceToSync };
       await createActivity(payload);
       toast.success("Synced to cloud!", { id: toastId });
-      if (healthStatus === "disconnected") {
-        setLiveSteps(0);
-        setIsSyncing(false);
-      }
+      setLiveSteps(0);
+      setIsSyncing(false);
       const res = await getActivity();
       setRecentActivity(res.data || []);
     } catch (err) {
