@@ -12,16 +12,6 @@ import {
   getWater,
   getSleep,
   getActivity,
-  createWorkout,
-  createMeal,
-  createWater,
-  createSleep,
-  createActivity,
-  getWorkouts,
-  getMeals,
-  getWater,
-  getSleep,
-  getActivity,
 } from "../api/trackerApi";
 import 'react-circular-progressbar/dist/styles.css';
 // No simple icons used currently
