@@ -12,14 +12,19 @@ import {
   getWater,
   getSleep,
   getActivity,
-  deleteWorkout,
-  deleteMeal,
-  deleteWater,
-  deleteSleep,
-  deleteActivity,
+  createWorkout,
+  createMeal,
+  createWater,
+  createSleep,
+  createActivity,
+  getWorkouts,
+  getMeals,
+  getWater,
+  getSleep,
+  getActivity,
 } from "../api/trackerApi";
 import 'react-circular-progressbar/dist/styles.css';
-import { FiZap, FiZapOff, FiRefreshCw } from "react-icons/fi";
+// No simple icons used currently
 
 import toast from "react-hot-toast";
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
@@ -205,7 +210,7 @@ const Trackers = () => {
           const res = await getWorkouts();
           setRecentWorkouts(res.data || []);
         } else if (tab === "meal") {
-          const res = await getMeals();
+          await getMeals();
           // Meals not currently displayed in list
         } else if (tab === "water") {
           const res = await getWater();
@@ -268,7 +273,7 @@ const Trackers = () => {
     try {
       await createMeal(meal);
       toast.success("Meal logged!");
-      const res = await getMeals();
+      await getMeals();
     } catch (err) {
       toast.error("Failed to save meal");
     }
