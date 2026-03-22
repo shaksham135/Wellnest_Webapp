@@ -10,8 +10,10 @@ try {
   }
 } catch (e) { console.log("Preferences plugin not available"); }
 
+const baseURL = (process.env.REACT_APP_API_URL || "http://localhost:8080/api").replace(/\/$/, "");
+
 const apiClient = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:8080/api",
+  baseURL,
 });
 
 apiClient.interceptors.request.use(async (config) => {
