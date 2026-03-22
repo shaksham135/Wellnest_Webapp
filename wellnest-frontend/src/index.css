@@ -3507,9 +3507,12 @@ body.modal-open .chatbot-container {
   min-height: 100vh;
   background: white;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 24px;
+  padding: 40px 20px;
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .auth-container {
@@ -3569,5 +3572,23 @@ body.modal-open .chatbot-container {
 /* Transition for landing page sections */
 .login-long-page section {
   transition: opacity 0.5s ease-in-out;
+}
+
+/* Ensure auth toggle links are visible */
+.auth-toggle {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.auth-toggle a {
+  color: #3b82f6;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-toggle a:hover {
+  text-decoration: underline;
 }
 
