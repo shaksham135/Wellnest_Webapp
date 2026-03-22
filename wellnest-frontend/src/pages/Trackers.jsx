@@ -19,7 +19,7 @@ import {
   deleteActivity,
 } from "../api/trackerApi";
 import 'react-circular-progressbar/dist/styles.css';
-import { FiTrash2, FiZap, FiZapOff, FiRefreshCw } from "react-icons/fi";
+import { FiZap, FiZapOff, FiRefreshCw } from "react-icons/fi";
 
 import toast from "react-hot-toast";
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
@@ -37,7 +37,7 @@ const Trackers = () => {
     }
   }, [location.search]);
 
-  const [loading, setLoading] = useState(false);
+
 
   const [workout, setWorkout] = useState({
     type: "cardio",
@@ -47,7 +47,7 @@ const Trackers = () => {
   });
 
   const [userWeight, setUserWeight] = useState(70);
-  const [calculatedCalories, setCalculatedCalories] = useState(0);
+
 
   const [meal, setMeal] = useState({
     mealType: "breakfast",
@@ -68,11 +68,7 @@ const Trackers = () => {
     quality: "good",
     notes: "",
   });
-  const [calculatedSleepQuality, setCalculatedSleepQuality] = useState({
-    quality: "good",
-    feedback: "",
-    color: "#22c55e"
-  });
+
 
   const [activity, setActivity] = useState({
     steps: 0,
@@ -81,7 +77,7 @@ const Trackers = () => {
   });
 
   const [recentWorkouts, setRecentWorkouts] = useState([]);
-  const [recentMeals, setRecentMeals] = useState([]);
+
   const [recentWater, setRecentWater] = useState([]);
   const [recentSleep, setRecentSleep] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
@@ -175,40 +171,7 @@ const Trackers = () => {
     return () => window.removeEventListener('devicemotion', handleMotion);
   }, [isSyncing]);
 
-  const requestMotionPermission = async () => {
-    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-      try {
-        const response = await DeviceMotionEvent.requestPermission();
-        if (response === 'granted') {
-          setIsSyncing(true);
-        }
-      } catch (err) {
-        toast.error("Motion permission denied");
-      }
-    } else {
-      setIsSyncing(true);
-    }
-  };
 
-  const [healthStatus, setHealthStatus] = useState("disconnected");
-
-  const requestHealthPermissions = async () => {
-    if (!window.Capacitor || window.Capacitor.getPlatform() === 'web') {
-      toast.error("Health Connect requires the mobile app");
-      return;
-    }
-    const toastId = toast.loading("Connecting to Health Apps...");
-    try {
-      const { Health } = await import('@capgo/capacitor-health');
-      const permissions = { read: ['steps', 'active_calories', 'distance'], write: [] };
-      await Health.requestPermissions(permissions);
-      setHealthStatus("authorized");
-      toast.success("Health Apps connected!", { id: toastId });
-      syncNativeHealthData();
-    } catch (err) {
-      toast.error("Failed to connect to Health Apps", { id: toastId });
-    }
-  };
 
   const syncNativeHealthData = async () => {
     setHealthStatus("syncing");
@@ -265,7 +228,7 @@ const Trackers = () => {
           setRecentWorkouts(res.data || []);
         } else if (tab === "meal") {
           const res = await getMeals();
-          setRecentMeals(res.data || []);
+          // Meals not currently displayed in list
         } else if (tab === "water") {
           const res = await getWater();
           setRecentWater(res.data || []);
@@ -300,32 +263,7 @@ const Trackers = () => {
     fetchUserProfile();
   }, []);
 
-  const handleDelete = async (id, type) => {
-    if (!window.confirm("Are you sure?")) return;
-    try {
-      if (type === 'workout') await deleteWorkout(id);
-      else if (type === 'meal') await deleteMeal(id);
-      else if (type === 'water') await deleteWater(id);
-      else if (type === 'sleep') await deleteSleep(id);
-      else if (type === 'activity') await deleteActivity(id);
-      toast.success("Deleted");
-      const loadMap = { workout: getWorkouts, meal: getMeals, water: getWater, sleep: getSleep, activity: getActivity };
-      const setMap = { workout: setRecentWorkouts, meal: setRecentMeals, water: setRecentWater, sleep: setRecentSleep, activity: setRecentActivity };
-      const res = await loadMap[type]();
-      setMap[type](res.data || []);
-    } catch (err) {
-      toast.error("Failed to delete");
-    }
-  };
 
-  const calculateSleepQuality = (hours) => {
-    if (hours < 4) return { quality: "poor", feedback: "Severely insufficient sleep.", color: "#ef4444" };
-    if (hours < 6) return { quality: "poor", feedback: "Insufficient sleep.", color: "#ef4444" };
-    if (hours < 7) return { quality: "average", feedback: "Below recommended sleep.", color: "#f59e0b" };
-    if (hours <= 9) return { quality: "good", feedback: "Excellent! Optimal sleep.", color: "#22c55e" };
-    if (hours <= 10) return { quality: "average", feedback: "Slightly more than recommended.", color: "#f59e0b" };
-    return { quality: "poor", feedback: "Excessive sleep.", color: "#ef4444" };
-  };
 
   const calculateCaloriesBurned = (type, duration, weight) => {
     const metValues = { cardio: 7.0, strength: 5.0, yoga: 3.0, pilates: 3.0, sports: 6.5, flexibility: 2.3 };
@@ -336,7 +274,6 @@ const Trackers = () => {
 
   const onSubmitWorkout = async (e) => {
     e.preventDefault();
-    setLoading(true);
     try {
       const { calories } = calculateCaloriesBurned(workout.type, workout.durationMinutes, userWeight);
       await createWorkout({ ...workout, caloriesBurned: calories });
@@ -345,25 +282,22 @@ const Trackers = () => {
       setRecentWorkouts(res.data || []);
     } catch (err) {
       toast.error("Failed to save workout");
-    } finally { setLoading(false); }
+    }
   };
 
   const onSubmitMeal = async (e) => {
     e.preventDefault();
-    setLoading(true);
     try {
       await createMeal(meal);
       toast.success("Meal logged!");
       const res = await getMeals();
-      setRecentMeals(res.data || []);
     } catch (err) {
       toast.error("Failed to save meal");
-    } finally { setLoading(false); }
+    }
   };
 
   const onSubmitWater = async (e) => {
     e.preventDefault();
-    setLoading(true);
     try {
       await createWater({ liters: Number(water.amountLiters), notes: water.notes });
       toast.success("Water intake logged!");
@@ -371,12 +305,11 @@ const Trackers = () => {
       setRecentWater(res.data || []);
     } catch (err) {
       toast.error("Failed to save water");
-    } finally { setLoading(false); }
+    }
   };
 
   const onSubmitSleep = async (e) => {
     e.preventDefault();
-    setLoading(true);
     try {
       await createSleep(sleep);
       toast.success("Sleep logged!");
@@ -384,12 +317,11 @@ const Trackers = () => {
       setRecentSleep(res.data || []);
     } catch (err) {
       toast.error("Failed to save sleep");
-    } finally { setLoading(false); }
+    }
   };
 
   const onSubmitActivity = async (e) => {
     e.preventDefault();
-    setLoading(true);
     try {
       await createActivity(activity);
       toast.success("Activity logged!");
@@ -397,7 +329,7 @@ const Trackers = () => {
       setRecentActivity(res.data || []);
     } catch (err) {
       toast.error("Failed to save activity");
-    } finally { setLoading(false); }
+    }
   };
 
   return (
