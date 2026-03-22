@@ -157,9 +157,17 @@ const Register = () => {
     setMessage("Google registration was cancelled or failed.");
   };
 
+  const isNative = !!(window.Capacitor && window.Capacitor.getPlatform() !== 'web');
+
   return (
-    <div className="auth-page">
-      <div className="auth-card">
+    <div className={isNative ? "minimal-auth-page" : "auth-page"}>
+      <div className={isNative ? "auth-container" : "auth-card"}>
+        {isNative && (
+          <div className="auth-logo-header">
+             <img src="/logo192.png" alt="Wellnest Logo" className="auth-logo" />
+             <h2 className="auth-brand-name">Wellnest</h2>
+          </div>
+        )}
         <div className="auth-title">
           <FiUserPlus className="auth-title-icon" />
           <h2>Create account</h2>

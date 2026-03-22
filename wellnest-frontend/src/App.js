@@ -51,6 +51,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import ChatbotWidget from "./components/common/ChatbotWidget";
 import BottomNav from "./components/layout/BottomNav";
 import { NotificationProvider } from "./context/NotificationContext";
+import SplashScreen from "./components/common/SplashScreen";
 
 // Styles
 import "./index.css";
@@ -99,6 +100,9 @@ const App = () => {
   );
   const [userRole, setUserRole] = useState(getUserRole());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAppLoading, setIsAppLoading] = useState(
+    window.Capacitor && window.Capacitor.getPlatform() !== 'web'
+  );
 
   const toggleMenu = () => setIsMenuOpen(prev => !prev);
   const closeMenu = () => setIsMenuOpen(false);
@@ -136,6 +140,9 @@ const App = () => {
     setUserRole(getUserRole());
   };
 
+  if (isAppLoading) {
+    return <SplashScreen onFinish={() => setIsAppLoading(false)} />;
+  }
 
   return (
     <NotificationProvider>
