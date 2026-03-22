@@ -19,7 +19,7 @@ public class WaterIntakeDto {
     @DecimalMin(value="0.001", inclusive=true, message="Water intake must be at least 1 ml")
     private Double liters; // 0.25, 0.5, 1.0 etc.
 
-    private LocalDateTime loggedAt; // defaults to now
+    private java.time.Instant loggedAt; // defaults to now
     private String notes;
 
 }

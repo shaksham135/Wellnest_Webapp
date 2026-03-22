@@ -7,9 +7,9 @@ import com.wellnest.app.repository.DailyActivityRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Random;
 
@@ -60,8 +60,8 @@ public class ReminderService {
     // Every 4 hours during the day
     @Scheduled(fixedRate = 14400000) 
     public void sendWaterReminders() {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
+        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant endOfDay = LocalDate.now().atTime(java.time.LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant();
         
         List<User> users = userRepository.findAll();
         for (User user : users) {

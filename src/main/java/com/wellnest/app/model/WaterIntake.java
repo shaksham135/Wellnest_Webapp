@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Setter
 @Getter
@@ -21,11 +21,12 @@ public class WaterIntake {
     private Double liters;
 
     @Column(name="logged_at")
-    private LocalDateTime loggedAt;
+    private Instant loggedAt;
 
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    public WaterIntake() {}
-
+    public WaterIntake() {
+        this.loggedAt = Instant.now();
+    }
 }

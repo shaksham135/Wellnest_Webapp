@@ -16,19 +16,32 @@ public class SleepLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name="user_id", nullable = false)
-    private Long userId;
+    // Changed from userId to User object for relationship
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     private Double hours;
 
     @Column(name="sleep_date")
-    private LocalDate sleepDate;
+    private java.time.Instant sleepDate;
+    private java.time.Instant createdAt;
 
     private String quality; // optional
 
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    public SleepLog() {}
+    public SleepLog() {
+        this.createdAt = java.time.Instant.now();
+    }
+    
+    public SleepLog(User user, java.time.Instant sleepDate, Double hours, String quality) {
+        this.user = user;
+        this.sleepDate = sleepDate;
+        this.hours = hours;
+        this.quality = quality;
+        this.createdAt = java.time.Instant.now();
+    }
 
 }

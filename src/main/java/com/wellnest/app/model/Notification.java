@@ -19,7 +19,7 @@ public class Notification {
     private String type; // INFO, SUCCESS, ALERT
 
     private boolean isRead = false;
-    private LocalDateTime createdAt;
+    private java.time.Instant createdAt;
 
     public Notification() {
     }
@@ -29,7 +29,7 @@ public class Notification {
         this.title = title;
         this.message = message;
         this.type = type;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = java.time.Instant.now();
         this.isRead = false;
     }
 
@@ -81,11 +81,11 @@ public class Notification {
         isRead = read;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public java.time.Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(java.time.Instant createdAt) {
         this.createdAt = createdAt;
     }
 }

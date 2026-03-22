@@ -1,28 +1,27 @@
 package com.wellnest.app.dto;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Setter
 @Getter
 public class WorkoutDto {
-    // Getters/setters
-    // Do not include id here for creation
-    // userId can be optional during development; prefer server to obtain user from auth
+
     private Long userId;
 
-    @NotBlank
+    @NotBlank(message = "Workout type is required")
     private String type;
 
-    @Min(1)
+    @NotNull(message = "Duration is required")
     private Integer durationMinutes;
 
     private Integer caloriesBurned;
-    private LocalDateTime performedAt;
+    
+    private Instant performedAt; // Defaults to now
     private String notes;
 
 }

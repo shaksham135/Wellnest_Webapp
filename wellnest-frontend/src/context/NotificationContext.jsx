@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef, useCallb
 import { getNotifications } from '../api/notificationApi';
 import { updateFcmToken } from '../api/userApi';
 import { toast } from 'react-hot-toast';
+import { requestForToken, onMessageListener } from '../firebase';
 
 const NotificationContext = createContext();
 
@@ -86,6 +87,14 @@ export const NotificationProvider = ({ children }) => {
             setPermissionStatus(permission);
             if (permission === "granted") {
                 toast.success("Notifications enabled!");
+                
+                // Get FCM Token for Web Push
+                const token = await requestForToken();
+                if (token) {
+                    await updateFcmToken(token);
+                    console.log("Web FCM Token registered with backend");
+                }
+
                 const data = await getNotifications();
                 if (data.length > 0 && !data[0].read) {
                     showSystemNotification(data[0]);
@@ -131,7 +140,20 @@ export const NotificationProvider = ({ children }) => {
         };
         setupNativePush();
 
-        return () => clearInterval(interval);
+        // --- Web Foreground Messaging ---
+        const unsubscribe = onMessageListener(payload => {
+            console.log("New foreground message:", payload);
+            toast(payload.notification.body, {
+                icon: '🔔',
+                duration: 4000
+            });
+            fetchNotifications();
+        });
+
+        return () => {
+            clearInterval(interval);
+            unsubscribe();
+        };
     }, [fetchNotifications]);
 
     const sendTestNotification = () => {

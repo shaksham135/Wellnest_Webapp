@@ -18,8 +18,9 @@ import com.wellnest.app.dto.DailyActivityDto;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -53,7 +54,7 @@ public class TrackerService {
         Assert.notNull(dto, "workout dto is required");
 
         // Enforce Limit: Max 2 workouts per day
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant();
         long todayCount = workoutRepository.findByUserIdOrderByPerformedAtDesc(userId).stream()
                 .filter(w -> w.getPerformedAt().isAfter(startOfDay))
                 .count();
@@ -67,7 +68,7 @@ public class TrackerService {
         workout.setType(dto.getType());
         workout.setDurationMinutes(dto.getDurationMinutes());
         workout.setCaloriesBurned(dto.getCaloriesBurned());
-        workout.setPerformedAt(dto.getPerformedAt() != null ? dto.getPerformedAt() : LocalDateTime.now());
+        workout.setPerformedAt(dto.getPerformedAt() != null ? dto.getPerformedAt() : Instant.now());
         workout.setNotes(dto.getNotes());
 
         return workoutRepository.save(workout);
@@ -96,7 +97,7 @@ public class TrackerService {
         Assert.notNull(dto, "meal dto is required");
 
         // Enforce Limit: Max 1 entry per Meal Type per day
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant();
         boolean alreadyLoggedType = mealRepository.findByUserIdOrderByLoggedAtDesc(userId).stream()
                 .filter(m -> m.getLoggedAt().isAfter(startOfDay))
                 .anyMatch(m -> m.getMealType().equalsIgnoreCase(dto.getMealType()));
@@ -113,7 +114,7 @@ public class TrackerService {
         meal.setProtein(dto.getProtein());
         meal.setCarbs(dto.getCarbs());
         meal.setFats(dto.getFats());
-        meal.setLoggedAt(dto.getLoggedAt() != null ? dto.getLoggedAt() : LocalDateTime.now());
+        meal.setLoggedAt(dto.getLoggedAt() != null ? dto.getLoggedAt() : java.time.Instant.now());
         meal.setNotes(dto.getNotes());
 
         return mealRepository.save(meal);
@@ -142,7 +143,7 @@ public class TrackerService {
         Assert.notNull(dto, "water dto is required");
 
         // Enforce Limit: Max 10 Liters Total per day
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant();
         double todayTotal = waterIntakeRepository.findByUserIdOrderByLoggedAtDesc(userId).stream()
                 .filter(w -> w.getLoggedAt().isAfter(startOfDay))
                 .mapToDouble(WaterIntake::getLiters)
@@ -156,7 +157,7 @@ public class TrackerService {
         List<WaterIntake> history = waterIntakeRepository.findByUserIdOrderByLoggedAtDesc(userId);
         if (!history.isEmpty()) {
             WaterIntake last = history.get(0);
-            LocalDateTime now = LocalDateTime.now();
+            Instant now = Instant.now();
             long minutesDiff = java.time.Duration.between(last.getLoggedAt(), now).toMinutes();
             if (minutesDiff < 60) {
                 throw new IllegalArgumentException(
@@ -167,7 +168,7 @@ public class TrackerService {
         WaterIntake water = new WaterIntake();
         water.setUserId(userId);
         water.setLiters(dto.getLiters());
-        water.setLoggedAt(dto.getLoggedAt() != null ? dto.getLoggedAt() : LocalDateTime.now());
+        water.setLoggedAt(dto.getLoggedAt() != null ? dto.getLoggedAt() : Instant.now());
         water.setNotes(dto.getNotes());
 
         return waterIntakeRepository.save(water);
@@ -196,18 +197,21 @@ public class TrackerService {
         Assert.notNull(dto, "sleep dto is required");
 
         // Enforce Limit: Max 1 Sleep Record per day
-        LocalDate today = LocalDate.now();
+        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant();
         boolean alreadyLoggedSleep = sleepLogRepository.findByUserIdOrderBySleepDateDesc(userId).stream()
-                .anyMatch(s -> s.getSleepDate().equals(today));
+                .anyMatch(s -> s.getSleepDate().isAfter(startOfDay));
 
         if (alreadyLoggedSleep) {
             throw new IllegalArgumentException("Daily Limit Reached: You can only log sleep once per day.");
         }
 
+        com.wellnest.app.model.User user = new com.wellnest.app.model.User();
+        user.setId(userId);
+
         SleepLog sleep = new SleepLog();
-        sleep.setUserId(userId);
+        sleep.setUser(user);
         sleep.setHours(dto.getHours());
-        sleep.setSleepDate(dto.getSleepDate() != null ? dto.getSleepDate() : LocalDate.now());
+        sleep.setSleepDate(dto.getSleepDate() != null ? dto.getSleepDate() : Instant.now());
         sleep.setQuality(dto.getQuality());
         sleep.setNotes(dto.getNotes());
 
@@ -224,7 +228,7 @@ public class TrackerService {
         Assert.notNull(sleepLogId, "sleepLogId is required");
         SleepLog s = sleepLogRepository.findById(sleepLogId)
                 .orElseThrow(() -> new RuntimeException("Sleep log not found"));
-        if (!s.getUserId().equals(userId)) {
+        if (!s.getUser().getId().equals(userId)) {
             throw new RuntimeException("Not authorized to delete this sleep log");
         }
         sleepLogRepository.delete(s);

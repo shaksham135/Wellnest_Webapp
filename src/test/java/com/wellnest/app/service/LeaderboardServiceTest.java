@@ -86,16 +86,16 @@ class LeaderboardServiceTest {
         wa2.setLiters(1.0);
 
         SleepLog s1 = new SleepLog();
-        s1.setUserId(1L);
+        s1.setUser(user1);
         s1.setHours(8.0);
         SleepLog s2 = new SleepLog();
-        s2.setUserId(2L);
+        s2.setUser(user2);
         s2.setHours(7.0);
 
-        when(workoutRepository.findByPerformedAtBetween(any(), any())).thenReturn(Arrays.asList(w1, w2));
-        when(mealRepository.findByLoggedAtBetween(any(), any())).thenReturn(Arrays.asList(m1, m2, m3, m4, m5));
-        when(waterIntakeRepository.findByLoggedAtBetween(any(), any())).thenReturn(Arrays.asList(wa1, wa2));
-        when(sleepLogRepository.findBySleepDateBetween(any(), any())).thenReturn(Arrays.asList(s1, s2));
+        when(workoutRepository.findByUserIdAndPerformedAtBetween(null, any(), any())).thenReturn(Arrays.asList(w1, w2));
+        when(mealRepository.findByUserIdAndLoggedAtBetween(null, any(), any())).thenReturn(Arrays.asList(m1, m2, m3, m4, m5));
+        when(waterIntakeRepository.findByUserIdAndLoggedAtBetween(null, any(), any())).thenReturn(Arrays.asList(wa1, wa2));
+        when(sleepLogRepository.findByUserIdAndSleepDateBetween(null, any(), any())).thenReturn(Arrays.asList(s1, s2));
         when(userRepository.findAllById(anyCollection())).thenReturn(Arrays.asList(user1, user2));
 
         // Act
@@ -129,13 +129,13 @@ class LeaderboardServiceTest {
         wa1.setUserId(1L);
         wa1.setLiters(null);
         SleepLog s1 = new SleepLog();
-        s1.setUserId(1L);
+        s1.setUser(user1);
         s1.setHours(null);
 
-        when(workoutRepository.findByPerformedAtBetween(any(), any())).thenReturn(Collections.singletonList(w1));
-        when(waterIntakeRepository.findByLoggedAtBetween(any(), any())).thenReturn(Collections.singletonList(wa1));
-        when(sleepLogRepository.findBySleepDateBetween(any(), any())).thenReturn(Collections.singletonList(s1));
-        when(mealRepository.findByLoggedAtBetween(any(), any())).thenReturn(Collections.emptyList());
+        when(workoutRepository.findByUserIdAndPerformedAtBetween(null, any(), any())).thenReturn(Collections.singletonList(w1));
+        when(waterIntakeRepository.findByUserIdAndLoggedAtBetween(null, any(), any())).thenReturn(Collections.singletonList(wa1));
+        when(sleepLogRepository.findByUserIdAndSleepDateBetween(null, any(), any())).thenReturn(Collections.singletonList(s1));
+        when(mealRepository.findByUserIdAndLoggedAtBetween(null, any(), any())).thenReturn(Collections.emptyList());
 
         when(userRepository.findAllById(anyCollection())).thenReturn(Collections.singletonList(user1));
 
@@ -157,10 +157,10 @@ class LeaderboardServiceTest {
         user3.setName("Charlie");
 
         when(userRepository.findAll()).thenReturn(Arrays.asList(user1, user2, user3));
-        when(workoutRepository.findByPerformedAtBetween(any(), any())).thenReturn(Collections.singletonList(w1));
-        when(mealRepository.findByLoggedAtBetween(any(), any())).thenReturn(Collections.emptyList());
-        when(waterIntakeRepository.findByLoggedAtBetween(any(), any())).thenReturn(Collections.emptyList());
-        when(sleepLogRepository.findBySleepDateBetween(any(), any())).thenReturn(Collections.emptyList());
+        when(workoutRepository.findByUserIdAndPerformedAtBetween(null, any(), any())).thenReturn(Collections.singletonList(w1));
+        when(mealRepository.findByUserIdAndLoggedAtBetween(null, any(), any())).thenReturn(Collections.emptyList());
+        when(waterIntakeRepository.findByUserIdAndLoggedAtBetween(null, any(), any())).thenReturn(Collections.emptyList());
+        when(sleepLogRepository.findByUserIdAndSleepDateBetween(null, any(), any())).thenReturn(Collections.emptyList());
 
         // When building top users, it fetches details for those in top 10
         when(userRepository.findAllById(anyCollection())).thenReturn(Arrays.asList(user1, user2, user3));

@@ -7,9 +7,9 @@ import com.wellnest.app.repository.*;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.function.Function;
@@ -42,14 +42,14 @@ public class LeaderboardService {
         LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate endOfWeek = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
 
-        LocalDateTime start = startOfWeek.atStartOfDay();
-        LocalDateTime end = endOfWeek.atTime(LocalTime.MAX);
+        Instant start = startOfWeek.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant end = endOfWeek.atTime(java.time.LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant();
 
         // 2. Fetch all activities for the week
-        List<Workout> workouts = workoutRepository.findByPerformedAtBetween(start, end);
-        List<Meal> meals = mealRepository.findByLoggedAtBetween(start, end);
-        List<WaterIntake> waterIntakes = waterIntakeRepository.findByLoggedAtBetween(start, end);
-        List<SleepLog> sleepLogs = sleepLogRepository.findBySleepDateBetween(startOfWeek, endOfWeek);
+        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(null, start, end); // Repository might need update or use specific method
+        List<Meal> meals = mealRepository.findByUserIdAndLoggedAtBetween(null, start, end); // Same
+        List<WaterIntake> waterIntakes = waterIntakeRepository.findByUserIdAndLoggedAtBetween(null, start, end); // Same
+        List<SleepLog> sleepLogs = sleepLogRepository.findByUserIdAndSleepDateBetween(null, start, end); // Same
 
         // 3. Initialize Scores (Identified Admins for exclusion)
         Map<Long, Double> userScores = new HashMap<>();
@@ -85,7 +85,7 @@ public class LeaderboardService {
         // Score: 10 pts per hour of sleep
         for (SleepLog s : sleepLogs) {
             double hours = (s.getHours() != null) ? s.getHours() : 0.0;
-            userScores.merge(s.getUserId(), hours * 10.0, (a, b) -> (a != null ? a : 0.0) + (b != null ? b : 0.0));
+            userScores.merge(s.getUser().getId(), hours * 10.0, (a, b) -> (a != null ? a : 0.0) + (b != null ? b : 0.0));
         }
 
         // Ensure current user is in the map (redundant now but safe)

@@ -16,7 +16,7 @@ public class SleepLogDto {
     @Min(value = 1, message = "Sleep hours must be at least 1 hour")
     private Double hours;
 
-    private LocalDate sleepDate; // defaults to today
+    private java.time.Instant sleepDate; // defaults to today
     private String quality; // optional: good, average, poor
     private String notes;
 

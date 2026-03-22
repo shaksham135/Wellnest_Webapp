@@ -28,10 +28,11 @@ public class Workout {
     private Integer caloriesBurned;
 
     @Column(name = "performed_at")
-    private LocalDateTime performedAt;
-
+    private java.time.Instant performedAt;
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    public Workout(){}
+    public Workout() {
+        this.performedAt = java.time.Instant.now();
+    }
 }

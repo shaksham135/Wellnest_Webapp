@@ -118,9 +118,14 @@ public class NotificationService {
 
     public void notifyAllUsers(String title, String message, String type) {
         List<User> users = userRepository.findAll();
-        List<Notification> notifications = users.stream()
-                .map(user -> new Notification(user, title, message, type))
-                .collect(Collectors.toList());
+        List<Notification> notifications = new ArrayList<>();
+        
+        for (User user : users) {
+            notifications.add(new Notification(user, title, message, type));
+            // Relay to FCM
+            sendFcmNotification(user, title, message);
+        }
+        
         notificationRepository.saveAll(notifications);
     }
 }

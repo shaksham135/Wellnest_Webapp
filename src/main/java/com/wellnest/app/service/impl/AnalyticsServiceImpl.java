@@ -8,9 +8,10 @@ import com.wellnest.app.service.AppUserService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -73,21 +74,21 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private AnalyticsSummary generateSummary(Long userId, LocalDate startDate, LocalDate endDate) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
-        LocalDateTime startDateTime = startDate.atStartOfDay();
-        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+        Instant startInstant = startDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant endInstant = endDate.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant();
 
         AnalyticsSummary summary = new AnalyticsSummary();
         summary.setStartDate(startDate);
         summary.setEndDate(endDate);
 
-        summary.setWorkoutAnalytics(calculateWorkoutAnalytics(userId, startDateTime, endDateTime));
+        summary.setWorkoutAnalytics(calculateWorkoutAnalytics(userId, startInstant, endInstant));
         long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
-        summary.setNutritionAnalytics(calculateNutritionAnalytics(userId, startDateTime, endDateTime, days));
-        summary.setSleepAnalytics(calculateSleepAnalytics(user, startDate, endDate));
-        summary.setWaterIntakeAnalytics(calculateWaterIntakeAnalytics(user, startDateTime, endDateTime));
+        summary.setNutritionAnalytics(calculateNutritionAnalytics(userId, startInstant, endInstant, days));
+        summary.setSleepAnalytics(calculateSleepAnalytics(user, startInstant, endInstant));
+        summary.setWaterIntakeAnalytics(calculateWaterIntakeAnalytics(user, startInstant, endInstant));
         
         // Safety: Ensure GoalProgress doesn't return null
-        GoalProgress goalProgress = calculateGoalProgress(user, startDateTime, endDateTime);
+        GoalProgress goalProgress = calculateGoalProgress(user, startInstant, endInstant);
         summary.setGoalProgress(goalProgress != null ? goalProgress : new GoalProgress());
         
         summary.setHealthMetrics(calculateHealthMetrics(user));
@@ -97,10 +98,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return summary;
     }
 
-    private WorkoutAnalytics calculateWorkoutAnalytics(Long userId, LocalDateTime startDateTime,
-            LocalDateTime endDateTime) {
-        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, startDateTime,
-                endDateTime);
+    private WorkoutAnalytics calculateWorkoutAnalytics(Long userId, Instant startInstant,
+            Instant endInstant) {
+        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, startInstant,
+                endInstant);
         WorkoutAnalytics analytics = new WorkoutAnalytics();
 
         if (workouts.isEmpty()) {
@@ -122,21 +123,21 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         analytics.setWorkoutsByType(workoutsByType);
 
         Map<String, Double> weeklyTrend = workouts.stream()
-                .collect(Collectors.groupingBy(w -> w.getPerformedAt().toLocalDate().toString(),
+                .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
                         Collectors.summingDouble(Workout::getDurationMinutes)));
         analytics.setWeeklyTrend(weeklyTrend);
 
         Map<String, Double> dailyCaloriesBurned = workouts.stream()
-                .collect(Collectors.groupingBy(w -> w.getPerformedAt().toLocalDate().toString(),
-                        Collectors.summingDouble(w -> w.getCaloriesBurned() != null ? w.getCaloriesBurned() : 0.0)));
+                .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
+                        Collectors.summingDouble(w -> w.getCaloriesBurned() != null ? (double)w.getCaloriesBurned() : 0.0)));
         analytics.setDailyCaloriesBurned(dailyCaloriesBurned);
 
         return analytics;
     }
 
-    private NutritionAnalytics calculateNutritionAnalytics(Long userId, LocalDateTime startDateTime,
-            LocalDateTime endDateTime, long days) {
-        List<Meal> meals = mealRepository.findByUserIdAndLoggedAtBetween(userId, startDateTime, endDateTime);
+    private NutritionAnalytics calculateNutritionAnalytics(Long userId, Instant startInstant,
+            Instant endInstant, long days) {
+        List<Meal> meals = mealRepository.findByUserIdAndLoggedAtBetween(userId, startInstant, endInstant);
         NutritionAnalytics analytics = new NutritionAnalytics();
 
         if (meals.isEmpty()) {
@@ -160,7 +161,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         analytics.setAvgDailyFat(totalFat / days);
 
         Map<String, Double> weeklyCalorieTrend = meals.stream()
-                .collect(Collectors.groupingBy(m -> m.getLoggedAt().toLocalDate().toString(),
+                .collect(Collectors.groupingBy(m -> m.getLoggedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
                         Collectors.summingDouble(Meal::getCalories)));
         analytics.setWeeklyCalorieTrend(weeklyCalorieTrend);
 
@@ -173,8 +174,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return analytics;
     }
 
-    private SleepAnalytics calculateSleepAnalytics(User user, LocalDate startDate, LocalDate endDate) {
-        List<SleepLog> sleepLogs = sleepLogRepository.findByUserIdAndSleepDateBetween(user.getId(), startDate, endDate);
+    private SleepAnalytics calculateSleepAnalytics(User user, Instant startInstant, Instant endInstant) {
+        List<SleepLog> sleepLogs = sleepLogRepository.findByUserIdAndSleepDateBetween(user.getId(), startInstant, endInstant);
         SleepAnalytics analytics = new SleepAnalytics();
 
         if (sleepLogs.isEmpty()) {
@@ -207,7 +208,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         analytics.setAvgSleepQuality(avgQuality);
 
         Map<String, Double> weeklyTrend = sleepLogs.stream()
-                .collect(Collectors.toMap(s -> s.getSleepDate().toString(), SleepLog::getHours,
+                .collect(Collectors.toMap(s -> s.getSleepDate().atZone(ZoneOffset.UTC).toLocalDate().toString(), SleepLog::getHours,
                         (oldValue, newValue) -> newValue));
         analytics.setWeeklySleepTrend(weeklyTrend);
 
@@ -224,10 +225,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return analytics;
     }
 
-    private WaterIntakeAnalytics calculateWaterIntakeAnalytics(User user, LocalDateTime startDateTime,
-            LocalDateTime endDateTime) {
-        List<WaterIntake> waterIntakes = waterIntakeRepository.findByUserIdAndLoggedAtBetween(user.getId(), startDateTime,
-                endDateTime);
+    private WaterIntakeAnalytics calculateWaterIntakeAnalytics(User user, Instant startInstant,
+            Instant endInstant) {
+        List<WaterIntake> waterIntakes = waterIntakeRepository.findByUserIdAndLoggedAtBetween(user.getId(), startInstant,
+                endInstant);
         WaterIntakeAnalytics analytics = new WaterIntakeAnalytics();
         
         double targetIntake = user.getTargetWaterLiters() != null ? user.getTargetWaterLiters() * 1000 : 2000; // ml
@@ -243,7 +244,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         // Group by Date and Sum Intake
         Map<String, Double> dailyIntakeMap = waterIntakes.stream()
                 .collect(Collectors.groupingBy(
-                        w -> w.getLoggedAt().toLocalDate().toString(),
+                        w -> w.getLoggedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
                         Collectors.summingDouble(w -> w.getLiters() * 1000)));
 
         // Calculate Days Met Goal based on aggregated daily totals
@@ -264,7 +265,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         return analytics;
     }
 
-    private GoalProgress calculateGoalProgress(User user, LocalDateTime startDateTime, LocalDateTime endDateTime) {
+    private GoalProgress calculateGoalProgress(User user, Instant startInstant, Instant endInstant) {
         GoalProgress progress = new GoalProgress();
         String goal = user.getFitnessGoal();
         if (goal == null || goal.isEmpty()) {
@@ -347,8 +348,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             // Get weight logs for the specified date range
             List<WeightLog> weightLogs = weightLogRepository.findByUserIdAndLogDateBetween(
                     user.getId(),
-                    startDateTime.toLocalDate(),
-                    endDateTime.toLocalDate());
+                    startInstant.atZone(ZoneOffset.UTC).toLocalDate(),
+                    endInstant.atZone(ZoneOffset.UTC).toLocalDate());
 
             // Create a map of log date to weight
             Map<String, Double> weeklyTrend = weightLogs.stream()
@@ -359,10 +360,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             progress.setWeeklyProgressTrend(weeklyTrend);
         } else if ("WORKOUT_FREQUENCY".equalsIgnoreCase(normalizedGoal) || "FITNESS".equalsIgnoreCase(normalizedGoal)) {
             // Existing workout frequency logic remains the same
-            List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(user.getId(), startDateTime,
-                    endDateTime);
+            List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(user.getId(), startInstant,
+                    endInstant);
             // Assume goal is custom configured or 4 workouts per week
-            long days = ChronoUnit.DAYS.between(startDateTime.toLocalDate(), endDateTime.toLocalDate()) + 1;
+            long days = ChronoUnit.DAYS.between(startInstant.atZone(ZoneOffset.UTC).toLocalDate(), endInstant.atZone(ZoneOffset.UTC).toLocalDate()) + 1;
             double weeks = days / 7.0;
             int targetWorkoutsWeekly = user.getTargetWorkoutsPerWeek() != null ? user.getTargetWorkoutsPerWeek() : 4;
             double targetWorkouts = targetWorkoutsWeekly * weeks;
@@ -384,7 +385,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             progress.setRecommendation("Try to schedule your workouts in advance to stay consistent.");
 
             Map<String, Double> weeklyTrend = workouts.stream()
-                    .collect(Collectors.groupingBy(w -> w.getPerformedAt().toLocalDate().toString(),
+                    .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
                             Collectors.collectingAndThen(Collectors.counting(), Long::doubleValue)));
             progress.setWeeklyProgressTrend(weeklyTrend);
         }
@@ -421,11 +422,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(89); // Approx 3 months
 
-        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, startDate.atStartOfDay(),
-                endDate.atTime(LocalTime.MAX));
+        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, 
+                startDate.atStartOfDay(ZoneOffset.UTC).toInstant(),
+                endDate.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant());
 
         Map<LocalDate, Integer> workoutCounts = workouts.stream()
-                .collect(Collectors.groupingBy(w -> w.getPerformedAt().toLocalDate(), Collectors.summingInt(w -> 1)));
+                .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(ZoneOffset.UTC).toLocalDate(), Collectors.summingInt(w -> 1)));
 
         WorkoutConsistency consistency = new WorkoutConsistency();
         consistency.setStartDate(startDate);
