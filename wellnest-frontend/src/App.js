@@ -48,6 +48,7 @@ import ActivityAnalyticsDetail from "./pages/detailed-analytics/ActivityAnalytic
 
 // Components
 import ProtectedRoute from "./components/ProtectedRoute";
+import SplashScreen from "./components/common/SplashScreen";
 import ChatbotWidget from "./components/common/ChatbotWidget";
 import BottomNav from "./components/layout/BottomNav";
 import { NotificationProvider } from "./context/NotificationContext";
