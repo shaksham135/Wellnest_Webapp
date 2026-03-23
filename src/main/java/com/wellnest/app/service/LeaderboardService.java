@@ -67,17 +67,20 @@ public class LeaderboardService {
         // 4. Aggregate Scores per User (Addition to base 0.0)
         // Score: 1 pt per minute of workout
         for (Workout w : workouts) {
+            if (w.getUserId() == null) continue;
             double points = (w.getDurationMinutes() != null) ? w.getDurationMinutes().doubleValue() : 0.0;
             userScores.merge(w.getUserId(), points, (a, b) -> (a != null ? a : 0.0) + (b != null ? b : 0.0));
         }
 
         // Score: 10 pts per meal logged
         for (Meal m : meals) {
+            if (m.getUserId() == null) continue;
             userScores.merge(m.getUserId(), 10.0, (a, b) -> (a != null ? a : 0.0) + (b != null ? b : 0.0));
         }
 
         // Score: 20 pts per Liter of water
         for (WaterIntake w : waterIntakes) {
+            if (w.getUserId() == null) continue;
             double liters = (w.getLiters() != null) ? w.getLiters() : 0.0;
             userScores.merge(w.getUserId(), liters * 20.0, (a, b) -> (a != null ? a : 0.0) + (b != null ? b : 0.0));
         }

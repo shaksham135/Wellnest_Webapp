@@ -165,40 +165,62 @@ public class AuthController {
     @PostMapping("/google")
     public ResponseEntity<?> googleLogin(@RequestBody GoogleAuthRequest req) {
         try {
-            // Replace with the user's Client ID
-            String clientId = "824393698796-2a2k17e527hbnd9irvhjv72pnngc5jc7.apps.googleusercontent.com";
-            
-            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                    .setAudience(Collections.singletonList(clientId))
-                    .build();
+            String email = null;
+            String name = null;
 
-            GoogleIdToken idToken = verifier.verify(req.getToken());
-            if (idToken != null) {
-                GoogleIdToken.Payload payload = idToken.getPayload();
+            try {
+                String clientId = "824393698796-2a2k17e527hbnd9irvhjv72pnngc5jc7.apps.googleusercontent.com";
+                GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                        .setAudience(Collections.singletonList(clientId))
+                        .build();
 
-                String email = payload.getEmail();
-                String name = (String) payload.get("name");
+                GoogleIdToken idToken = verifier.verify(req.getToken());
+                if (idToken != null) {
+                    GoogleIdToken.Payload payload = idToken.getPayload();
+                    email = payload.getEmail();
+                    name = (String) payload.get("name");
+                }
+            } catch (Exception e) {
+                // Ignore, token might be an Access Token
+            }
 
+            if (email == null) {
+                // Attempt to use token as Access Token to fetch UserInfo
+                try {
+                    org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+                    org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+                    headers.setBearerAuth(req.getToken());
+                    org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>("", headers);
+                    ResponseEntity<java.util.Map> response = restTemplate.exchange(
+                            "https://www.googleapis.com/oauth2/v3/userinfo", 
+                            org.springframework.http.HttpMethod.GET, 
+                            entity, 
+                            java.util.Map.class
+                    );
+                    if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                        email = (String) response.getBody().get("email");
+                        name = (String) response.getBody().get("name");
+                    }
+                } catch (Exception e) {
+                    System.err.println("Access Token Verification Failed: " + e.getMessage());
+                }
+            }
+
+            if (email != null) {
                 Optional<User> existingUserOpt = userService.findByEmail(email);
                 User user;
 
                 if (existingUserOpt.isPresent()) {
-                    // User exists, log them in
                     user = existingUserOpt.get();
                     System.out.println("GOOGLE LOGIN: Existing user found: " + email);
-                    // Ensure role matches requested role only if they were newly created,
-                    // but since they exist, we keep their DB role.
                 } else {
-                    // New user, register them automatically
                     System.out.println("GOOGLE LOGIN: Registering new user: " + email);
                     user = new User();
                     user.setEmail(email);
                     user.setName(name != null ? name : email.substring(0, email.indexOf("@")));
-                    // Create a random strong password since they use Google
                     String randomPassword = UUID.randomUUID().toString();
                     user.setPassword(passwordEncoder.encode(randomPassword));
                     
-                    // Determine Role
                     String finalRole = "ROLE_USER";
                     if (req.getRole() != null && req.getRole().equalsIgnoreCase("TRAINER")) {
                         finalRole = "ROLE_TRAINER";
@@ -227,7 +249,6 @@ public class AuthController {
                     }
                 }
 
-                // Generate Custom JWT for our app
                 UserDetails userDetails = new org.springframework.security.core.userdetails.User(
                         user.getEmail(),
                         user.getPassword(),
@@ -250,7 +271,7 @@ public class AuthController {
                         user.isVerified()));
 
             } else {
-                return ResponseEntity.status(401).body("Invalid Google ID token.");
+                return ResponseEntity.status(401).body("Invalid Google token.");
             }
         } catch (Exception e) {
             System.err.println("GOOGLE LOGIN ERROR: " + e.getMessage());
