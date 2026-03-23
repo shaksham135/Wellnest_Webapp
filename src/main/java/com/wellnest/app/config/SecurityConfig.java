@@ -98,11 +98,11 @@ public class SecurityConfig {
         // Use restricted origin patterns for production + native mobile safety
         // setAllowedOriginPatterns allows wildcards while still permitting credentials
         config.setAllowedOriginPatterns(List.of(
+            "http://localhost",
+            "capacitor://localhost",
             "http://localhost:*",
             "http://127.0.0.1:*",
             "capacitor://*",
-            "http://localhost",
-            "capacitor://localhost",
             "https://*.vercel.app",
             "https://*.onrender.com"
         ));

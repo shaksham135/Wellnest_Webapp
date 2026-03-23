@@ -10,7 +10,8 @@ try {
   }
 } catch (e) { console.log("Preferences plugin not available"); }
 
-const baseURL = (process.env.REACT_APP_API_URL || "http://localhost:8080/api").replace(/\/$/, "");
+// Production URL hardcoded for native reliability
+const baseURL = "https://wellnest-webapp.onrender.com/api";
 
 const apiClient = axios.create({
   baseURL,
