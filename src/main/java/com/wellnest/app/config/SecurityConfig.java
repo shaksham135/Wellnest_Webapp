@@ -60,7 +60,7 @@ public class SecurityConfig {
 
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll() // PRIORITIZE AUTH
-                        .requestMatchers("/health", "/error").permitAll()
+                        .requestMatchers("/", "/health", "/error").permitAll()
                         // Blog endpoints - allow public reading
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/blog/**").permitAll()
                         // Trainer endpoints - allow public reading
