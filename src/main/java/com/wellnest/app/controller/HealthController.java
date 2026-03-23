@@ -14,6 +14,6 @@ public class HealthController {
 
     @GetMapping("/")
     public ResponseEntity<String> rootCheck() {
-        return ResponseEntity.ok("Wellnest Backend is running. Use /api/... endpoints.");
+        return ResponseEntity.ok("Wellnest Backend is Live and Running! API Base: /api");
     }
 }
