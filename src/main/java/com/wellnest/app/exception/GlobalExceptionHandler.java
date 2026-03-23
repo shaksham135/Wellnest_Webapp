@@ -21,13 +21,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleAllExceptions(Exception ex) {
         Map<String, String> response = new HashMap<>();
-        response.put("error", ex.getClass().getName());
+        response.put("error", "Internal Server Error");
         response.put("message", ex.getMessage());
-
-        java.io.StringWriter sw = new java.io.StringWriter();
-        ex.printStackTrace(new java.io.PrintWriter(sw));
-        response.put("trace", sw.toString());
-
+        // For production, we don't return the trace to the client
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

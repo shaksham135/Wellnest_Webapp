@@ -114,7 +114,8 @@ CREATE TABLE IF NOT EXISTS sleep_logs (
     hours DOUBLE,
     sleep_date DATE,
     quality VARCHAR(255),
-    notes TEXT
+    notes TEXT,
+    created_at DATETIME(6)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS trainers (
