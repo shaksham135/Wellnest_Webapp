@@ -99,22 +99,20 @@ public class SecurityConfig {
         // setAllowedOriginPatterns allows wildcards while still permitting credentials
         config.setAllowedOriginPatterns(List.of(
             "http://localhost",
+            "https://localhost",
             "capacitor://localhost",
             "http://localhost:*",
+            "https://localhost:*",
             "http://127.0.0.1:*",
             "capacitor://*",
             "https://*.vercel.app",
             "https://*.onrender.com"
         ));
 
-        // Fallback for the specific allowedOrigin environment variable if it's set 
+        // Note: Trailing slashes are invalid for CORS origins.
         if (allowedOrigin != null && !allowedOrigin.isEmpty()) {
-            config.addAllowedOrigin(allowedOrigin);
-            if (allowedOrigin.endsWith("/")) {
-                config.addAllowedOrigin(allowedOrigin.substring(0, allowedOrigin.length() - 1));
-            } else {
-                config.addAllowedOrigin(allowedOrigin + "/");
-            }
+            String origin = allowedOrigin.replace(/\/$/, "");
+            config.addAllowedOrigin(origin);
         }
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
