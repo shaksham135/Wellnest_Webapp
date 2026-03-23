@@ -154,10 +154,6 @@ const Register = ({ onLoginSuccess }) => {
     }
   };
 
-  const handleGoogleError = () => {
-    setMessage("Google registration was cancelled or failed.");
-  };
-
   const saveCredentials = async (data) => {
     const { token, userId, role, isVerified } = data;
     if (token) await storageService.setItem("token", token);

@@ -59,7 +59,7 @@ const Login = ({ onLoginSuccess }) => {
 
     try {
       const res = await apiClient.post("/auth/login", form);
-      const { token, profileComplete, userId, role, isVerified } = res.data;
+      const { profileComplete, role } = res.data;
 
       if (res.data.token) {
         await saveCredentials(res.data);
@@ -107,10 +107,6 @@ const Login = ({ onLoginSuccess }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGoogleError = () => {
-    setMessage("Google login was cancelled or failed.");
   };
 
   const renderLoginForm = () => (
