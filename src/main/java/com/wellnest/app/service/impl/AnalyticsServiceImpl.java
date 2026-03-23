@@ -114,22 +114,27 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         }
 
         analytics.setTotalWorkouts(workouts.size());
-        double totalDuration = workouts.stream().mapToDouble(Workout::getDurationMinutes).sum();
+        double totalDuration = workouts.stream()
+                .mapToDouble(w -> w.getDurationMinutes() != null ? (double) w.getDurationMinutes() : 0.0)
+                .sum();
         analytics.setTotalDuration(totalDuration);
         analytics.setAvgDuration(totalDuration / workouts.size());
 
         Map<String, Integer> workoutsByType = workouts.stream()
+                .filter(w -> w.getType() != null)
                 .collect(Collectors.groupingBy(Workout::getType, Collectors.summingInt(w -> 1)));
         analytics.setWorkoutsByType(workoutsByType);
 
         Map<String, Double> weeklyTrend = workouts.stream()
+                .filter(w -> w.getPerformedAt() != null)
                 .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
-                        Collectors.summingDouble(Workout::getDurationMinutes)));
+                        Collectors.summingDouble(w -> w.getDurationMinutes() != null ? (double) w.getDurationMinutes() : 0.0)));
         analytics.setWeeklyTrend(weeklyTrend);
 
         Map<String, Double> dailyCaloriesBurned = workouts.stream()
+                .filter(w -> w.getPerformedAt() != null)
                 .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
-                        Collectors.summingDouble(w -> w.getCaloriesBurned() != null ? (double)w.getCaloriesBurned() : 0.0)));
+                        Collectors.summingDouble(w -> w.getCaloriesBurned() != null ? (double) w.getCaloriesBurned() : 0.0)));
         analytics.setDailyCaloriesBurned(dailyCaloriesBurned);
 
         return analytics;
@@ -150,10 +155,18 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             return analytics;
         }
 
-        double totalCalories = meals.stream().mapToDouble(Meal::getCalories).sum();
-        double totalProtein = meals.stream().mapToDouble(Meal::getProtein).sum();
-        double totalCarbs = meals.stream().mapToDouble(Meal::getCarbs).sum();
-        double totalFat = meals.stream().mapToDouble(Meal::getFats).sum();
+        double totalCalories = meals.stream()
+                .mapToDouble(m -> m.getCalories() != null ? (double) m.getCalories() : 0.0)
+                .sum();
+        double totalProtein = meals.stream()
+                .mapToDouble(m -> m.getProtein() != null ? (double) m.getProtein() : 0.0)
+                .sum();
+        double totalCarbs = meals.stream()
+                .mapToDouble(m -> m.getCarbs() != null ? (double) m.getCarbs() : 0.0)
+                .sum();
+        double totalFat = meals.stream()
+                .mapToDouble(m -> m.getFats() != null ? (double) m.getFats() : 0.0)
+                .sum();
 
         analytics.setAvgDailyCalories(totalCalories / days);
         analytics.setAvgDailyProtein(totalProtein / days);
@@ -161,8 +174,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         analytics.setAvgDailyFat(totalFat / days);
 
         Map<String, Double> weeklyCalorieTrend = meals.stream()
+                .filter(m -> m.getLoggedAt() != null)
                 .collect(Collectors.groupingBy(m -> m.getLoggedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
-                        Collectors.summingDouble(Meal::getCalories)));
+                        Collectors.summingDouble(m -> m.getCalories() != null ? (double) m.getCalories() : 0.0)));
         analytics.setWeeklyCalorieTrend(weeklyCalorieTrend);
 
         Map<String, Double> macroDistribution = new HashMap<>();
@@ -186,7 +200,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             return analytics;
         }
 
-        double avgDuration = sleepLogs.stream().mapToDouble(SleepLog::getHours).average().orElse(0);
+        double avgDuration = sleepLogs.stream()
+                .mapToDouble(s -> s.getHours() != null ? (double) s.getHours() : 0.0)
+                .average()
+                .orElse(0);
         analytics.setAvgSleepDuration(avgDuration);
 
         // Map string quality to a number for averaging
@@ -208,7 +225,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         analytics.setAvgSleepQuality(avgQuality);
 
         Map<String, Double> weeklyTrend = sleepLogs.stream()
-                .collect(Collectors.toMap(s -> s.getSleepDate().atZone(ZoneOffset.UTC).toLocalDate().toString(), SleepLog::getHours,
+                .filter(s -> s.getSleepDate() != null)
+                .collect(Collectors.toMap(s -> s.getSleepDate().atZone(ZoneOffset.UTC).toLocalDate().toString(), 
+                        s -> s.getHours() != null ? (double) s.getHours() : 0.0,
                         (oldValue, newValue) -> newValue));
         analytics.setWeeklySleepTrend(weeklyTrend);
 
@@ -243,9 +262,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         // Group by Date and Sum Intake
         Map<String, Double> dailyIntakeMap = waterIntakes.stream()
+                .filter(w -> w.getLoggedAt() != null)
                 .collect(Collectors.groupingBy(
                         w -> w.getLoggedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
-                        Collectors.summingDouble(w -> w.getLiters() * 1000)));
+                        Collectors.summingDouble(w -> w.getLiters() != null ? w.getLiters() * 1000 : 0.0)));
 
         // Calculate Days Met Goal based on aggregated daily totals
         long daysMetGoal = dailyIntakeMap.values().stream()
@@ -353,9 +373,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             // Create a map of log date to weight
             Map<String, Double> weeklyTrend = weightLogs.stream()
+                    .filter(w -> w.getLogDate() != null)
                     .collect(Collectors.toMap(
                             w -> w.getLogDate().toString(),
-                            WeightLog::getWeightKg,
+                            w -> w.getWeightKg() != null ? w.getWeightKg() : 0.0,
                             (oldValue, newValue) -> newValue));
             progress.setWeeklyProgressTrend(weeklyTrend);
         } else if ("WORKOUT_FREQUENCY".equalsIgnoreCase(normalizedGoal) || "FITNESS".equalsIgnoreCase(normalizedGoal)) {
@@ -469,18 +490,22 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         Map<String, Double> weeklyDistanceTrend = new HashMap<>();
 
         for (DailyActivity act : activities) {
-            totalSteps += act.getSteps();
-            totalCal += act.getActiveCalories();
-            totalDist += act.getDistanceKm();
+            double steps = act.getSteps() != null ? (double) act.getSteps() : 0.0;
+            double calories = act.getActiveCalories() != null ? (double) act.getActiveCalories() : 0.0;
+            double distance = act.getDistanceKm() != null ? act.getDistanceKm() : 0.0;
 
-            if (act.getSteps() >= targetSteps) daysMetSteps++;
-            if (act.getActiveCalories() >= targetCalories) daysMetCal++;
-            if (act.getDistanceKm() >= targetDistance) daysMetDist++;
+            totalSteps += steps;
+            totalCal += calories;
+            totalDist += distance;
+
+            if (steps >= targetSteps) daysMetSteps++;
+            if (calories >= targetCalories) daysMetCal++;
+            if (distance >= targetDistance) daysMetDist++;
 
             String dateStr = act.getDate().toString();
-            weeklyStepsTrend.put(dateStr, act.getSteps());
-            weeklyCaloriesTrend.put(dateStr, (double) act.getActiveCalories());
-            weeklyDistanceTrend.put(dateStr, act.getDistanceKm());
+            weeklyStepsTrend.put(dateStr, (int) steps);
+            weeklyCaloriesTrend.put(dateStr, calories);
+            weeklyDistanceTrend.put(dateStr, distance);
         }
 
         analytics.setAvgDailySteps(totalSteps / days);
