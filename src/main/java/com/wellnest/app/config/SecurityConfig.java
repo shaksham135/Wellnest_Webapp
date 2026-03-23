@@ -111,7 +111,7 @@ public class SecurityConfig {
 
         // Note: Trailing slashes are invalid for CORS origins.
         if (allowedOrigin != null && !allowedOrigin.isEmpty()) {
-            String origin = allowedOrigin.replace(/\/$/, "");
+            String origin = allowedOrigin.endsWith("/") ? allowedOrigin.substring(0, allowedOrigin.length() - 1) : allowedOrigin;
             config.addAllowedOrigin(origin);
         }
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
