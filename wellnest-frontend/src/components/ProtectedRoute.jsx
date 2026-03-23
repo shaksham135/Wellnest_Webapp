@@ -1,5 +1,4 @@
-import React from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import storageService from "../api/storageService";
 
 const isProbablyJwt = (token) => {
   if (!token || typeof token !== "string") return false;
@@ -38,7 +37,7 @@ const ProtectedRoute = ({ children }) => {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         if (payload?.exp && Date.now() >= payload.exp * 1000) {
-          localStorage.removeItem("token");
+          storageService.clearAuth();
         }
       } catch (_) {}
     }

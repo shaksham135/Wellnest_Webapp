@@ -7,6 +7,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { getClientAnalytics, getPendingVerifications, verifyTrainer, rejectTrainerVerification } from "../api/trainerApi";
 import ThemeToggle from "../components/ThemeToggle";
+import storageService from "../api/storageService";
 import logo from "../assets/logo.png";
 import "./AdminDashboard.css";
 
@@ -178,8 +179,8 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.clear();
+    const handleLogout = async () => {
+        await storageService.clearAuth();
         window.location.href = '/login';
     };
 

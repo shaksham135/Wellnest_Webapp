@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget, FiCheck } from "react-icons/fi";
 import { fetchCurrentUser, updateUserProfile } from "../api/userApi";
 import apiClient from "../api/apiClient";
+import storageService from "../api/storageService";
 import VerificationUpload from "../components/VerificationUpload";
 
 const Profile = () => {
@@ -33,8 +34,8 @@ const Profile = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
+  const handleLogout = async () => {
+    await storageService.clearAuth();
     navigate("/");
   };
 

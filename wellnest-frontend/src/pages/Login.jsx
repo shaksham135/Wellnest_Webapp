@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
+import { useGoogleLogin } from "@react-oauth/google";
 import {
   FiMail,
   FiLock,
@@ -14,15 +14,17 @@ import {
 import toast from "react-hot-toast";
 import apiClient from "../api/apiClient";
 
+import storageService from "../api/storageService";
+
 // Capacitor bridge
-let Preferences = null;
 let Biometric = null;
 try {
   if (window.Capacitor) {
-    import('@capacitor/preferences').then(m => { Preferences = m.Preferences; });
     import('@capgo/capacitor-native-biometric').then(m => { Biometric = m.NativeBiometric; });
   }
 } catch (e) { console.log("Native plugins not available"); }
+
+
 
 const Login = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
@@ -33,10 +35,18 @@ const Login = ({ onLoginSuccess }) => {
   const [message, setMessage] = useState("");
   const isNative = !!(window.Capacitor && window.Capacitor.getPlatform() !== 'web');
 
-  const saveTokenNative = async (token) => {
-    if (isNative && Preferences) {
-      await Preferences.set({ key: 'token', value: token });
-    }
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: (codeResponse) => handleGoogleSuccess(codeResponse),
+    onError: (error) => toast.error("Google Login Failed"),
+  });
+
+  const saveCredentials = async (data) => {
+    const { token, userId, role, isVerified } = data;
+    if (token) await storageService.setItem("token", token);
+    if (userId) await storageService.setItem("userId", userId.toString());
+    if (role) await storageService.setItem("role", role);
+    if (isVerified) await storageService.setItem("isVerified", "true");
+    else await storageService.removeItem("isVerified");
   };
 
   const handleChange = (e) =>
@@ -51,13 +61,8 @@ const Login = ({ onLoginSuccess }) => {
       const res = await apiClient.post("/auth/login", form);
       const { token, profileComplete, userId, role, isVerified } = res.data;
 
-      if (token) {
-        localStorage.setItem("token", token);
-        if (isNative) await saveTokenNative(token);
-        if (userId) localStorage.setItem("userId", userId);
-        if (role) localStorage.setItem("role", role);
-        if (isVerified) localStorage.setItem("isVerified", "true");
-        else localStorage.removeItem("isVerified");
+      if (res.data.token) {
+        await saveCredentials(res.data);
       }
       onLoginSuccess?.();
 
@@ -76,37 +81,29 @@ const Login = ({ onLoginSuccess }) => {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
+  const handleGoogleSuccess = async (tokenResponse) => {
     setLoading(true);
     setMessage("");
     try {
       const res = await apiClient.post("/auth/google", {
-        token: credentialResponse.credential,
+        token: tokenResponse.access_token || tokenResponse.credential,
         role: 'USER'
       });
-      const { token, profileComplete, userId, role, isVerified } = res.data;
-
-      if (token) {
-        localStorage.setItem("token", token);
-        if (isNative) await saveTokenNative(token);
-        if (userId) localStorage.setItem("userId", userId);
-        if (role) localStorage.setItem("role", role);
-        if (isVerified) localStorage.setItem("isVerified", "true");
-        else localStorage.removeItem("isVerified");
+      if (res.data.token) {
+        await saveCredentials(res.data);
       }
       onLoginSuccess?.();
-
+      const { role, profileComplete } = res.data;
       if (role === "ROLE_ADMIN") {
         setTimeout(() => navigate("/admin-dashboard"), 600);
         return;
       }
-
       setTimeout(() => {
         navigate(profileComplete ? "/dashboard" : "/setup-profile");
       }, 600);
     } catch (err) {
+      toast.error("Google Login Failed");
       console.error(err);
-      setMessage("Google login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -185,8 +182,8 @@ const Login = ({ onLoginSuccess }) => {
                  description: "Use your fingerprint or face to sign in instantly."
               });
               if (result) {
-                const { value } = await Preferences.get({ key: 'token' });
-                if (value) {
+                const token = await storageService.getItem('token');
+                if (token) {
                   toast.success("Welcome back!");
                   onLoginSuccess?.();
                   navigate("/dashboard");
@@ -204,13 +201,15 @@ const Login = ({ onLoginSuccess }) => {
         </button>
       )}
 
-      <div style={{ margin: "20px 0", display: "flex", justifyContent: "center" }}>
-        <GoogleLogin
-          onSuccess={handleGoogleSuccess}
-          onError={handleGoogleError}
-          useOneTap
-        />
-      </div>
+      <button 
+        type="button" 
+        className="google-auth-btn" 
+        onClick={() => loginWithGoogle()}
+        disabled={loading}
+      >
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" className="google-icon" />
+        <span>Continue with Google</span>
+      </button>
 
       {message && <p className="auth-message">{message}</p>}
 

@@ -51,7 +51,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import ChatbotWidget from "./components/common/ChatbotWidget";
 import BottomNav from "./components/layout/BottomNav";
 import { NotificationProvider } from "./context/NotificationContext";
-import SplashScreen from "./components/common/SplashScreen";
+import storageService from "./api/storageService";
 
 // Styles
 import "./index.css";
@@ -95,19 +95,30 @@ const MainLayout = ({ children, isLoggedIn, userRole, isMenuOpen, toggleMenu, cl
 };
 
 const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    !!localStorage.getItem("token")
-  );
-  const [userRole, setUserRole] = useState(getUserRole());
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAppLoading, setIsAppLoading] = useState(
-    window.Capacitor && window.Capacitor.getPlatform() !== 'web'
-  );
+  const [isAppLoading, setIsAppLoading] = useState(true);
 
   const toggleMenu = () => setIsMenuOpen(prev => !prev);
   const closeMenu = () => setIsMenuOpen(false);
 
   useEffect(() => {
+    const initAuth = async () => {
+      // Sync all auth keys to ensure role, userId etc are available
+      const token = await storageService.getItem("token");
+      await storageService.getItem("role");
+      await storageService.getItem("userId");
+      
+      if (token) {
+        setIsLoggedIn(true);
+        setUserRole(getUserRole());
+      }
+      setIsAppLoading(false);
+    };
+
+    initAuth();
+
     const handleStorage = () => {
       setIsLoggedIn(!!localStorage.getItem("token"));
       setUserRole(getUserRole());
@@ -164,7 +175,7 @@ const App = () => {
               path="/"
               element={<Login onLoginSuccess={handleLoginSuccess} />}
             />
-            <Route path="/register" element={<Register />} />
+            <Route path="/register" element={<Register onLoginSuccess={handleLoginSuccess} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />

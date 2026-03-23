@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
+import { useGoogleLogin } from "@react-oauth/google";
 import {
   FiUserPlus,
   FiUser,
@@ -11,8 +11,9 @@ import {
   FiPhone,
 } from "react-icons/fi";
 import apiClient from "../api/apiClient";
+import storageService from "../api/storageService";
 
-const Register = () => {
+const Register = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -26,6 +27,12 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Custom Google Login Hook
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: (tokenResponse) => handleGoogleSuccess(tokenResponse),
+    onError: (error) => setMessage("Google Registration Failed"),
+  });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -118,30 +125,24 @@ const Register = () => {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
+  const handleGoogleSuccess = async (tokenResponse) => {
     setLoading(true);
     setMessage("");
     try {
       const res = await apiClient.post("/auth/google", {
-        token: credentialResponse.credential,
+        token: tokenResponse.access_token || tokenResponse.credential,
         role: form.role,
         fitnessGoal: form.fitnessGoal
       });
-      const { token, profileComplete, userId, role, isVerified } = res.data;
-
-      if (token) {
-        localStorage.setItem("token", token);
-        if (userId) localStorage.setItem("userId", userId);
-        if (role) localStorage.setItem("role", role);
-        if (isVerified) localStorage.setItem("isVerified", "true");
-        else localStorage.removeItem("isVerified");
+      if (res.data.token) {
+        await saveCredentials(res.data);
       }
-
+      onLoginSuccess?.();
+      const { role, profileComplete } = res.data;
       if (role === "ROLE_ADMIN") {
         setTimeout(() => navigate("/admin-dashboard"), 600);
         return;
       }
-
       setTimeout(() => {
         navigate(profileComplete ? "/dashboard" : "/setup-profile");
       }, 600);
@@ -155,6 +156,15 @@ const Register = () => {
 
   const handleGoogleError = () => {
     setMessage("Google registration was cancelled or failed.");
+  };
+
+  const saveCredentials = async (data) => {
+    const { token, userId, role, isVerified } = data;
+    if (token) await storageService.setItem("token", token);
+    if (userId) await storageService.setItem("userId", userId.toString());
+    if (role) await storageService.setItem("role", role);
+    if (isVerified) await storageService.setItem("isVerified", "true");
+    else await storageService.removeItem("isVerified");
   };
 
   const isNative = !!(window.Capacitor && window.Capacitor.getPlatform() !== 'web');
@@ -307,14 +317,16 @@ const Register = () => {
           </button>
         </form>
 
-        <div style={{ margin: "20px 0", display: "flex", justifyContent: "center" }}>
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={handleGoogleError}
-            useOneTap
-            text="signup_with"
-          />
-        </div>
+        <button 
+          type="button" 
+          className="google-auth-btn" 
+          onClick={() => loginWithGoogle()}
+          disabled={loading}
+          style={{ marginBottom: '20px' }}
+        >
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" className="google-icon" />
+          <span>{form.role === 'TRAINER' ? 'Sign up as Trainer with Google' : 'Continue with Google'}</span>
+        </button>
 
         {message && <p className="auth-message">{message}</p>}
 

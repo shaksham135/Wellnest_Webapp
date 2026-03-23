@@ -1,14 +1,4 @@
-import axios from "axios";
-
-// Capacitor bridge for persistent storage
-let Preferences = null;
-try {
-  if (window.Capacitor) {
-    import('@capacitor/preferences').then(m => {
-      Preferences = m.Preferences;
-    });
-  }
-} catch (e) { console.log("Preferences plugin not available"); }
+import storageService from "./storageService";
 
 // Production URL hardcoded for native reliability
 const baseURL = "https://wellnest-webapp.onrender.com/api";
@@ -28,17 +18,8 @@ apiClient.interceptors.request.use(async (config) => {
     return config;
   }
 
-  let token = localStorage.getItem("token");
-
-  // If on Native, try pulling from Preferences (Source of Truth)
-  if (window.Capacitor && Preferences) {
-    const { value } = await Preferences.get({ key: 'token' });
-    if (value) {
-      token = value;
-      // Keep localStorage in sync for other parts of the app
-      localStorage.setItem("token", value); 
-    }
-  }
+  // Get token from unified storage (Native-aware)
+  const token = await storageService.getItem("token");
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
