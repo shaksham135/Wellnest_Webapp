@@ -81,19 +81,63 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         summary.setStartDate(startDate);
         summary.setEndDate(endDate);
 
-        summary.setWorkoutAnalytics(calculateWorkoutAnalytics(userId, startInstant, endInstant));
+        try {
+            summary.setWorkoutAnalytics(calculateWorkoutAnalytics(userId, startInstant, endInstant));
+        } catch (Exception e) {
+            System.err.println("Error calculating workout analytics: " + e.getMessage());
+            summary.setWorkoutAnalytics(new WorkoutAnalytics());
+        }
+
         long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
-        summary.setNutritionAnalytics(calculateNutritionAnalytics(userId, startInstant, endInstant, days));
-        summary.setSleepAnalytics(calculateSleepAnalytics(user, startInstant, endInstant));
-        summary.setWaterIntakeAnalytics(calculateWaterIntakeAnalytics(user, startInstant, endInstant));
+        try {
+            summary.setNutritionAnalytics(calculateNutritionAnalytics(userId, startInstant, endInstant, days));
+        } catch (Exception e) {
+            System.err.println("Error calculating nutrition analytics: " + e.getMessage());
+            summary.setNutritionAnalytics(new NutritionAnalytics());
+        }
+
+        try {
+            summary.setSleepAnalytics(calculateSleepAnalytics(user, startInstant, endInstant));
+        } catch (Exception e) {
+            System.err.println("Error calculating sleep analytics: " + e.getMessage());
+            summary.setSleepAnalytics(new SleepAnalytics());
+        }
+
+        try {
+            summary.setWaterIntakeAnalytics(calculateWaterIntakeAnalytics(user, startInstant, endInstant));
+        } catch (Exception e) {
+            System.err.println("Error calculating water analytics: " + e.getMessage());
+            summary.setWaterIntakeAnalytics(new WaterIntakeAnalytics());
+        }
         
-        // Safety: Ensure GoalProgress doesn't return null
-        GoalProgress goalProgress = calculateGoalProgress(user, startInstant, endInstant);
-        summary.setGoalProgress(goalProgress != null ? goalProgress : new GoalProgress());
+        try {
+            GoalProgress goalProgress = calculateGoalProgress(user, startInstant, endInstant);
+            summary.setGoalProgress(goalProgress != null ? goalProgress : new GoalProgress());
+        } catch (Exception e) {
+            System.err.println("Error calculating goal progress: " + e.getMessage());
+            summary.setGoalProgress(new GoalProgress());
+        }
         
-        summary.setHealthMetrics(calculateHealthMetrics(user));
-        summary.setWorkoutConsistency(calculateWorkoutConsistency(userId));
-        summary.setDailyActivityAnalytics(calculateDailyActivityAnalytics(user, startDate, endDate, days));
+        try {
+            summary.setHealthMetrics(calculateHealthMetrics(user));
+        } catch (Exception e) {
+            System.err.println("Error calculating health metrics: " + e.getMessage());
+            summary.setHealthMetrics(new HealthMetrics());
+        }
+
+        try {
+            summary.setWorkoutConsistency(calculateWorkoutConsistency(userId));
+        } catch (Exception e) {
+            System.err.println("Error calculating workout consistency: " + e.getMessage());
+            summary.setWorkoutConsistency(new WorkoutConsistency());
+        }
+
+        try {
+            summary.setDailyActivityAnalytics(calculateDailyActivityAnalytics(user, startDate, endDate, days));
+        } catch (Exception e) {
+            System.err.println("Error calculating daily activity analytics: " + e.getMessage());
+            summary.setDailyActivityAnalytics(new DailyActivityAnalytics());
+        }
 
         return summary;
     }
@@ -314,7 +358,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             // Get the initial weight from the weight logs or use current weight as fallback
             List<WeightLog> allWeightLogs = weightLogRepository.findByUserIdOrderByLogDateAsc(user.getId());
-            double initialWeight = allWeightLogs.isEmpty() ? currentWeight : allWeightLogs.get(0).getWeightKg();
+            double initialWeight = (allWeightLogs.isEmpty() || allWeightLogs.get(0).getWeightKg() == null) 
+                    ? currentWeight 
+                    : allWeightLogs.get(0).getWeightKg();
 
             System.out.println("DEBUG GOAL: Current Weight = " + currentWeight);
             System.out.println("DEBUG GOAL: Target Weight = " + targetWeight);
@@ -406,6 +452,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             progress.setRecommendation("Try to schedule your workouts in advance to stay consistent.");
 
             Map<String, Double> weeklyTrend = workouts.stream()
+                    .filter(w -> w.getPerformedAt() != null)
                     .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
                             Collectors.collectingAndThen(Collectors.counting(), Long::doubleValue)));
             progress.setWeeklyProgressTrend(weeklyTrend);
@@ -448,6 +495,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 endDate.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant());
 
         Map<LocalDate, Integer> workoutCounts = workouts.stream()
+                .filter(w -> w.getPerformedAt() != null)
                 .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(ZoneOffset.UTC).toLocalDate(), Collectors.summingInt(w -> 1)));
 
         WorkoutConsistency consistency = new WorkoutConsistency();
