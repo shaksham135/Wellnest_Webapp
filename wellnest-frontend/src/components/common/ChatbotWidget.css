@@ -29,7 +29,6 @@
 
 .chatbot-window {
     position: absolute;
-    bottom: 80px;
     right: 0;
     width: 380px;
     height: calc(100vh - 130px);

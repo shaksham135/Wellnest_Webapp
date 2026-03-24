@@ -18,6 +18,8 @@ const ChatbotWidget = ({ isLoggedIn }) => {
     const [isDragging, setIsDragging] = useState(false);
     const dragRef = useRef(null);
     const offset = useRef({ x: 0, y: 0 });
+    const startPos = useRef({ x: 0, y: 0 });
+    const hasMovedSignificantly = useRef(false);
 
     // Sync with App's Auth State
     const [token, setToken] = useState(isLoggedIn ? localStorage.getItem('token') : null);
@@ -119,6 +121,9 @@ const ChatbotWidget = ({ isLoggedIn }) => {
     const handlePointerDown = (e) => {
         if (isOpen) return; // Don't drag if open
         setIsDragging(true);
+        hasMovedSignificantly.current = false;
+        startPos.current = { x: e.clientX, y: e.clientY };
+        
         const rect = dragRef.current.getBoundingClientRect();
         offset.current = {
             x: e.clientX - rect.left,
@@ -130,6 +135,12 @@ const ChatbotWidget = ({ isLoggedIn }) => {
     const handlePointerMove = (e) => {
         if (!isDragging) return;
         
+        // Track movement distance to distinguish between click and drag
+        const dist = Math.sqrt(Math.pow(e.clientX - startPos.current.x, 2) + Math.pow(e.clientY - startPos.current.y, 2));
+        if (dist > 10) {
+            hasMovedSignificantly.current = true;
+        }
+
         let newX = e.clientX - offset.current.x;
         let newY = e.clientY - offset.current.y;
 
@@ -139,9 +150,6 @@ const ChatbotWidget = ({ isLoggedIn }) => {
         newX = Math.max(padding, Math.min(newX, window.innerWidth - rect.width - padding));
         newY = Math.max(padding, Math.min(newY, window.innerHeight - rect.height - padding));
 
-        // Convert to offset from bottom-right (original position)
-        // Actually easier to just use translate from fixed bottom-right.
-        // Let's use fixed bottom/right instead of translate for simplicity in CSS sync.
         setPosition({
             x: window.innerWidth - (newX + rect.width),
             y: window.innerHeight - (newY + rect.height)
@@ -150,6 +158,13 @@ const ChatbotWidget = ({ isLoggedIn }) => {
 
     const handlePointerUp = () => {
         setIsDragging(false);
+    };
+
+    const handleToggleClick = () => {
+        // Only open if it wasn't a significant drag
+        if (!hasMovedSignificantly.current) {
+            setIsOpen(true);
+        }
     };
 
     return (
@@ -166,7 +181,7 @@ const ChatbotWidget = ({ isLoggedIn }) => {
             {!isOpen && (
                 <button 
                     className="chatbot-toggle" 
-                    onClick={() => setIsOpen(true)}
+                    onClick={handleToggleClick}
                     onPointerDown={handlePointerDown}
                     onPointerMove={handlePointerMove}
                     onPointerUp={handlePointerUp}
@@ -177,7 +192,14 @@ const ChatbotWidget = ({ isLoggedIn }) => {
             )}
 
             {/* Chat Window */}
-            <div className={`chatbot-window ${isOpen ? 'visible' : ''}`}>
+            <div 
+                className={`chatbot-window ${isOpen ? 'visible' : ''}`}
+                style={{
+                    // Dynamic vertical alignment: If icon is in Top Half, open Down. Else open Up.
+                    bottom: (position.y || 30) > window.innerHeight / 2 ? 'auto' : '80px',
+                    top: (position.y || 30) > window.innerHeight / 2 ? '80px' : 'auto'
+                }}
+            >
                 <div className="chatbot-header">
                     <div className="header-title">
                         <FiCpu className="bot-icon" />
