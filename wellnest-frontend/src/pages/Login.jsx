@@ -18,9 +18,11 @@ import storageService from "../api/storageService";
 
 // Capacitor bridge
 let Biometric = null;
+let Browser = null;
 try {
   if (window.Capacitor) {
     import('@capgo/capacitor-native-biometric').then(m => { Biometric = m.NativeBiometric; });
+    import('@capacitor/browser').then(m => { Browser = m.Browser; });
   }
 } catch (e) { console.log("Native plugins not available"); }
 
@@ -56,7 +58,7 @@ const Login = ({ onLoginSuccess }) => {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isNative]);
+  }, [isNative, window.location.hash]);
 
   const saveCredentials = async (data) => {
     const { token, userId, role, isVerified } = data;
@@ -124,6 +126,19 @@ const Login = ({ onLoginSuccess }) => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNativeGoogleLogin = async () => {
+    const clientId = "824393698796-2a2k17e527hbnd9irvhjv72pnngc5jc7.apps.googleusercontent.com";
+    const redirectUri = "https://wellnest-eight-psi.vercel.app/";
+    const scope = encodeURIComponent("email profile openid");
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${scope}`;
+    
+    if (Browser) {
+        await Browser.open({ url: authUrl });
+    } else {
+        window.location.assign(authUrl);
     }
   };
 
@@ -218,7 +233,7 @@ const Login = ({ onLoginSuccess }) => {
       <button 
         type="button" 
         className="google-auth-btn" 
-        onClick={() => loginWithGoogle()}
+        onClick={() => isNative ? handleNativeGoogleLogin() : loginWithGoogle()}
         disabled={loading}
       >
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" className="google-icon" />

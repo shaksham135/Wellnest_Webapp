@@ -99,6 +99,8 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isSplashFinished, setIsSplashFinished] = useState(false);
   const [isAppLoading, setIsAppLoading] = useState(true);
 
   const toggleMenu = () => setIsMenuOpen(prev => !prev);
@@ -115,11 +117,24 @@ const App = () => {
         setIsLoggedIn(true);
         setUserRole(getUserRole());
       }
-      setIsAppLoading(false);
+      setIsAuthReady(true);
     };
 
     initAuth();
 
+    // Native App URL Listener (Deep Links for Google Auth)
+    if (window.Capacitor && window.Capacitor.getPlatform() !== 'web') {
+      import('@capacitor/app').then(({ App }) => {
+        App.addListener('appUrlOpen', (data) => {
+          console.log('App opened with URL:', data.url);
+          const url = new URL(data.url);
+          if (url.hash && url.hash.includes('access_token')) {
+            // Redirect to Login page with the hash so it can be parsed there
+            window.location.hash = url.hash.substring(1);
+          }
+        });
+      });
+    }
     const handleStorage = () => {
       setIsLoggedIn(!!localStorage.getItem("token"));
       setUserRole(getUserRole());
@@ -152,8 +167,19 @@ const App = () => {
     setUserRole(getUserRole());
   };
 
+  const handleSplashFinish = () => {
+    setIsSplashFinished(true);
+  };
+
+  // Only hide the overall loading screen when BOTH Auth check and Splash animation are done
+  useEffect(() => {
+    if (isAuthReady && isSplashFinished) {
+      setIsAppLoading(false);
+    }
+  }, [isAuthReady, isSplashFinished]);
+
   if (isAppLoading) {
-    return <SplashScreen onFinish={() => setIsAppLoading(false)} />;
+    return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
   return (
