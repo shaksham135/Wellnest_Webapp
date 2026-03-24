@@ -57,6 +57,7 @@ const Login = ({ onLoginSuccess }) => {
         // Clean up hash
         window.history.replaceState({}, document.title, window.location.pathname);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNative, window.location.hash]);
 
   // Handle Initial Auto-Login check (Skip login page if token exists)
