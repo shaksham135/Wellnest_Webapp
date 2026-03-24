@@ -6,7 +6,14 @@ const baseURL = "https://wellnest-webapp.onrender.com/api";
 
 const apiClient = axios.create({
   baseURL,
+  timeout: 15000, // 15 seconds timeout
 });
+
+// Debug logging for production if needed
+apiClient.interceptors.request.use((config) => {
+  config.metadata = { startTime: new Date() };
+  return config;
+}, (error) => Promise.reject(error));
 
 apiClient.interceptors.request.use(async (config) => {
   if (
@@ -29,10 +36,17 @@ apiClient.interceptors.request.use(async (config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const duration = new Date() - response.config.metadata.startTime;
+    console.log(`API [${response.config.method.toUpperCase()}] ${response.config.url} took ${duration}ms`);
+    return response;
+  },
   (error) => {
+    if (error.code === 'ECONNABORTED') {
+      console.error("API Request Timeout:", error.config.url);
+    }
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      console.warn("API 401/403 Error:", error.response.data);
+      console.warn("API Auth Error:", error.response.data);
     }
     return Promise.reject(error);
   }

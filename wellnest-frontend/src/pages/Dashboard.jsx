@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FiUser } from "react-icons/fi";
 
 import { fetchCurrentUser } from "../api/userApi";
+import storageService from "../api/storageService";
 import UserDashboard from "../components/dashboard/UserDashboard";
 import TrainerDashboard from "../components/dashboard/TrainerDashboard";
 import SkeletonUI from "../components/common/SkeletonUI";
@@ -14,30 +15,39 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [retryTrigger, setRetryTrigger] = useState(0);
 
   /* ---------------- AUTH & DATA LOAD ---------------- */
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/");
-      return;
-    }
-
+    let isMounted = true;
     const loadData = async () => {
+      setLoading(true);
+      setError("");
       try {
+        const token = await storageService.getItem("token");
+        if (!token) {
+          if (isMounted) navigate("/");
+          return;
+        }
+
         const res = await fetchCurrentUser();
-        setUser(res.data);
+        if (isMounted) {
+          setUser(res.data);
+          setLoading(false);
+        }
       } catch (err) {
-        console.error(err);
-        const status = err.response ? err.response.status : 'Unknown';
-        setError(`Failed to load user. Status: ${status}`);
-      } finally {
-        setLoading(false);
+        console.error("Dashboard data load error:", err);
+        if (isMounted) {
+          const status = err.response ? err.response.status : (err.message || 'Unknown');
+          setError(`Unable to connect to server (${status}). Please check your internet.`);
+          setLoading(false);
+        }
       }
     };
 
     loadData();
-  }, [navigate]);
+    return () => { isMounted = false; };
+  }, [navigate, retryTrigger]);
 
   if (loading) {
     return (
@@ -74,7 +84,16 @@ const Dashboard = () => {
   if (error || !user) {
     return (
       <div className="dashboard-page">
-        <div className="dashboard-card">{error}</div>
+        <div className="dashboard-card" style={{ textAlign: 'center', padding: '40px' }}>
+          <p style={{ color: 'var(--text-main)', marginBottom: '20px' }}>{error || "Something went wrong"}</p>
+          <button 
+            className="primary-btn" 
+            onClick={() => setRetryTrigger(prev => prev + 1)}
+            style={{ width: 'auto', padding: '10px 24px' }}
+          >
+            Retry Connection
+          </button>
+        </div>
       </div>
     );
   }

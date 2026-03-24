@@ -4,8 +4,9 @@ import BlogCard from '../components/BlogCard';
 import CreatePostModal from '../components/CreatePostModal';
 import apiClient from '../api/apiClient';
 import { getPosts, createPost } from '../api/blogApi';
+import storageService from '../api/storageService';
 
-const Blog = () => {
+const Blog = ({ isLoggedIn: propIsLoggedIn }) => {
     const [posts, setPosts] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [filter, setFilter] = useState('All');
@@ -13,24 +14,13 @@ const Blog = () => {
     const [error, setError] = useState('');
     const [createError, setCreateError] = useState('');
 
-    // Check if user is logged in
-    const isLoggedIn = !!localStorage.getItem('token');
-    // We need to know if user is verified to show button, but token may not have it. 
-    // For now, we'll optimistically show it for all logged in users BUT backend will reject if not verified for Articles.
-    // OR, better, we only show for Admin/Trainer and rely on backend for Verified Users (they might see a 'Forbidden' error if we hide it? No, if we hide it they can't click).
-    // Let's check if we can get verification status. 
-    // If not, maybe we should let everyone *see* the button but `handleCreatePost` will fail if they are not verified?
-    // User asked "only they are allowed to create". Hiding the button is best UI.
-    // Let's assume for now only Admin/Trainer have the button visible, and Verified users... well, if I can't check verification, I might hide it for them too which is safe but maybe not what user wants.
-    // Wait, the prompt implies "Verified Users" are a distinct class. 
-    // Let's peek at `AuthController` or `Login` response to see if `verified` is sent.
-
+    const isLoggedIn = propIsLoggedIn !== undefined ? propIsLoggedIn : !!localStorage.getItem('token');
     const [isVerified, setIsVerified] = useState(false);
     const [userRole, setUserRole] = useState(null);
 
     useEffect(() => {
         const checkUserStatus = async () => {
-            const token = localStorage.getItem('token');
+            const token = await storageService.getItem('token');
             if (token) {
                 try {
                     const res = await apiClient.get('/users/me');

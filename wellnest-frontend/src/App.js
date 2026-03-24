@@ -135,9 +135,10 @@ const App = () => {
         });
       });
     }
-    const handleStorage = () => {
-      setIsLoggedIn(!!localStorage.getItem("token"));
-      setUserRole(getUserRole());
+    const handleStorage = async () => {
+      const token = await storageService.getItem("token");
+      setIsLoggedIn(!!token);
+      setUserRole(getUserRole(token));
     };
 
     window.addEventListener("storage", handleStorage);
@@ -162,9 +163,10 @@ const App = () => {
     };
   }, []);
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = async () => {
+    const token = await storageService.getItem("token");
     setIsLoggedIn(true);
-    setUserRole(getUserRole());
+    setUserRole(getUserRole(token));
   };
 
   const handleLogout = async () => {
@@ -255,7 +257,7 @@ const App = () => {
             <Route
               path="/analytics/workout"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <WorkoutAnalyticsDetail />
                 </ProtectedRoute>
               }
@@ -263,7 +265,7 @@ const App = () => {
             <Route
               path="/analytics/nutrition"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <NutritionAnalyticsDetail />
                 </ProtectedRoute>
               }
@@ -271,7 +273,7 @@ const App = () => {
             <Route
               path="/analytics/sleep"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <SleepAnalyticsDetail />
                 </ProtectedRoute>
               }
@@ -279,7 +281,7 @@ const App = () => {
             <Route
               path="/analytics/water"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <WaterIntakeAnalyticsDetail />
                 </ProtectedRoute>
               }
@@ -287,7 +289,7 @@ const App = () => {
             <Route
               path="/analytics/activity"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <ActivityAnalyticsDetail />
                 </ProtectedRoute>
               }
@@ -295,7 +297,7 @@ const App = () => {
             <Route
               path="/analytics/goals"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <GoalProgressDetail />
                 </ProtectedRoute>
               }
@@ -303,7 +305,7 @@ const App = () => {
             <Route
               path="/analytics/health"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <HealthMetricsDetail />
                 </ProtectedRoute>
               }
@@ -312,7 +314,7 @@ const App = () => {
             <Route
               path="/leaderboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <LeaderboardPage />
                 </ProtectedRoute>
               }
@@ -321,15 +323,15 @@ const App = () => {
             <Route
               path="/blog"
               element={
-                <ProtectedRoute>
-                  <Blog />
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
+                  <Blog isLoggedIn={isLoggedIn} />
                 </ProtectedRoute>
               }
             />
             <Route
               path="/blog/:id"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <BlogPost />
                 </ProtectedRoute>
               }
@@ -338,8 +340,8 @@ const App = () => {
             <Route
               path="/community"
               element={
-                <ProtectedRoute>
-                  <CommunityPage />
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
+                  <CommunityPage isLoggedIn={isLoggedIn} />
                 </ProtectedRoute>
               }
             />
@@ -347,7 +349,7 @@ const App = () => {
             <Route
               path="/trainers"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   {userRole === 'ROLE_TRAINER' ? <ClientDetails /> : <TrainerMatching />}
                 </ProtectedRoute>
               }
@@ -356,7 +358,7 @@ const App = () => {
             <Route
               path="/trainers/client/:clientId/analytics"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <ClientAnalyticsPage />
                 </ProtectedRoute>
               }
@@ -365,7 +367,7 @@ const App = () => {
             <Route
               path="/my-trainers"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <MyTrainers />
                 </ProtectedRoute>
               }
@@ -383,7 +385,7 @@ const App = () => {
             <Route
               path="/setup-profile"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <SetupProfile />
                 </ProtectedRoute>
               }
@@ -392,7 +394,7 @@ const App = () => {
             <Route
               path="/notifications"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <Notifications />
                 </ProtectedRoute>
               }
@@ -400,7 +402,7 @@ const App = () => {
             <Route
               path="/bmi-calculator"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <BmiCalculator />
                 </ProtectedRoute>
               }

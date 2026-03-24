@@ -184,7 +184,7 @@ const AdminDashboard = ({ onLogout }) => {
             await onLogout();
         } else {
             await storageService.clearAuth();
-            window.location.href = '/login';
+            navigate('/login');
         }
     };
 
@@ -270,7 +270,7 @@ const AdminDashboard = ({ onLogout }) => {
                 </nav>
 
                 <div className="sidebar-footer">
-                    <button onClick={() => window.location.href = '/community'} className="logout-btn-full secondary">
+                    <button onClick={() => navigate('/community')} className="logout-btn-full secondary">
                         <FiGlobe /> <span>View Community</span>
                     </button>
                     <button onClick={handleLogout} className="logout-btn-full">

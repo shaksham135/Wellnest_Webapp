@@ -6,32 +6,34 @@ import SkeletonUI from '../components/common/SkeletonUI';
 import PullToRefresh from '../components/common/PullToRefresh';
 import BottomSheet from '../components/common/BottomSheet';
 import { FiPlus, FiRefreshCw, FiFilter, FiInbox, FiClock, FiCalendar } from 'react-icons/fi';
+import storageService from '../api/storageService';
 
-const CommunityPage = () => {
+const CommunityPage = ({ isLoggedIn: propIsLoggedIn }) => {
     const [posts, setPosts] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [sortBy, setSortBy] = useState('newest');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [createError, setCreateError] = useState('');
-    const [editingPost, setEditingPost] = useState(null); // Track post being edited
+    const [editingPost, setEditingPost] = useState(null); 
     const [isSortOpen, setIsSortOpen] = useState(false);
+    const [userRole, setUserRole] = useState(null);
 
-    // Check if user is logged in
-    const isLoggedIn = !!localStorage.getItem('token');
+    // Initial load for user info
+    useEffect(() => {
+        const init = async () => {
+            const token = await storageService.getItem("token");
+            if (token) {
+                try {
+                    const payload = JSON.parse(atob(token.split(".")[1]));
+                    setUserRole(payload.role);
+                } catch (e) {}
+            }
+        };
+        init();
+    }, []);
 
-    // Get User Role
-    const getUserRole = () => {
-        const token = localStorage.getItem("token");
-        if (!token) return null;
-        try {
-            const payload = JSON.parse(atob(token.split(".")[1]));
-            return payload.role;
-        } catch (e) {
-            return null;
-        }
-    };
-    const userRole = getUserRole();
+    const isLoggedIn = propIsLoggedIn !== undefined ? propIsLoggedIn : !!userRole;
     // Only 'ROLE_USER' can post. Admins and Trainers cannot.
     const canCreatePost = isLoggedIn && userRole === 'ROLE_USER';
 
