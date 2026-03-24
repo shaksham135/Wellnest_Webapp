@@ -19,7 +19,7 @@ import {
 import { useNotifications } from "../../context/NotificationContext";
 import ThemeToggle from "../ThemeToggle"; // Adjust import path if needed
 
-import logo from '../../assets/logo.png';
+
 
 const Navbar = ({ isLoggedIn, userRole, isOpen, onToggle, onClose }) => {
     const location = useLocation();
