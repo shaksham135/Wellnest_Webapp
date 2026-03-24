@@ -197,7 +197,11 @@ const ChatbotWidget = ({ isLoggedIn }) => {
                 style={{
                     // Dynamic vertical alignment: If icon is in Top Half, open Down. Else open Up.
                     bottom: (position.y || 30) > window.innerHeight / 2 ? 'auto' : '80px',
-                    top: (position.y || 30) > window.innerHeight / 2 ? '80px' : 'auto'
+                    top: (position.y || 30) > window.innerHeight / 2 ? '80px' : 'auto',
+                    // Dynamic horizontal alignment: If icon is in Left Half, open Right. Else open Left.
+                    // Note: position.x is offset from RIGHT.
+                    right: (position.x || 30) > window.innerWidth / 2 ? 'auto' : '0',
+                    left: (position.x || 30) > window.innerWidth / 2 ? '0' : 'auto'
                 }}
             >
                 <div className="chatbot-header">
