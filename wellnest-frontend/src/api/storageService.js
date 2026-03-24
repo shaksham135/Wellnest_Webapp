@@ -1,6 +1,6 @@
 import { Preferences } from '@capacitor/preferences';
 
-const isNative = !!(window.Capacitor && window.Capacitor.getPlatform() !== 'web');
+const getIsNative = () => !!(window.Capacitor && window.Capacitor.getPlatform() !== 'web');
 
 const storageService = {
   /**
@@ -8,7 +8,7 @@ const storageService = {
    */
   async setItem(key, value) {
     localStorage.setItem(key, value);
-    if (isNative) {
+    if (getIsNative()) {
       await Preferences.set({ key, value });
     }
   },
@@ -17,7 +17,7 @@ const storageService = {
    * Get a value, trying Native Preferences first if on native, then falling back to LocalStorage
    */
   async getItem(key) {
-    if (isNative) {
+    if (getIsNative()) {
       const { value } = await Preferences.get({ key });
       if (value) {
         // Sync back to localStorage for synchronous access in components
@@ -33,7 +33,7 @@ const storageService = {
    */
   async removeItem(key) {
     localStorage.removeItem(key);
-    if (isNative) {
+    if (getIsNative()) {
       await Preferences.remove({ key });
     }
   },
@@ -44,7 +44,7 @@ const storageService = {
   async clearAuth() {
     const keys = ['token', 'userId', 'role', 'isVerified'];
     localStorage.clear(); // Safe to clear all in web-context usually
-    if (isNative) {
+    if (getIsNative()) {
       for (const key of keys) {
         await Preferences.remove({ key });
       }

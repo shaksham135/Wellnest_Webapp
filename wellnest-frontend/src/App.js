@@ -58,8 +58,8 @@ import storageService from "./api/storageService";
 import "./index.css";
 import "./trainer.css";
 
-const getUserRole = () => {
-    const token = localStorage.getItem("token");
+const getUserRole = (providedToken) => {
+    const token = providedToken || localStorage.getItem("token");
     if (!token) return null;
     try {
         const payload = JSON.parse(atob(token.split(".")[1]));
@@ -108,14 +108,13 @@ const App = () => {
 
   useEffect(() => {
     const initAuth = async () => {
-      // Sync all auth keys to ensure role, userId etc are available
       const token = await storageService.getItem("token");
-      await storageService.getItem("role");
-      await storageService.getItem("userId");
-      
       if (token) {
         setIsLoggedIn(true);
-        setUserRole(getUserRole());
+        setUserRole(getUserRole(token));
+        // Sync other keys for synchronous access
+        await storageService.getItem("role");
+        await storageService.getItem("userId");
       }
       setIsAuthReady(true);
     };
