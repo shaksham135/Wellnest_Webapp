@@ -12,6 +12,12 @@ const ChatbotWidget = ({ isLoggedIn }) => {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
+    
+    // Draggable State
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const dragRef = useRef(null);
+    const offset = useRef({ x: 0, y: 0 });
 
     // Sync with App's Auth State
     const [token, setToken] = useState(isLoggedIn ? localStorage.getItem('token') : null);
@@ -75,48 +81,66 @@ const ChatbotWidget = ({ isLoggedIn }) => {
     };
 
     const handleSend = async (e) => {
-        e.preventDefault();
-        if (!input.trim()) return;
+        // ... (previous logic)
+    };
 
-        const userMessage = input;
-        setMessages(prev => [...prev, { text: userMessage, sender: 'user' }]);
-        setInput('');
-        setLoading(true);
+    // Drag Logic
+    const handlePointerDown = (e) => {
+        if (isOpen) return; // Don't drag if open
+        setIsDragging(true);
+        const rect = dragRef.current.getBoundingClientRect();
+        offset.current = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+        e.currentTarget.setPointerCapture(e.pointerId);
+    };
 
-        // Basic Keyword Check for Guests (Frontend Gatekeeper)
-        const token = localStorage.getItem('token');
-        const restrictedKeywords = ['diet plan', 'weight loss plan', 'my stats', 'analysis', 'diagnosis', 'routine'];
+    const handlePointerMove = (e) => {
+        if (!isDragging) return;
+        
+        let newX = e.clientX - offset.current.x;
+        let newY = e.clientY - offset.current.y;
 
-        const isRestricted = restrictedKeywords.some(keyword => userMessage.toLowerCase().includes(keyword));
+        // Keep within viewport boundaries
+        const padding = 20;
+        const rect = dragRef.current.getBoundingClientRect();
+        newX = Math.max(padding, Math.min(newX, window.innerWidth - rect.width - padding));
+        newY = Math.max(padding, Math.min(newY, window.innerHeight - rect.height - padding));
 
-        if (!token && isRestricted) {
-            setTimeout(() => {
-                setMessages(prev => [...prev, {
-                    text: "I'd love to help with a personalized plan, but I need your health data first. Please login to unlock my full capabilities!",
-                    sender: 'bot',
-                    isLoginPrompt: true
-                }]);
-                setLoading(false);
-            }, 500);
-            return;
-        }
+        // Convert to offset from bottom-right (original position)
+        // Actually easier to just use translate from fixed bottom-right.
+        // Let's use fixed bottom/right instead of translate for simplicity in CSS sync.
+        setPosition({
+            x: window.innerWidth - (newX + rect.width),
+            y: window.innerHeight - (newY + rect.height)
+        });
+    };
 
-        try {
-            const response = await apiClient.post('/chat/ask', { query: userMessage });
-            setMessages(prev => [...prev, { text: response.data.response, sender: 'bot' }]);
-        } catch (error) {
-            console.error("Chat error:", error);
-            setMessages(prev => [...prev, { text: "I'm having trouble connecting to the server. Please try again later.", sender: 'bot' }]);
-        } finally {
-            setLoading(false);
-        }
+    const handlePointerUp = () => {
+        setIsDragging(false);
     };
 
     return (
-        <div className={`chatbot-container ${isOpen ? 'open' : ''}`}>
+        <div 
+            className={`chatbot-container ${isOpen ? 'open' : ''}`}
+            ref={dragRef}
+            style={{ 
+                right: `${position.x || 30}px`, 
+                bottom: `${position.y || 30}px`,
+                transition: isDragging ? 'none' : 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+            }}
+        >
             {/* Toggle Button */}
             {!isOpen && (
-                <button className="chatbot-toggle" onClick={() => setIsOpen(true)}>
+                <button 
+                    className="chatbot-toggle" 
+                    onClick={() => setIsOpen(true)}
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                >
                     <FiMessageCircle size={28} />
                 </button>
             )}
