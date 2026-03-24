@@ -7,7 +7,7 @@ import apiClient from "../api/apiClient";
 import storageService from "../api/storageService";
 import VerificationUpload from "../components/VerificationUpload";
 
-const Profile = () => {
+const Profile = ({ onLogout }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,8 +35,12 @@ const Profile = () => {
   };
 
   const handleLogout = async () => {
-    await storageService.clearAuth();
-    navigate("/");
+    if (onLogout) {
+        await onLogout();
+    } else {
+        await storageService.clearAuth();
+        navigate("/");
+    }
   };
 
   const handleChange = (e) => {

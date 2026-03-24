@@ -167,6 +167,12 @@ const App = () => {
     setUserRole(getUserRole());
   };
 
+  const handleLogout = async () => {
+    await storageService.clearAuth();
+    setIsLoggedIn(false);
+    setUserRole(null);
+  };
+
   const handleSplashFinish = () => {
     setIsSplashFinished(true);
   };
@@ -223,7 +229,7 @@ const App = () => {
               path="/dashboard"
               element={
                 <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <Dashboard onLogout={() => setIsLoggedIn(false)} />
+                  <Dashboard onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
@@ -368,8 +374,8 @@ const App = () => {
             <Route
               path="/profile"
               element={
-                <ProtectedRoute>
-                  <Profile />
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
+                  <Profile onLogout={handleLogout} />
                 </ProtectedRoute>
               }
             />
@@ -402,7 +408,9 @@ const App = () => {
             <Route
               path="/admin-dashboard"
               element={
-                <AdminDashboard />
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
+                  <AdminDashboard onLogout={handleLogout} />
+                </ProtectedRoute>
               }
             />
           </Routes>

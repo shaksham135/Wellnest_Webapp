@@ -11,7 +11,7 @@ import storageService from "../api/storageService";
 import logo from "../assets/logo.png";
 import "./AdminDashboard.css";
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ onLogout }) => {
     const [activeTab, setActiveTab] = useState("all");
     const [users, setUsers] = useState([]);
     const [trainers, setTrainers] = useState([]);
@@ -180,8 +180,12 @@ const AdminDashboard = () => {
     };
 
     const handleLogout = async () => {
-        await storageService.clearAuth();
-        window.location.href = '/login';
+        if (onLogout) {
+            await onLogout();
+        } else {
+            await storageService.clearAuth();
+            window.location.href = '/login';
+        }
     };
 
     // -- Data Filtering --
