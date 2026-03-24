@@ -27,22 +27,13 @@ const isValidToken = (token) => {
   return true;
 };
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, isLoggedIn: propIsLoggedIn }) => {
   const location = useLocation();
   const token = localStorage.getItem("token");
+  const isLoggedIn = propIsLoggedIn !== undefined ? propIsLoggedIn : isValidToken(token);
 
-  if (!isValidToken(token)) {
-    console.warn("ProtectedRoute: invalid or missing token");
-
-    if (token && isProbablyJwt(token)) {
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        if (payload?.exp && Date.now() >= payload.exp * 1000) {
-          storageService.clearAuth();
-        }
-      } catch (_) {}
-    }
-
+  if (!isLoggedIn) {
+    console.warn("ProtectedRoute: not logged in");
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 

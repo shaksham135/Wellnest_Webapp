@@ -199,7 +199,13 @@ const App = () => {
             {/* Public routes */}
             <Route
               path="/"
-              element={<Login onLoginSuccess={handleLoginSuccess} />}
+              element={
+                isLoggedIn ? (
+                  <Navigate to={userRole === "ROLE_ADMIN" ? "/admin-dashboard" : "/dashboard"} replace />
+                ) : (
+                  <Login onLoginSuccess={handleLoginSuccess} />
+                )
+              }
             />
             <Route path="/register" element={<Register onLoginSuccess={handleLoginSuccess} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -215,7 +221,7 @@ const App = () => {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <Dashboard onLogout={() => setIsLoggedIn(false)} />
                 </ProtectedRoute>
               }
@@ -224,7 +230,7 @@ const App = () => {
             <Route
               path="/trackers"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <Trackers />
                 </ProtectedRoute>
               }
@@ -233,7 +239,7 @@ const App = () => {
             <Route
               path="/analytics"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
                   <AnalyticsPage />
                 </ProtectedRoute>
               }

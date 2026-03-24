@@ -57,8 +57,25 @@ const Login = ({ onLoginSuccess }) => {
         // Clean up hash
         window.history.replaceState({}, document.title, window.location.pathname);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNative, window.location.hash]);
+
+  // Handle Initial Auto-Login check (Skip login page if token exists)
+  useEffect(() => {
+    const checkExistingSession = async () => {
+        const token = await storageService.getItem("token");
+        if (token) {
+            const role = await storageService.getItem("role");
+            const profileComplete = await storageService.getItem("isVerified") === "true"; // Simple check
+            
+            if (role === "ROLE_ADMIN") {
+                navigate("/admin-dashboard");
+            } else {
+                navigate(profileComplete ? "/dashboard" : "/setup-profile");
+            }
+        }
+    };
+    checkExistingSession();
+  }, [navigate]);
 
   const saveCredentials = async (data) => {
     const { token, userId, role, isVerified } = data;
