@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4"
+  }
+}

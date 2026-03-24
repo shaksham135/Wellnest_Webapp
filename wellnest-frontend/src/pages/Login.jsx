@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 import {
@@ -38,7 +38,24 @@ const Login = ({ onLoginSuccess }) => {
   const loginWithGoogle = useGoogleLogin({
     onSuccess: (codeResponse) => handleGoogleSuccess(codeResponse),
     onError: (error) => toast.error("Google Login Failed"),
+    ux_mode: isNative ? 'redirect' : 'popup',
+    redirect_uri: isNative ? 'http://localhost' : undefined
   });
+
+  // Handle Google Redirect Callback for Native
+  useEffect(() => {
+    if (!isNative) return;
+    
+    const params = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = params.get('access_token');
+    
+    if (accessToken) {
+        console.log("Detected Google Access Token in Hash");
+        handleGoogleSuccess({ access_token: accessToken });
+        // Clean up hash
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [isNative]);
 
   const saveCredentials = async (data) => {
     const { token, userId, role, isVerified } = data;
