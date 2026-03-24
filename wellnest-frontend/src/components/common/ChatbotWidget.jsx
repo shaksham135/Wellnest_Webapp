@@ -81,7 +81,38 @@ const ChatbotWidget = ({ isLoggedIn }) => {
     };
 
     const handleSend = async (e) => {
-        // ... (previous logic)
+        e.preventDefault();
+        if (!input.trim()) return;
+
+        const userMessage = input;
+        setMessages(prev => [...prev, { text: userMessage, sender: 'user' }]);
+        setInput('');
+        setLoading(true);
+
+        const restrictedKeywords = ['diet plan', 'weight loss plan', 'my stats', 'analysis', 'diagnosis', 'routine'];
+        const isRestricted = restrictedKeywords.some(keyword => userMessage.toLowerCase().includes(keyword));
+
+        if (!token && isRestricted) {
+            setTimeout(() => {
+                setMessages(prev => [...prev, {
+                    text: "I'd love to help with a personalized plan, but I need your health data first. Please login to unlock my full capabilities!",
+                    sender: 'bot',
+                    isLoginPrompt: true
+                }]);
+                setLoading(false);
+            }, 500);
+            return;
+        }
+
+        try {
+            const response = await apiClient.post('/chat/ask', { query: userMessage });
+            setMessages(prev => [...prev, { text: response.data.response, sender: 'bot' }]);
+        } catch (error) {
+            console.error("Chat error:", error);
+            setMessages(prev => [...prev, { text: "I'm having trouble connecting to the server. Please try again later.", sender: 'bot' }]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Drag Logic
