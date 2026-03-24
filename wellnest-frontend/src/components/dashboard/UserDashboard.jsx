@@ -9,8 +9,7 @@ import {
     FiMoon,
 } from "react-icons/fi";
 
-import { getWorkouts, getMeals, getWater, getSleep } from "../../api/trackerApi";
-import { getMyDietPlan } from "../../api/trainerApi"; // Import
+import { useData } from "../../context/DataContext";
 import apiClient from "../../api/apiClient";
 import GoalProgress from "./GoalProgress";
 import QuickActions from "./QuickActions";
@@ -19,48 +18,54 @@ import RecentActivity from "./RecentActivity";
 import AssignedPlan from "./AssignedPlan"; // Import
 
 const UserDashboard = ({ user }) => {
-    const [loading, setLoading] = useState(true);
+    const { 
+        workouts: cachedWorkouts, 
+        meals: cachedMeals, 
+        water: cachedWater, 
+        sleep: cachedSleep, 
+        goalData: cachedGoal,
+        dietPlan: cachedDiet,
+        isTrackersLoaded, 
+        refreshTrackers 
+    } = useData();
 
-    const [workouts, setWorkouts] = useState([]);
-    const [meals, setMeals] = useState([]);
-    const [water, setWater] = useState([]);
-    const [sleep, setSleep] = useState([]);
-    const [goalData, setGoalData] = useState(null);
-    const [dietPlan, setDietPlan] = useState(null); // State for plan
+    const [loading, setLoading] = useState(!isTrackersLoaded);
+    const [workouts, setWorkouts] = useState(cachedWorkouts);
+    const [meals, setMeals] = useState(cachedMeals);
+    const [water, setWater] = useState(cachedWater);
+    const [sleep, setSleep] = useState(cachedSleep);
+    const [goalData, setGoalData] = useState(cachedGoal);
+    const [dietPlan, setDietPlan] = useState(cachedDiet);
 
     const [healthTip, setHealthTip] = useState("");
     const [tipLoading, setTipLoading] = useState(true);
 
+    // Sync with context
+    useEffect(() => {
+        if (isTrackersLoaded) {
+            setWorkouts(cachedWorkouts);
+            setMeals(cachedMeals);
+            setWater(cachedWater);
+            setSleep(cachedSleep);
+            setGoalData(cachedGoal);
+            setDietPlan(cachedDiet);
+            setLoading(false);
+        }
+    }, [isTrackersLoaded, cachedWorkouts, cachedMeals, cachedWater, cachedSleep, cachedGoal, cachedDiet]);
+
     /* ---------------- LOAD TRACKERS ---------------- */
     useEffect(() => {
         const loadTrackers = async () => {
+            // Background refresh
             try {
-                const [w, m, wa, s, g, p] = await Promise.all([
-                    getWorkouts().catch(() => ({ data: [] })),
-                    getMeals().catch(() => ({ data: [] })),
-                    getWater().catch(() => ({ data: [] })),
-                    getSleep().catch(() => ({ data: [] })),
-                    apiClient.get('/analytics/summary').catch(() => ({ data: {} })),
-                    getMyDietPlan().catch(() => ({ data: null }))
-                ]);
-
-                setWorkouts(w.data || []);
-                setMeals(m.data || []);
-                setWater(wa.data || []);
-                setSleep(s.data || []);
-
-                const d = g.data || {};
-                setGoalData(d.goalProgress || null);
-
-                setDietPlan(p.data || null);
-
+                await refreshTrackers();
             } catch { } finally {
                 setLoading(false);
             }
         };
 
         loadTrackers();
-    }, []);
+    }, [refreshTrackers]);
 
     /* ---------------- DAILY HEALTH TIP ---------------- */
     /* ---------------- DAILY HEALTH TIP ---------------- */

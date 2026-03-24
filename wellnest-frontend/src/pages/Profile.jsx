@@ -2,15 +2,18 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget, FiCheck } from "react-icons/fi";
-import { fetchCurrentUser, updateUserProfile } from "../api/userApi";
+import { updateUserProfile } from "../api/userApi";
 import apiClient from "../api/apiClient";
 import storageService from "../api/storageService";
 import VerificationUpload from "../components/VerificationUpload";
+import { useData } from "../context/DataContext";
 
 const Profile = ({ onLogout }) => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { userData, isUserDataLoaded, refreshUserData } = useData();
+  
+  const [user, setUser] = useState(userData);
+  const [loading, setLoading] = useState(!isUserDataLoaded);
   const [error, setError] = useState("");
 
   // Edit Mode State
@@ -19,20 +22,29 @@ const Profile = ({ onLogout }) => {
   const [saveLoading, setSaveLoading] = useState(false);
 
   useEffect(() => {
-    loadUser();
-  }, []);
-
-  const loadUser = async () => {
-    try {
-      const res = await fetchCurrentUser();
-      setUser(res.data);
-      setFormData(res.data); // Initialize form with current data
-    } catch (err) {
-      setError("Failed to load profile.");
-    } finally {
+    if (userData) {
+      setUser(userData);
+      setFormData(userData);
       setLoading(false);
     }
-  };
+  }, [userData]);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const resData = await refreshUserData();
+        setUser(resData);
+        setFormData(resData);
+      } catch (err) {
+        console.error("Profile load error:", err);
+        setError("Failed to load profile.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [refreshUserData]);
 
   const handleLogout = async () => {
     if (onLogout) {

@@ -7,6 +7,7 @@ import {
   Route,
   useLocation,
   Navigate,
+  useNavigate
 } from "react-router-dom";
 
 // Icons removed
@@ -48,6 +49,7 @@ import HealthMetricsDetail from "./pages/detailed-analytics/HealthMetricsDetail"
 import ActivityAnalyticsDetail from "./pages/detailed-analytics/ActivityAnalyticsDetail";
 
 // Components
+import { DataProvider, useData } from "./context/DataContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SplashScreen from "./components/common/SplashScreen";
 import ChatbotWidget from "./components/common/ChatbotWidget";
@@ -96,13 +98,143 @@ const MainLayout = ({ children, isLoggedIn, userRole, isMenuOpen, toggleMenu, cl
     );
 };
 
+const AppContent = ({ 
+  isLoggedIn, setIsLoggedIn, 
+  userRole, setUserRole, 
+  isMenuOpen, setIsMenuOpen, 
+  toggleMenu, closeMenu,
+  isAuthReady, isSplashFinished,
+  handleSplashFinish
+}) => {
+  const { clearAllData } = useData();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await storageService.clearAuth();
+    if (typeof clearAllData === 'function') clearAllData();
+    setIsLoggedIn(false);
+    setUserRole(null);
+    navigate("/");
+  };
+
+  const handleLoginSuccess = async () => {
+    const token = await storageService.getItem("token");
+    setIsLoggedIn(true);
+    setUserRole(getUserRole(token));
+  };
+
+  if (!isAuthReady || !isSplashFinished) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
+
+  return (
+    <>
+      <Toaster position="top-right" toastOptions={{ style: { fontSize: '14px', fontWeight: 500 } }} />
+      <MainLayout 
+        isLoggedIn={isLoggedIn} 
+        userRole={userRole} 
+        isMenuOpen={isMenuOpen} 
+        toggleMenu={toggleMenu} 
+        closeMenu={closeMenu}
+        onLogout={handleLogout}
+      >
+        <ChatbotWidget isLoggedIn={isLoggedIn} />
+
+        <main>
+          <Routes>
+            <Route path="/" element={
+              isLoggedIn ? 
+                <Navigate to={userRole === "ROLE_ADMIN" ? "/admin-dashboard" : "/dashboard"} replace /> : 
+                <Login onLoginSuccess={handleLoginSuccess} />
+            } />
+            
+            <Route path="/register" element={<Register onLoginSuccess={handleLoginSuccess} />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+
+            <Route path="/dashboard" element={
+              <ProtectedRoute isLoggedIn={isLoggedIn}>
+                <Dashboard onLogout={handleLogout} />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin-dashboard" element={
+              <ProtectedRoute isLoggedIn={isLoggedIn}>
+                <AdminDashboard onLogout={handleLogout} />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/profile" element={
+              <ProtectedRoute isLoggedIn={isLoggedIn}>
+                <Profile onLogout={handleLogout} />
+              </ProtectedRoute>
+            } />
+
+            <Route
+              path="/trackers"
+              element={
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
+                  <Trackers />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
+                  <AnalyticsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* analytics sub-routes */}
+            <Route path="/analytics/workout" element={<ProtectedRoute isLoggedIn={isLoggedIn}><WorkoutAnalyticsDetail /></ProtectedRoute>} />
+            <Route path="/analytics/nutrition" element={<ProtectedRoute isLoggedIn={isLoggedIn}><NutritionAnalyticsDetail /></ProtectedRoute>} />
+            <Route path="/analytics/sleep" element={<ProtectedRoute isLoggedIn={isLoggedIn}><SleepAnalyticsDetail /></ProtectedRoute>} />
+            <Route path="/analytics/water" element={<ProtectedRoute isLoggedIn={isLoggedIn}><WaterIntakeAnalyticsDetail /></ProtectedRoute>} />
+            <Route path="/analytics/activity" element={<ProtectedRoute isLoggedIn={isLoggedIn}><ActivityAnalyticsDetail /></ProtectedRoute>} />
+            <Route path="/analytics/goals" element={<ProtectedRoute isLoggedIn={isLoggedIn}><GoalProgressDetail /></ProtectedRoute>} />
+            <Route path="/analytics/health" element={<ProtectedRoute isLoggedIn={isLoggedIn}><HealthMetricsDetail /></ProtectedRoute>} />
+
+            <Route path="/leaderboard" element={<ProtectedRoute isLoggedIn={isLoggedIn}><LeaderboardPage /></ProtectedRoute>} />
+            <Route path="/blog" element={<ProtectedRoute isLoggedIn={isLoggedIn}><Blog isLoggedIn={isLoggedIn} /></ProtectedRoute>} />
+            <Route path="/blog/:id" element={<ProtectedRoute isLoggedIn={isLoggedIn}><BlogPost /></ProtectedRoute>} />
+            <Route path="/community" element={<ProtectedRoute isLoggedIn={isLoggedIn}><CommunityPage isLoggedIn={isLoggedIn} /></ProtectedRoute>} />
+
+            <Route
+              path="/trainers"
+              element={
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
+                  {userRole === 'ROLE_TRAINER' ? <ClientDetails /> : <TrainerMatching />}
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="/trainers/client/:clientId/analytics" element={<ProtectedRoute isLoggedIn={isLoggedIn}><ClientAnalyticsPage /></ProtectedRoute>} />
+            <Route path="/my-trainers" element={<ProtectedRoute isLoggedIn={isLoggedIn}><MyTrainers /></ProtectedRoute>} />
+            <Route path="/setup-profile" element={<ProtectedRoute isLoggedIn={isLoggedIn}><SetupProfile /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute isLoggedIn={isLoggedIn}><Notifications /></ProtectedRoute>} />
+            <Route path="/bmi-calculator" element={<ProtectedRoute isLoggedIn={isLoggedIn}><BmiCalculator /></ProtectedRoute>} />
+
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/support" element={<Support />} />
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      </MainLayout>
+    </>
+  );
+};
+
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isSplashFinished, setIsSplashFinished] = useState(false);
-  const [isAppLoading, setIsAppLoading] = useState(true);
 
   const toggleMenu = () => setIsMenuOpen(prev => !prev);
   const closeMenu = () => setIsMenuOpen(false);
@@ -163,262 +295,22 @@ const App = () => {
     };
   }, []);
 
-  const handleLoginSuccess = async () => {
-    const token = await storageService.getItem("token");
-    setIsLoggedIn(true);
-    setUserRole(getUserRole(token));
-  };
-
-  const handleLogout = async () => {
-    await storageService.clearAuth();
-    setIsLoggedIn(false);
-    setUserRole(null);
-  };
-
-  const handleSplashFinish = () => {
-    setIsSplashFinished(true);
-  };
-
-  // Only hide the overall loading screen when BOTH Auth check and Splash animation are done
-  useEffect(() => {
-    if (isAuthReady && isSplashFinished) {
-      setIsAppLoading(false);
-    }
-  }, [isAuthReady, isSplashFinished]);
-
-  if (isAppLoading) {
-    return <SplashScreen onFinish={handleSplashFinish} />;
-  }
+  const handleSplashFinish = () => setIsSplashFinished(true);
 
   return (
     <NotificationProvider>
-      <Router>
-        <Toaster position="top-right" toastOptions={{ style: { fontSize: '14px', fontWeight: 500 } }} />
-      <MainLayout 
-        isLoggedIn={isLoggedIn} 
-        userRole={userRole} 
-        isMenuOpen={isMenuOpen} 
-        toggleMenu={toggleMenu} 
-        closeMenu={closeMenu}
-      >
-        <ChatbotWidget isLoggedIn={isLoggedIn} />
-
-        <main>
-          <Routes>
-            {/* Public routes */}
-            <Route
-              path="/"
-              element={
-                isLoggedIn ? (
-                  <Navigate to={userRole === "ROLE_ADMIN" ? "/admin-dashboard" : "/dashboard"} replace />
-                ) : (
-                  <Login onLoginSuccess={handleLoginSuccess} />
-                )
-              }
-            />
-            <Route path="/register" element={<Register onLoginSuccess={handleLoginSuccess} />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/support" element={<Support />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/support" element={<Support />} />
-
-            {/* Protected routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <Dashboard onLogout={handleLogout} />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/trackers"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <Trackers />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/analytics"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <AnalyticsPage />
-                </ProtectedRoute>
-              }
-            />
-            {/* ... analytics sub-routes ... */}
-            <Route
-              path="/analytics/workout"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <WorkoutAnalyticsDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics/nutrition"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <NutritionAnalyticsDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics/sleep"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <SleepAnalyticsDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics/water"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <WaterIntakeAnalyticsDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics/activity"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <ActivityAnalyticsDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics/goals"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <GoalProgressDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics/health"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <HealthMetricsDetail />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/leaderboard"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <LeaderboardPage />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/blog"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <Blog isLoggedIn={isLoggedIn} />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/blog/:id"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <BlogPost />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/community"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <CommunityPage isLoggedIn={isLoggedIn} />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/trainers"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  {userRole === 'ROLE_TRAINER' ? <ClientDetails /> : <TrainerMatching />}
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/trainers/client/:clientId/analytics"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <ClientAnalyticsPage />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/my-trainers"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <MyTrainers />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <Profile onLogout={handleLogout} />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/setup-profile"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <SetupProfile />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/notifications"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <Notifications />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/bmi-calculator"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <BmiCalculator />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin-dashboard"
-              element={
-                <ProtectedRoute isLoggedIn={isLoggedIn}>
-                  <AdminDashboard onLogout={handleLogout} />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </main>
-      </MainLayout>
-    </Router>
+      <DataProvider>
+        <Router>
+          <AppContent 
+            isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}
+            userRole={userRole} setUserRole={setUserRole}
+            isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen}
+            toggleMenu={toggleMenu} closeMenu={closeMenu}
+            isAuthReady={isAuthReady} isSplashFinished={isSplashFinished}
+            handleSplashFinish={handleSplashFinish}
+          />
+        </Router>
+      </DataProvider>
     </NotificationProvider>
   );
 };

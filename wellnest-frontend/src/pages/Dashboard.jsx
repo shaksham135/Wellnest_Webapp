@@ -3,25 +3,37 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiUser } from "react-icons/fi";
 
-import { fetchCurrentUser } from "../api/userApi";
 import storageService from "../api/storageService";
+import { useData } from "../context/DataContext";
 import UserDashboard from "../components/dashboard/UserDashboard";
 import TrainerDashboard from "../components/dashboard/TrainerDashboard";
 import SkeletonUI from "../components/common/SkeletonUI";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { userData, isUserDataLoaded, refreshUserData } = useData();
 
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(userData);
+  const [loading, setLoading] = useState(!isUserDataLoaded);
   const [error, setError] = useState("");
   const [retryTrigger, setRetryTrigger] = useState(0);
+
+  // Keep local user in sync with context
+  useEffect(() => {
+    if (userData) {
+      setUser(userData);
+      setLoading(false);
+    }
+  }, [userData]);
 
   /* ---------------- AUTH & DATA LOAD ---------------- */
   useEffect(() => {
     let isMounted = true;
     const loadData = async () => {
-      setLoading(true);
+      // If we already have data, don't show skeletons, just refresh in background
+      if (!userData) {
+        setLoading(true);
+      }
       setError("");
       try {
         const token = await storageService.getItem("token");
@@ -30,9 +42,9 @@ const Dashboard = () => {
           return;
         }
 
-        const res = await fetchCurrentUser();
+        const resData = await refreshUserData();
         if (isMounted) {
-          setUser(res.data);
+          setUser(resData);
           setLoading(false);
         }
       } catch (err) {
@@ -47,7 +59,7 @@ const Dashboard = () => {
 
     loadData();
     return () => { isMounted = false; };
-  }, [navigate, retryTrigger]);
+  }, [navigate, retryTrigger, userData, refreshUserData]);
 
   if (loading) {
     return (
