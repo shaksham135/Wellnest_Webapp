@@ -164,7 +164,7 @@ const Login = ({ onLoginSuccess }) => {
     <form id="login-form" className="login-form-card" onSubmit={handleSubmit}>
       {isNative && (
         <div className="auth-logo-header">
-           <img src="/logo192.png" alt="Wellnest Logo" className="auth-logo" />
+           <img src="/logo_wellnest.png" alt="Wellnest Logo" className="auth-logo" />
            <h2 className="auth-brand-name">Wellnest</h2>
         </div>
       )}

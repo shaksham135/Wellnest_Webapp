@@ -33,7 +33,7 @@ const Navbar = ({ isLoggedIn, userRole, isOpen, onToggle, onClose }) => {
         <header className="top-nav">
             <div className="nav-bar-header">
                 <Link to={isLoggedIn ? (userRole === 'ROLE_ADMIN' ? "/admin-dashboard" : "/dashboard") : "/"} className="logo-link">
-                    <img src={logo} alt="Wellnest" className="logo-image" />
+                    <img src="/logo_wellnest.png" alt="Wellnest" className="logo-image" />
                     <span className="logo-text">Wellnest</span>
                 </Link>
 

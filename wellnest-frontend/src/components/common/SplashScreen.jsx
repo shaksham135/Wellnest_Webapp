@@ -18,7 +18,7 @@ const SplashScreen = ({ onFinish }) => {
   return (
     <div className={`splash-container ${fade}`}>
       <div className="splash-content">
-        <img src="/logo512.png" alt="Wellnest Logo" className="splash-logo" />
+        <img src="/logo_wellnest.png" alt="Wellnest Logo" className="splash-logo" />
         <h1 className="splash-title">Wellnest</h1>
         <div className="splash-loader"></div>
       </div>
