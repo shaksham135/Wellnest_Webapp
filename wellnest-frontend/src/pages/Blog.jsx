@@ -5,12 +5,14 @@ import CreatePostModal from '../components/CreatePostModal';
 import apiClient from '../api/apiClient';
 import { getPosts, createPost } from '../api/blogApi';
 import storageService from '../api/storageService';
+import cacheService from '../api/cacheService';
 
 const Blog = ({ isLoggedIn: propIsLoggedIn }) => {
-    const [posts, setPosts] = useState([]);
+    const cacheKey = '/blog/posts';
+    const [posts, setPosts] = useState(cacheService.get(cacheKey) || []);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [filter, setFilter] = useState('All');
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!cacheService.get(cacheKey));
     const [error, setError] = useState('');
     const [createError, setCreateError] = useState('');
 
@@ -51,6 +53,7 @@ const Blog = ({ isLoggedIn: propIsLoggedIn }) => {
                 ['Admin', 'Trainer', 'Verified User'].includes(post.role)
             );
             setPosts(articlePosts);
+            cacheService.set(cacheKey, articlePosts);
         } catch (err) {
             console.error('Error fetching posts:', err);
             setError('Failed to load articles. Please try again.');

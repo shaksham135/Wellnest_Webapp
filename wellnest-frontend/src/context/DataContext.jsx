@@ -3,6 +3,7 @@ import { fetchCurrentUser } from '../api/userApi';
 import { getWorkouts, getMeals, getWater, getSleep } from '../api/trackerApi';
 import { getMyDietPlan } from '../api/trainerApi';
 import apiClient from '../api/apiClient';
+import cacheService from '../api/cacheService';
 
 const DataContext = createContext();
 
@@ -72,6 +73,7 @@ export const DataProvider = ({ children }) => {
         setDietPlan(null);
         setIsUserDataLoaded(false);
         setIsTrackersLoaded(false);
+        cacheService.clear();
     }, []);
 
     const value = {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from "../api/apiClient";
+import cacheService from "../api/cacheService";
 import GoalProgress from "../components/dashboard/GoalProgress";
 import WorkoutAnalytics from "../components/dashboard/WorkoutAnalytics";
 import NutritionAnalytics from "../components/dashboard/NutritionAnalytics";
@@ -13,8 +14,9 @@ import DailyActivitySummary from "../components/dashboard/DailyActivitySummary";
 import './AnalyticsPage.css';
 
 const AnalyticsPage = () => {
-    const [analyticsData, setAnalyticsData] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const cacheKey = '/analytics/summary';
+    const [analyticsData, setAnalyticsData] = useState(cacheService.get(cacheKey) || null);
+    const [loading, setLoading] = useState(!cacheService.get(cacheKey));
     const [error, setError] = useState(null);
 
     const fetchAnalytics = useCallback(async () => {
@@ -22,6 +24,7 @@ const AnalyticsPage = () => {
         try {
             const response = await apiClient.get('/analytics/summary');
             setAnalyticsData(response.data);
+            cacheService.set(cacheKey, response.data);
         } catch (err) {
             setError('Failed to fetch analytics data.');
             console.error(err);

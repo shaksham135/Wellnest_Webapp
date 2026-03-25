@@ -14,6 +14,7 @@ import {
   getActivity,
 } from "../api/trackerApi";
 import 'react-circular-progressbar/dist/styles.css';
+import cacheService from "../api/cacheService";
 // No simple icons used currently
 
 import toast from "react-hot-toast";
@@ -71,11 +72,11 @@ const Trackers = () => {
     distanceKm: 0.0
   });
 
-  const [recentWorkouts, setRecentWorkouts] = useState([]);
+  const [recentWorkouts, setRecentWorkouts] = useState(cacheService.get('/trackers/workouts') || []);
 
-  const [recentWater, setRecentWater] = useState([]);
-  const [recentSleep, setRecentSleep] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
+  const [recentWater, setRecentWater] = useState(cacheService.get('/trackers/water') || []);
+  const [recentSleep, setRecentSleep] = useState(cacheService.get('/trackers/sleep') || []);
+  const [recentActivity, setRecentActivity] = useState(cacheService.get('/trackers/activity') || []);
 
   const [targets, setTargets] = useState({
     targetWorkoutsPerWeek: 4,
@@ -199,18 +200,22 @@ const Trackers = () => {
         if (tab === "workout") {
           const res = await getWorkouts();
           setRecentWorkouts(res.data || []);
+          cacheService.set('/trackers/workouts', res.data || []);
         } else if (tab === "meal") {
           await getMeals();
           // Meals not currently displayed in list
         } else if (tab === "water") {
           const res = await getWater();
           setRecentWater(res.data || []);
+          cacheService.set('/trackers/water', res.data || []);
         } else if (tab === "sleep") {
           const res = await getSleep();
           setRecentSleep(res.data || []);
+          cacheService.set('/trackers/sleep', res.data || []);
         } else if (tab === "activity") {
           const res = await getActivity();
           setRecentActivity(res.data || []);
+          cacheService.set('/trackers/activity', res.data || []);
         }
       } catch (err) {}
     };

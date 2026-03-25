@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import DetailPage from '../../components/DetailPage';
 import apiClient from '../../api/apiClient';
+import cacheService from '../../api/cacheService';
 import { Doughnut } from 'react-chartjs-2';
-import './DetailedAnalytics.css';
 
 const HealthMetricsDetail = () => {
-    const [analyticsData, setAnalyticsData] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const cacheKey = '/analytics/summary';
+    const cachedData = cacheService.get(cacheKey)?.healthMetrics || null;
+    const [analyticsData, setAnalyticsData] = useState(cachedData);
+    const [loading, setLoading] = useState(!cachedData);
     const [error, setError] = useState(null);
 
     useEffect(() => {
@@ -14,6 +16,7 @@ const HealthMetricsDetail = () => {
             try {
                 const response = await apiClient.get('/analytics/summary');
                 setAnalyticsData(response.data.healthMetrics);
+                cacheService.set(cacheKey, response.data);
             } catch (err) {
                 setError('Failed to fetch health metrics data.');
                 console.error(err);

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import DetailPage from '../../components/DetailPage';
 import apiClient from '../../api/apiClient';
+import cacheService from '../../api/cacheService';
 import { Line } from 'react-chartjs-2';
-import './DetailedAnalytics.css';
 
 const SleepAnalyticsDetail = () => {
-    const [analyticsData, setAnalyticsData] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const cacheKey = '/analytics/summary';
+    const cachedData = cacheService.get(cacheKey)?.sleepAnalytics || null;
+    const [analyticsData, setAnalyticsData] = useState(cachedData);
+    const [loading, setLoading] = useState(!cachedData);
     const [error, setError] = useState(null);
 
     useEffect(() => {
@@ -14,6 +16,7 @@ const SleepAnalyticsDetail = () => {
             try {
                 const response = await apiClient.get('/analytics/summary');
                 setAnalyticsData(response.data.sleepAnalytics);
+                cacheService.set(cacheKey, response.data);
             } catch (err) {
                 setError('Failed to fetch sleep analytics data.');
                 console.error(err);

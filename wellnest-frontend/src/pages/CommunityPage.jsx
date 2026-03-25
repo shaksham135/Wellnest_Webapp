@@ -7,12 +7,14 @@ import PullToRefresh from '../components/common/PullToRefresh';
 import BottomSheet from '../components/common/BottomSheet';
 import { FiPlus, FiRefreshCw, FiFilter, FiInbox, FiClock, FiCalendar } from 'react-icons/fi';
 import storageService from '../api/storageService';
+import cacheService from '../api/cacheService';
 
 const CommunityPage = ({ isLoggedIn: propIsLoggedIn }) => {
-    const [posts, setPosts] = useState([]);
+    const cacheKey = '/community/posts';
+    const [posts, setPosts] = useState(cacheService.get(cacheKey) || []);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [sortBy, setSortBy] = useState('newest');
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!cacheService.get(cacheKey));
     const [error, setError] = useState('');
     const [createError, setCreateError] = useState('');
     const [editingPost, setEditingPost] = useState(null); 
@@ -52,6 +54,7 @@ const CommunityPage = ({ isLoggedIn: propIsLoggedIn }) => {
             const communityPosts = allPosts.filter(post => post.role === 'User' || post.category === 'Community');
 
             setPosts(communityPosts);
+            cacheService.set(cacheKey, communityPosts);
         } catch (err) {
             console.error('Error fetching posts:', err);
             setError('Failed to load community posts. Please try again.');

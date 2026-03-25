@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { getWeeklyLeaderboard } from "../api/leaderboardApi";
 import { FiAward, FiInfo } from "react-icons/fi";
+import cacheService from "../api/cacheService";
 import "../index.css";
 
 const LeaderboardPage = () => {
-    const [topUsers, setTopUsers] = useState([]);
-    const [currentUser, setCurrentUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const cacheKey = '/leaderboard/weekly';
+    const cachedData = cacheService.get(cacheKey) || {};
+    
+    const [topUsers, setTopUsers] = useState(cachedData.topUsers || []);
+    const [currentUser, setCurrentUser] = useState(cachedData.currentUserEntry || null);
+    const [loading, setLoading] = useState(!cachedData.topUsers);
     const [error, setError] = useState("");
 
     useEffect(() => {
@@ -16,6 +20,7 @@ const LeaderboardPage = () => {
                 // Response structure: { topUsers: [...], currentUserEntry: {...} }
                 setTopUsers(response.data.topUsers || []);
                 setCurrentUser(response.data.currentUserEntry);
+                cacheService.set(cacheKey, response.data);
             } catch (err) {
                 console.error(err);
                 setError("Failed to load leaderboard");
