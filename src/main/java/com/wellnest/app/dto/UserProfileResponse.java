@@ -21,6 +21,7 @@ public class UserProfileResponse {
     @com.fasterxml.jackson.annotation.JsonProperty("isVerified")
     private boolean isVerified;
     private boolean verificationRequested;
+    private boolean isPremium;
     private GoalTargetsDto targets;
 
     public UserProfileResponse() {
@@ -29,7 +30,7 @@ public class UserProfileResponse {
     public UserProfileResponse(String name, String email, String role,
             Integer age, Double heightCm, Double weightKg,
             String gender, String fitnessGoal, String phone,
-            boolean isVerified, boolean verificationRequested,
+            boolean isVerified, boolean verificationRequested, boolean isPremium,
             GoalTargetsDto targets) {
         this.name = name;
         this.email = email;
@@ -40,6 +41,7 @@ public class UserProfileResponse {
         this.gender = gender;
         this.fitnessGoal = fitnessGoal;
         this.phone = phone;
+        this.isPremium = isPremium;
         this.isVerified = isVerified;
         this.verificationRequested = verificationRequested;
         this.targets = targets;

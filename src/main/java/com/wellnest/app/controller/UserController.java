@@ -47,6 +47,7 @@ public class UserController {
                 user.getPhone(),
                 user.isVerified(),
                 user.isVerificationRequested(),
+                user.isPremium(),
                 targets);
         return ResponseEntity.ok(dto);
     }
@@ -94,6 +95,7 @@ public class UserController {
                 user.getPhone(),
                 user.isVerified(),
                 user.isVerificationRequested(),
+                user.isPremium(),
                 targets);
         return ResponseEntity.ok(dto);
     }
@@ -143,5 +145,14 @@ public class UserController {
         user.setFcmToken(payload.get("token"));
         userService.save(user);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/me/toggle-premium")
+    public ResponseEntity<Boolean> togglePremium(Authentication auth) {
+        String email = auth.getName();
+        User user = userService.findByEmail(email).orElseThrow();
+        user.setPremium(!user.isPremium());
+        userService.save(user);
+        return ResponseEntity.ok(user.isPremium());
     }
 }

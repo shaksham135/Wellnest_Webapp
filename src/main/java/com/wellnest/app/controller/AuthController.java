@@ -268,7 +268,8 @@ public class AuthController {
                         user.getRole(),
                         profileComplete,
                         user.getId(),
-                        user.isVerified()));
+                        user.isVerified(),
+                        user.isPremium()));
 
             } else {
                 return ResponseEntity.status(401).body("Invalid Google token.");
@@ -321,7 +322,8 @@ public class AuthController {
                             "ROLE_ADMIN",
                             true,
                             adminId,
-                            true // isVerified
+                            true, // isVerified
+                            true  // Admin is always premium
                     ));
                 } else {
                     System.out.println("LOGIN FAILED: Admin password mismatch.");
@@ -355,7 +357,8 @@ public class AuthController {
                     user.getRole(),
                     profileComplete,
                     user.getId(),
-                    user.isVerified()));
+                    user.isVerified(),
+                    user.isPremium()));
 
         } catch (BadCredentialsException ex) {
             System.out.println("LOGIN FAILED: Bad credentials for database user.");

@@ -12,7 +12,13 @@ import {
   getWater,
   getSleep,
   getActivity,
+  deleteWorkout,
+  deleteMeal,
+  deleteWater,
+  deleteSleep,
+  deleteActivity,
 } from "../api/trackerApi";
+import { FiTrash2 } from "react-icons/fi";
 import 'react-circular-progressbar/dist/styles.css';
 import cacheService from "../api/cacheService";
 // No simple icons used currently
@@ -303,6 +309,66 @@ const Trackers = () => {
     }
   };
 
+  const onDeleteWorkout = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this workout?")) return;
+    try {
+      await deleteWorkout(id);
+      toast.success("Workout deleted");
+      setRecentWorkouts(recentWorkouts.filter(w => w.id !== id));
+      cacheService.set('/trackers/workouts', recentWorkouts.filter(w => w.id !== id));
+    } catch (err) {
+      toast.error("Failed to delete workout");
+    }
+  };
+
+  const onDeleteMeal = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this meal?")) return;
+    try {
+      await deleteMeal(id);
+      toast.success("Meal deleted");
+      setRecentMeals(recentMeals.filter(m => m.id !== id));
+      cacheService.set('/trackers/meals', recentMeals.filter(m => m.id !== id));
+    } catch (err) {
+      toast.error("Failed to delete meal");
+    }
+  };
+
+  const onDeleteWater = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this log?")) return;
+    try {
+      await deleteWater(id);
+      toast.success("Log deleted");
+      setRecentWater(recentWater.filter(w => w.id !== id));
+      cacheService.set('/trackers/water', recentWater.filter(w => w.id !== id));
+    } catch (err) {
+      toast.error("Failed to delete log");
+    }
+  };
+
+  const onDeleteSleep = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this sleep log?")) return;
+    try {
+      await deleteSleep(id);
+      toast.success("Sleep log deleted");
+      setRecentSleep(recentSleep.filter(s => s.id !== id));
+      cacheService.set('/trackers/sleep', recentSleep.filter(s => s.id !== id));
+    } catch (err) {
+      toast.error("Failed to delete sleep log");
+    }
+  };
+
+  const onDeleteActivity = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this activity?")) return;
+    try {
+      await deleteActivity(id);
+      toast.success("Activity deleted");
+      setRecentActivity(recentActivity.filter(a => a.id !== id));
+      cacheService.set('/trackers/activity', recentActivity.filter(a => a.id !== id));
+    } catch (err) {
+      toast.error("Failed to delete activity");
+    }
+  };
+
   return (
     <>
       {editingGoal && (
@@ -351,9 +417,14 @@ const Trackers = () => {
                          <strong>{w.type ? w.type.charAt(0).toUpperCase() + w.type.slice(1) : "Workout"}</strong>
                          <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(w.performedAt || w.createdAt).toLocaleDateString()}</div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                         <div>{w.durationMinutes} min</div>
-                         <div style={{ color: '#ef4444', fontSize: '13px', fontWeight: 'bold' }}>{w.caloriesBurned} kcal</div>
+                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                         <div>
+                            <div>{w.durationMinutes} min</div>
+                            <div style={{ color: '#ef4444', fontSize: '13px', fontWeight: 'bold' }}>{w.caloriesBurned} kcal</div>
+                         </div>
+                         <button onClick={() => onDeleteWorkout(w.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                            <FiTrash2 size={18} />
+                         </button>
                     </div>
                   </div>
                 ))}
@@ -376,8 +447,13 @@ const Trackers = () => {
                          <strong>{m.mealType ? m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1) : "Meal"}</strong>
                          <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(m.loggedAt || m.createdAt).toLocaleDateString()}</div>
                     </div>
-                    <div style={{ textAlign: 'right', color: '#f59e0b', fontSize: '16px', fontWeight: 'bold' }}>
-                         {m.calories} kcal
+                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                         <div style={{ color: '#f59e0b', fontSize: '16px', fontWeight: 'bold' }}>
+                            {m.calories} kcal
+                         </div>
+                         <button onClick={() => onDeleteMeal(m.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                            <FiTrash2 size={18} />
+                         </button>
                     </div>
                   </div>
                 ))}
@@ -405,8 +481,13 @@ const Trackers = () => {
                          <strong>Water</strong>
                          <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(w.loggedAt || w.createdAt).toLocaleDateString()} {new Date(w.loggedAt || w.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                     </div>
-                    <div style={{ textAlign: 'right', color: '#3b82f6', fontSize: '16px', fontWeight: 'bold' }}>
-                         {w.liters || w.amountLiters || w.amount} L
+                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                         <div style={{ color: '#3b82f6', fontSize: '16px', fontWeight: 'bold' }}>
+                            {w.liters || w.amountLiters || w.amount} L
+                         </div>
+                         <button onClick={() => onDeleteWater(w.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                            <FiTrash2 size={18} />
+                         </button>
                     </div>
                   </div>
                 ))}
@@ -434,8 +515,13 @@ const Trackers = () => {
                          <strong>Sleep</strong>
                          <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(s.sleepDate || s.createdAt).toLocaleDateString()}</div>
                     </div>
-                    <div style={{ textAlign: 'right', color: '#8b5cf6', fontSize: '16px', fontWeight: 'bold' }}>
-                         {s.hours} hours
+                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                         <div style={{ color: '#8b5cf6', fontSize: '16px', fontWeight: 'bold' }}>
+                            {s.hours} hours
+                         </div>
+                         <button onClick={() => onDeleteSleep(s.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                            <FiTrash2 size={18} />
+                         </button>
                     </div>
                   </div>
                 ))}
@@ -473,6 +559,27 @@ const Trackers = () => {
                      <button type="button" onClick={handleSyncToCloud} className="primary-btn" style={{ marginTop: '10px', backgroundColor: '#3b82f6', color: '#fff' }}>Sync Live Steps to Cloud</button>
                   )}
                </form>
+
+               <div className="recent-logs" style={{ marginTop: '24px' }}>
+                 <h3>Recent Activity</h3>
+                 {recentActivity.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No recent activity logs.</p> : recentActivity.slice(0, 5).map((a, i) => (
+                   <div key={i} className="card" style={{ padding: '15px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <div>
+                          <strong>Activity</strong>
+                          <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(a.date || a.createdAt).toLocaleDateString()}</div>
+                     </div>
+                     <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div>
+                             <div>{a.steps} steps</div>
+                             <div style={{ color: '#22c55e', fontSize: '13px', fontWeight: 'bold' }}>{a.activeCalories} kcal</div>
+                          </div>
+                          <button onClick={() => onDeleteActivity(a.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                             <FiTrash2 size={18} />
+                          </button>
+                     </div>
+                   </div>
+                 ))}
+               </div>
             </>
           )}
         </div>

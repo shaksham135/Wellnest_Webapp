@@ -15,14 +15,17 @@ public class AuthResponse {
     @com.fasterxml.jackson.annotation.JsonProperty("isVerified")
     private boolean isVerified;
 
+    private boolean isPremium;
+
     public AuthResponse(String token, String message, String role, boolean profileComplete, Long userId,
-            boolean isVerified) {
+            boolean isVerified, boolean isPremium) {
         this.token = token;
         this.message = message;
         this.role = role;
         this.profileComplete = profileComplete;
         this.userId = userId;
         this.isVerified = isVerified;
+        this.isPremium = isPremium;
     }
 
 }

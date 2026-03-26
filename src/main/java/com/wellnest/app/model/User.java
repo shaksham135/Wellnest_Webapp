@@ -17,6 +17,9 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
+    private boolean isPremium = false;
+
     private String name;
 
     @Column(nullable = false, unique = true)

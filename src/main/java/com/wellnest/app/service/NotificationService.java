@@ -24,14 +24,25 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final GroqService groqService;
+    private final TrackerService trackerService;
     private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
+
+    private static final String[] STATIC_TIPS = {
+        "Pro tip: Drinking water before meals can aid digestion and weight management. 💡",
+        "Consistency is key! Even a 10-minute walk counts towards your fitness goals. 🚶‍♂️",
+        "Getting 7-8 hours of sleep helps your muscles recover faster after workouts. 😴",
+        "High-protein snacks like Greek yogurt or nuts help keep you full longer. 🥜",
+        "Try deep breathing for 5 minutes today to reduce stress and improve focus. 🧘‍♀️"
+    };
 
     public NotificationService(NotificationRepository notificationRepository, 
                                UserRepository userRepository,
-                               GroqService groqService) {
+                               GroqService groqService,
+                               TrackerService trackerService) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.groqService = groqService;
+        this.trackerService = trackerService;
     }
 
     public void createNotification(Long userId, String title, String message, String type) {
@@ -86,18 +97,49 @@ public class NotificationService {
             String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
             String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "wellbeing";
 
-            String tip = groqService.generateNotification(role, name, "Daily health tip focused on " + goal);
+            String tip;
+            String title = "Daily Health Tip";
+
+            if (user.isPremium()) {
+                title = "Your AI Coach Nudge";
+                // Gather Context for Premium
+                StringBuilder context = new StringBuilder();
+                context.append("Goal: ").append(goal).append(". ");
+                
+                try {
+                    var workouts = trackerService.getWorkoutsForUser(user.getId());
+                    if (!workouts.isEmpty()) {
+                        var last = workouts.get(0);
+                        context.append("Last workout: ").append(last.getType()).append(" for ").append(last.getDurationMinutes()).append(" mins. ");
+                    }
+                    
+                    var water = trackerService.getWaterForUser(user.getId());
+                    double waterToday = water.stream()
+                        .filter(w -> w.getLoggedAt().isAfter(startOfToday.toInstant(java.time.ZoneOffset.UTC)))
+                        .mapToDouble(com.wellnest.app.model.WaterIntake::getLiters)
+                        .sum();
+                    context.append("Water today: ").append(String.format("%.1f", waterToday)).append("L (Target: ").append(user.getTargetWaterLiters()).append("L). ");
+                } catch (Exception e) {
+                    context.append("Keep pushing towards your goals!");
+                }
+
+                tip = groqService.generateNotification(role, name, context.toString());
+            } else {
+                // Normal User: Standard Tip + Upsell
+                int index = (int) (Math.random() * STATIC_TIPS.length);
+                tip = STATIC_TIPS[index] + "\n\n✨ Upgrade to Wellnest Premium for personalized AI coaching!";
+            }
             
-            // Standard fallback if AI fails
-            if (tip == null || tip.contains("Error") || tip.length() > 200) {
-                tip = "Pro tip: Drinking water before meals can aid digestion and weight management. 💡";
+            // Standard fallback if AI fails or returns error
+            if (tip == null || tip.contains("Error") || tip.length() > 300) {
+                tip = STATIC_TIPS[0];
             }
 
-            Notification notification = new Notification(user, "Daily Health Tip", tip, "INFO");
+            Notification notification = new Notification(user, title, tip, "INFO");
             notificationRepository.save(notification);
 
             // Also push to mobile
-            sendFcmNotification(user, "Daily Health Tip", tip);
+            sendFcmNotification(user, title, tip);
         }
     }
 

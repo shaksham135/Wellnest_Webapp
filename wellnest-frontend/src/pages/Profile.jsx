@@ -1,16 +1,18 @@
 // src/pages/Profile.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget, FiCheck, FiZap, FiStar } from "react-icons/fi";
+import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget, FiCheck, FiZap, FiStar, FiBell } from "react-icons/fi";
 import { updateUserProfile, togglePremium } from "../api/userApi";
 import apiClient from "../api/apiClient";
 import storageService from "../api/storageService";
 import VerificationUpload from "../components/VerificationUpload";
 import { useData } from "../context/DataContext";
+import { useNotifications } from "../context/NotificationContext";
 
 const Profile = ({ onLogout }) => {
   const navigate = useNavigate();
   const { userData, isUserDataLoaded, refreshUserData } = useData();
+  const { permissionStatus, requestPermission } = useNotifications();
   
   const [user, setUser] = useState(userData);
   const [loading, setLoading] = useState(!isUserDataLoaded);
@@ -87,16 +89,16 @@ const Profile = ({ onLogout }) => {
     setIsEditing(false);
   };
 
-  const handleRequestVerification = async () => {
+  const handleRequestVerification = useCallback(async () => {
     try {
       await apiClient.post("/users/request-verification");
-      setUser({ ...user, verificationRequested: true });
+      setUser(prev => ({ ...prev, verificationRequested: true }));
       alert("Verification requested successfully!");
     } catch (error) {
       console.error("Verification request failed:", error);
       alert("Failed to request verification.");
     }
-  };
+  }, []);
 
   const handleTogglePremium = async () => {
     try {
@@ -185,6 +187,58 @@ const Profile = ({ onLogout }) => {
                 </button>
               </div>
             </div>
+
+            {/* Notification Permission Status */}
+            <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+              <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>Push Notifications</strong>
+              <div style={{ marginTop: '5px' }}>
+                {permissionStatus === 'granted' ? (
+                  <span style={{ color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '14px' }}>
+                    Enabled <FiCheck />
+                  </span>
+                ) : (
+                  <button
+                    onClick={requestPermission}
+                    className="ghost-btn"
+                    style={{ 
+                      fontSize: '11px', 
+                      width: '100%', 
+                      padding: '6px', 
+                      border: '1px solid var(--primary)', 
+                      color: 'var(--primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <FiBell /> Enable Notifications
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Verification Status */}
+            {user.role === 'ROLE_USER' && (
+              <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+                <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>Verification</strong>
+                <div style={{ marginTop: '5px' }}>
+                  {user.isVerified ? (
+                    <span style={{ color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '14px' }}>Verified <FiCheck /></span>
+                  ) : user.verificationRequested ? (
+                    <span style={{ color: '#ea580c', fontWeight: 'bold', fontSize: '14px' }}>Pending Approval</span>
+                  ) : (
+                    <button
+                      onClick={handleRequestVerification}
+                      className="ghost-btn"
+                      style={{ fontSize: '11px', width: '100%', padding: '6px', border: '1px solid var(--primary)', color: 'var(--primary)' }}
+                    >
+                      Request Verification
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <button className="secondary-btn" onClick={handleLogout} style={{ marginTop: 'auto', width: '100%', borderColor: '#ef4444', color: '#ef4444' }}>
