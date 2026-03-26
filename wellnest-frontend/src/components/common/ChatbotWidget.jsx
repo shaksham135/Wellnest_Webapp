@@ -21,8 +21,8 @@ const ChatbotWidget = ({ isLoggedIn }) => {
     const startPos = useRef({ x: 0, y: 0 });
     const hasMovedSignificantly = useRef(false);
 
-    // Sync with App's Auth State
     const [token, setToken] = useState(isLoggedIn ? localStorage.getItem('token') : null);
+    const isMobile = window.innerWidth <= 480;
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -194,15 +194,13 @@ const ChatbotWidget = ({ isLoggedIn }) => {
             {/* Chat Window */}
             <div 
                 className={`chatbot-window ${isOpen ? 'visible' : ''}`}
-                style={{
-                    // Dynamic vertical alignment: If icon is in Top Half, open Down. Else open Up.
+                style={!isMobile ? {
+                    // Desktop Dynamic Positioning
                     bottom: (position.y || 30) > window.innerHeight / 2 ? 'auto' : '80px',
                     top: (position.y || 30) > window.innerHeight / 2 ? '80px' : 'auto',
-                    // Dynamic horizontal alignment: If icon is in Left Half, open Right. Else open Left.
-                    // Note: position.x is offset from RIGHT.
                     right: (position.x || 30) > window.innerWidth / 2 ? 'auto' : '0',
                     left: (position.x || 30) > window.innerWidth / 2 ? '0' : 'auto'
-                }}
+                } : {}} // On mobile, we use CSS fixed positioning to center and size properly
             >
                 <div className="chatbot-header">
                     <div className="header-title">

@@ -41,24 +41,31 @@ const Login = ({ onLoginSuccess }) => {
     onSuccess: (codeResponse) => handleGoogleSuccess(codeResponse),
     onError: (error) => toast.error("Google Login Failed"),
     ux_mode: isNative ? 'redirect' : 'popup',
-    redirect_uri: isNative ? 'http://localhost' : undefined
+    redirect_uri: isNative ? 'https://wellnest-eight-psi.vercel.app/' : undefined
   });
 
   // Handle Google Redirect Callback for Native
   useEffect(() => {
     if (!isNative) return;
     
-    const params = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = params.get('access_token');
-    
-    if (accessToken) {
-        console.log("Detected Google Access Token in Hash");
-        handleGoogleSuccess({ access_token: accessToken });
-        // Clean up hash
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
+    const checkHash = () => {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get('access_token');
+      
+      if (accessToken) {
+          console.log("Detected Google Access Token in Hash");
+          handleGoogleSuccess({ access_token: accessToken });
+          // Clean up hash
+          window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+
+    checkHash();
+    window.addEventListener("hashchange", checkHash);
+    return () => window.removeEventListener("hashchange", checkHash);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isNative, window.location.hash]);
+  }, [isNative]);
 
   // Handle Initial Auto-Login check (Skip login page if token exists)
   useEffect(() => {
@@ -149,9 +156,10 @@ const Login = ({ onLoginSuccess }) => {
 
   const handleNativeGoogleLogin = async () => {
     const clientId = "824393698796-2a2k17e527hbnd9irvhjv72pnngc5jc7.apps.googleusercontent.com";
-    const redirectUri = "https://wellnest-eight-psi.vercel.app/";
+    const redirectUri = "https://wellnest-eight-psi.vercel.app/"; // Reverting to Vercel for Web Client ID compatibility
     const scope = encodeURIComponent("email profile openid");
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${scope}`;
+    
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&status=login&response_type=token&scope=${scope}`;
     
     if (Browser) {
         await Browser.open({ url: authUrl });

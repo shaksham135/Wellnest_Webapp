@@ -14,7 +14,32 @@ export const NotificationProvider = ({ children }) => {
     );
     const lastNotifiedId = useRef(null);
 
-    const showSystemNotification = useCallback((n) => {
+    const showSystemNotification = useCallback(async (n) => {
+        // --- Native Local Notification ---
+        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+            try {
+                const { LocalNotifications } = await import('@capacitor/local-notifications');
+                await LocalNotifications.schedule({
+                    notifications: [
+                        {
+                            title: n.title,
+                            body: n.message,
+                            id: Math.floor(Math.random() * 100000),
+                            schedule: { at: new Date(Date.now() + 500) },
+                            sound: null,
+                            attachments: null,
+                            actionTypeId: "",
+                            extra: null
+                        }
+                    ]
+                });
+                return; // Exit after native notification
+            } catch (err) {
+                console.error("Local notification error:", err);
+            }
+        }
+
+        // --- Standard Web Notification Fallback ---
         if (!("Notification" in window)) return;
         
         if (permissionStatus === "granted") {
@@ -58,6 +83,10 @@ export const NotificationProvider = ({ children }) => {
                 } else {
                     setPermissionStatus("denied");
                 }
+                
+                // Also Request Local Notification Permissions
+                const { LocalNotifications } = await import('@capacitor/local-notifications');
+                await LocalNotifications.requestPermissions();
             } catch (err) {
                 console.error("Native push error:", err);
             }
@@ -128,6 +157,16 @@ export const NotificationProvider = ({ children }) => {
                 try {
                     const { PushNotifications } = await import('@capacitor/push-notifications');
                     
+                    // Check existing permission first
+                    const permStatus = await PushNotifications.checkPermissions();
+                    setPermissionStatus(permStatus.receive);
+
+                    if (permStatus.receive === 'granted') {
+                        PushNotifications.register();
+                    } else if (permStatus.receive === 'prompt' || permStatus.receive === 'default') {
+                        // Let the autoRequestTimeout take care of it or the user click
+                    }
+
                     // On success, register the token with our backend
                     PushNotifications.addListener('registration', (token) => {
                         console.log('Push registration success, token: ' + token.value);

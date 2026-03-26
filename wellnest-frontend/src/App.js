@@ -240,6 +240,43 @@ const App = () => {
   const closeMenu = () => setIsMenuOpen(false);
 
   useEffect(() => {
+    // --- OAuth Relay Check (Only on Web) ---
+    // If we're in a browser (not Capacitor) and have an OAuth token in hash, 
+    // try to 'relay' it back to the native app using the custom scheme.
+    const isActuallyNative = (window.Capacitor && window.Capacitor.getPlatform() !== 'web');
+    const hasOAuthHash = window.location.hash.includes('access_token');
+    
+    if (!isActuallyNative && hasOAuthHash) {
+        console.log("Web Relay: Detected OAuth token, attempting to open native app...");
+        const customSchemeUrl = `com.wellnest.app://oauth${window.location.hash}`;
+        // Attempt automatic redirect first
+        window.location.href = customSchemeUrl;
+        
+        // Return simple overlay for manual trigger if auto fails
+        return (
+            <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                zIndex: 99999, color: 'white', fontFamily: 'sans-serif', textAlign: 'center', padding: '20px'
+            }}>
+                <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔐</div>
+                <h1 style={{ fontSize: '24px', marginBottom: '10px' }}>Authenticated Successfully!</h1>
+                <p style={{ opacity: 0.9, marginBottom: '30px' }}>We are redirecting you back to the Wellnest app.</p>
+                <a 
+                    href={customSchemeUrl}
+                    style={{
+                        background: 'white', color: '#4f46e5', padding: '12px 30px', 
+                        borderRadius: '30px', fontWeight: 'bold', textDecoration: 'none',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                    }}
+                >
+                    Return to Wellnest App
+                </a>
+            </div>
+        );
+    }
+
     const initAuth = async () => {
       const token = await storageService.getItem("token");
       if (token) {
@@ -259,10 +296,18 @@ const App = () => {
       import('@capacitor/app').then(({ App }) => {
         App.addListener('appUrlOpen', (data) => {
           console.log('App opened with URL:', data.url);
-          const url = new URL(data.url);
-          if (url.hash && url.hash.includes('access_token')) {
-            // Redirect to Login page with the hash so it can be parsed there
-            window.location.hash = url.hash.substring(1);
+          try {
+            const url = new URL(data.url);
+            // Case 1: Token in Hash (#access_token=...)
+            if (url.hash && url.hash.includes('access_token')) {
+                window.location.hash = url.hash.substring(1);
+            } 
+            // Case 2: Token in Search (?access_token=...)
+            else if (url.search && url.search.includes('access_token')) {
+                window.location.hash = url.search.substring(1);
+            }
+          } catch (e) {
+            console.error("Failed to parse App URL:", e);
           }
         });
       });

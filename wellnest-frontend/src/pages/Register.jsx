@@ -13,8 +13,17 @@ import {
 import apiClient from "../api/apiClient";
 import storageService from "../api/storageService";
 
+// Capacitor bridge
+let Browser = null;
+try {
+  if (window.Capacitor) {
+    import('@capacitor/browser').then(m => { Browser = m.Browser; });
+  }
+} catch (e) { console.log("Native plugins not available"); }
+
 const Register = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
+  const isNative = !!(window.Capacitor && window.Capacitor.getPlatform() !== 'web');
 
   const [form, setForm] = useState({
     name: "",
@@ -32,7 +41,32 @@ const Register = ({ onLoginSuccess }) => {
   const loginWithGoogle = useGoogleLogin({
     onSuccess: (tokenResponse) => handleGoogleSuccess(tokenResponse),
     onError: (error) => setMessage("Google Registration Failed"),
+    ux_mode: isNative ? 'redirect' : 'popup',
+    redirect_uri: isNative ? 'https://wellnest-eight-psi.vercel.app/' : undefined
   });
+
+  // Handle Google Redirect Callback for Native
+  React.useEffect(() => {
+    if (!isNative) return;
+    
+    const checkHash = () => {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get('access_token');
+      
+      if (accessToken) {
+          console.log("Detected Google Access Token in Hash");
+          handleGoogleSuccess({ access_token: accessToken });
+          // Clean up hash
+          window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+
+    checkHash();
+    window.addEventListener("hashchange", checkHash);
+    return () => window.removeEventListener("hashchange", checkHash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNative]);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -154,6 +188,22 @@ const Register = ({ onLoginSuccess }) => {
     }
   };
 
+  const handleNativeGoogleLogin = async () => {
+    const clientId = "824393698796-2a2k17e527hbnd9irvhjv72pnngc5jc7.apps.googleusercontent.com";
+    const redirectUri = "https://wellnest-eight-psi.vercel.app/"; // Reverting to Vercel for Web Client ID compatibility
+    const scope = encodeURIComponent("email profile openid");
+    
+    // Pass role and other data in a way the backend/frontend can handle after redirect
+    // (Usually via state or just assume 'USER' for registration and then they can adjust profile)
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&status=register&response_type=token&scope=${scope}`;
+    
+    if (Browser) {
+        await Browser.open({ url: authUrl });
+    } else {
+        window.location.assign(authUrl);
+    }
+  };
+
   const saveCredentials = async (data) => {
     const { token, userId, role, isVerified } = data;
     if (token) await storageService.setItem("token", token);
@@ -163,7 +213,7 @@ const Register = ({ onLoginSuccess }) => {
     else await storageService.removeItem("isVerified");
   };
 
-  const isNative = !!(window.Capacitor && window.Capacitor.getPlatform() !== 'web');
+
 
   return (
     <div className={isNative ? "minimal-auth-page" : "auth-page"}>
@@ -316,7 +366,7 @@ const Register = ({ onLoginSuccess }) => {
         <button 
           type="button" 
           className="google-auth-btn" 
-          onClick={() => loginWithGoogle()}
+          onClick={() => isNative ? handleNativeGoogleLogin() : loginWithGoogle()}
           disabled={loading}
           style={{ marginBottom: '20px' }}
         >

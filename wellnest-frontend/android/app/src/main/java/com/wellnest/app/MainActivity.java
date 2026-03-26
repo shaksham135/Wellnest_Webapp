@@ -27,11 +27,6 @@ public class MainActivity extends BridgeActivity {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
         }
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                permissions.add(Manifest.permission.POST_NOTIFICATIONS);
-            }
-        }
         if (!permissions.isEmpty()) {
             ActivityCompat.requestPermissions(this, permissions.toArray(new String[0]), 1);
         }
