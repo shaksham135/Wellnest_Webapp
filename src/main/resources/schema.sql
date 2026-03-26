@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     target_weight_kg DOUBLE,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     verification_requested BOOLEAN NOT NULL DEFAULT FALSE,
+    is_premium BOOLEAN NOT NULL DEFAULT FALSE,
     fcm_token VARCHAR(255),
     target_steps INT,
     target_water_liters DOUBLE,
