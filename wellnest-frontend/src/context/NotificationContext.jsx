@@ -45,7 +45,7 @@ export const NotificationProvider = ({ children }) => {
         }
     }, [showSystemNotification]);
 
-    const requestPermission = async () => {
+    const requestPermission = useCallback(async () => {
         // Handle Native Mobile Push Permissions
         if (window.Capacitor && window.Capacitor.isNativePlatform()) {
             try {
@@ -107,12 +107,21 @@ export const NotificationProvider = ({ children }) => {
         } catch (err) {
             console.error("Error requesting permission:", err);
         }
-    };
+    }, [showSystemNotification]);
 
     useEffect(() => {
         fetchNotifications();
         const interval = setInterval(fetchNotifications, 30000); // Standard 30s poll
         
+        // --- Auto-request Permission ---
+        // If status is still 'default' (not yet asked), ask automatically after a short delay
+        const autoRequestTimeout = setTimeout(() => {
+            if (permissionStatus === "default") {
+                console.log("Automatically requesting notification permissions...");
+                requestPermission();
+            }
+        }, 3000); // 3-second delay after mount/load
+
         // --- Native Mobile Sync ---
         const setupNativePush = async () => {
             if (window.Capacitor && window.Capacitor.isNativePlatform()) {
@@ -152,9 +161,10 @@ export const NotificationProvider = ({ children }) => {
 
         return () => {
             clearInterval(interval);
+            clearTimeout(autoRequestTimeout);
             unsubscribe();
         };
-    }, [fetchNotifications]);
+    }, [fetchNotifications, permissionStatus, requestPermission]);
 
     const sendTestNotification = () => {
         showSystemNotification({
