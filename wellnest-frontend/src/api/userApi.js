@@ -11,3 +11,6 @@ export const updateUserTargets = (targetsData) => apiClient.put("/users/targets"
 
 // Update FCM Token for Push Notifications
 export const updateFcmToken = (token) => apiClient.put("/users/me/fcm-token", { token });
+
+// Toggle Premium Status
+export const togglePremium = () => apiClient.post("/users/me/toggle-premium");

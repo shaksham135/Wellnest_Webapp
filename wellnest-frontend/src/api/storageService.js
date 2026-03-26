@@ -57,6 +57,27 @@ const storageService = {
   async hasToken() {
     const token = await this.getItem('token');
     return !!token;
+  },
+
+  /**
+   * Helper to store the whole user object
+   */
+  async setUser(user) {
+    if (!user) return;
+    await this.setItem('user', JSON.stringify(user));
+  },
+
+  /**
+   * Helper to retrieve the whole user object
+   */
+  async getUser() {
+    const userStr = await this.getItem('user');
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch (e) {
+      return null;
+    }
   }
 };
 

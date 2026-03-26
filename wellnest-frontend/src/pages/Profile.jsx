@@ -1,8 +1,8 @@
 // src/pages/Profile.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget, FiCheck } from "react-icons/fi";
-import { updateUserProfile } from "../api/userApi";
+import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget, FiCheck, FiZap, FiStar } from "react-icons/fi";
+import { updateUserProfile, togglePremium } from "../api/userApi";
 import apiClient from "../api/apiClient";
 import storageService from "../api/storageService";
 import VerificationUpload from "../components/VerificationUpload";
@@ -98,6 +98,26 @@ const Profile = ({ onLogout }) => {
     }
   };
 
+  const handleTogglePremium = async () => {
+    try {
+      const isNowPremium = await togglePremium();
+      const updatedUser = { ...user, isPremium: isNowPremium.data };
+      setUser(updatedUser);
+      
+      // Update local storage/context too
+      const stored = await storageService.getUser();
+      if (stored) {
+        await storageService.setUser({ ...stored, isPremium: isNowPremium.data });
+      }
+      
+      await refreshUserData();
+      alert(isNowPremium.data ? "You are now a Premium user! Enjoy AI-personalized notifications." : "Premium status removed.");
+    } catch (error) {
+      console.error("Failed to toggle premium:", error);
+      alert("Error toggling premium status.");
+    }
+  };
+
   if (loading) return <div className="dashboard-page"><div className="dashboard-card">Loading...</div></div>;
   if (error) return <div className="dashboard-page"><div className="dashboard-card">{error}</div></div>;
 
@@ -134,27 +154,37 @@ const Profile = ({ onLogout }) => {
               {user.role?.replace('ROLE_', '')}
             </div>
 
-            {/* Verification Status */}
-            {user.role === 'ROLE_USER' && (
-              <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
-                <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>Verification</strong>
-                <div style={{ marginTop: '5px' }}>
-                  {user.isVerified ? (
-                    <span style={{ color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>Verified <FiCheck /></span>
-                  ) : user.verificationRequested ? (
-                    <span style={{ color: '#ea580c', fontWeight: 'bold' }}>Pending Approval</span>
-                  ) : (
-                    <button
-                      onClick={handleRequestVerification}
-                      className="ghost-btn"
-                      style={{ fontSize: '12px', width: '100%', padding: '6px', border: '1px solid var(--primary)', color: 'var(--primary)' }}
-                    >
-                      Request Verification
-                    </button>
-                  )}
-                </div>
+            {/* Premium Status */}
+            <div style={{ padding: '12px', background: user.isPremium ? 'rgba(234, 179, 8, 0.1)' : 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', border: user.isPremium ? '1px solid rgba(234, 179, 8, 0.3)' : '1px solid rgba(59, 130, 246, 0.1)' }}>
+              <strong style={{ display: 'block', fontSize: '0.8rem', color: user.isPremium ? '#ca8a04' : 'var(--primary)', textTransform: 'uppercase' }}>Subscription</strong>
+              <div style={{ marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {user.isPremium ? (
+                  <span style={{ color: '#ca8a04', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    <FiStar /> Wellnest Premium
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Standard Plan</span>
+                )}
+                
+                <button
+                  onClick={handleTogglePremium}
+                  className="ghost-btn"
+                  style={{ 
+                    fontSize: '11px', 
+                    width: '100%', 
+                    padding: '6px', 
+                    border: '1px solid ' + (user.isPremium ? '#ca8a04' : 'var(--primary)'), 
+                    color: user.isPremium ? '#ca8a04' : 'var(--primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <FiZap /> {user.isPremium ? "Downgrade (Test)" : "Upgrade to Premium"}
+                </button>
               </div>
-            )}
+            </div>
           </div>
 
           <button className="secondary-btn" onClick={handleLogout} style={{ marginTop: 'auto', width: '100%', borderColor: '#ef4444', color: '#ef4444' }}>
