@@ -121,15 +121,6 @@ const Trackers = () => {
     );
   };
 
-  const isThisWeek = (dateStringOrInstant) => {
-    if (!dateStringOrInstant) return false;
-    const d = new Date(dateStringOrInstant);
-    const now = new Date();
-    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-    return d >= startOfWeek;
-  };
-
   const workoutsToday = recentWorkouts.filter(w => isToday(w.performedAt || w.createdAt)).length;
   const waterToday = recentWater.filter(w => isToday(w.loggedAt || w.createdAt)).reduce((sum, w) => sum + (w.liters || w.amountLiters || w.amount || 0), 0);
   
