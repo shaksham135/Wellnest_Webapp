@@ -73,13 +73,13 @@ const Trackers = () => {
   });
 
   const [recentWorkouts, setRecentWorkouts] = useState(cacheService.get('/trackers/workouts') || []);
-
+  const [recentMeals, setRecentMeals] = useState(cacheService.get('/trackers/meals') || []);
   const [recentWater, setRecentWater] = useState(cacheService.get('/trackers/water') || []);
   const [recentSleep, setRecentSleep] = useState(cacheService.get('/trackers/sleep') || []);
   const [recentActivity, setRecentActivity] = useState(cacheService.get('/trackers/activity') || []);
 
   const [targets, setTargets] = useState({
-    targetWorkoutsPerWeek: 4,
+    targetWorkoutsPerDay: 1,
     targetWaterLiters: 2.0,
     targetSleepHours: 8.0,
     targetSteps: 10000,
@@ -130,7 +130,7 @@ const Trackers = () => {
     return d >= startOfWeek;
   };
 
-  const workoutsThisWeek = recentWorkouts.filter(w => isThisWeek(w.performedAt || w.createdAt)).length;
+  const workoutsToday = recentWorkouts.filter(w => isToday(w.performedAt || w.createdAt)).length;
   const waterToday = recentWater.filter(w => isToday(w.loggedAt || w.createdAt)).reduce((sum, w) => sum + (w.liters || w.amountLiters || w.amount || 0), 0);
   
   const sleepLogsLast24h = recentSleep.filter(s => {
@@ -202,8 +202,9 @@ const Trackers = () => {
           setRecentWorkouts(res.data || []);
           cacheService.set('/trackers/workouts', res.data || []);
         } else if (tab === "meal") {
-          await getMeals();
-          // Meals not currently displayed in list
+          const res = await getMeals();
+          setRecentMeals(res.data || []);
+          cacheService.set('/trackers/meals', res.data || []);
         } else if (tab === "water") {
           const res = await getWater();
           setRecentWater(res.data || []);
@@ -268,7 +269,8 @@ const Trackers = () => {
     try {
       await createMeal(meal);
       toast.success("Meal logged!");
-      await getMeals();
+      const res = await getMeals();
+      setRecentMeals(res.data || []);
     } catch (err) {
       toast.error("Failed to save meal");
     }
@@ -339,10 +341,10 @@ const Trackers = () => {
             <>
               <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px', padding: '20px' }}>
                 <div style={{ width: '120px', height: '120px', marginBottom: '10px' }}>
-                  <CircularProgressbar value={Math.min((workoutsThisWeek / targets.targetWorkoutsPerWeek) * 100, 100)} text={`${workoutsThisWeek}/${targets.targetWorkoutsPerWeek}`} styles={buildStyles({ pathColor: '#22c55e', textColor: 'var(--text-main)' })} />
+                  <CircularProgressbar value={Math.min((workoutsToday / targets.targetWorkoutsPerDay) * 100, 100)} text={`${workoutsToday}/${targets.targetWorkoutsPerDay}`} styles={buildStyles({ pathColor: '#22c55e', textColor: 'var(--text-main)' })} />
                 </div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Weekly Workouts</div>
-                <button type="button" onClick={() => handleOpenEditGoal('targetWorkoutsPerWeek', targets.targetWorkoutsPerWeek)} className="ghost-btn small" style={{ color: '#3b82f6', textDecoration: 'underline' }}>Edit Target</button>
+                <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Daily Workouts</div>
+                <button type="button" onClick={() => handleOpenEditGoal('targetWorkoutsPerDay', targets.targetWorkoutsPerDay || 1)} className="ghost-btn small" style={{ color: '#3b82f6', textDecoration: 'underline' }}>Edit Target</button>
               </div>
               <form onSubmit={onSubmitWorkout} className="tracker-form">
                 <label>Weight (kg) <input type="number" value={userWeight} onChange={(e) => setUserWeight(parseFloat(e.target.value))} /></label>
@@ -350,15 +352,46 @@ const Trackers = () => {
                 <label>Duration (min) <input type="number" value={workout.durationMinutes} onChange={(e) => setWorkout({ ...workout, durationMinutes: parseInt(e.target.value) })} /></label>
                 <button type="submit">Save Workout</button>
               </form>
+              <div className="recent-logs" style={{ marginTop: '24px' }}>
+                <h3>Recent Workouts</h3>
+                {recentWorkouts.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No recent workouts.</p> : recentWorkouts.slice(0, 5).map((w, i) => (
+                  <div key={i} className="card" style={{ padding: '15px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                         <strong>{w.type ? w.type.charAt(0).toUpperCase() + w.type.slice(1) : "Workout"}</strong>
+                         <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(w.performedAt || w.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                         <div>{w.durationMinutes} min</div>
+                         <div style={{ color: '#ef4444', fontSize: '13px', fontWeight: 'bold' }}>{w.caloriesBurned} kcal</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </>
           )}
 
           {tab === "meal" && (
-            <form onSubmit={onSubmitMeal} className="tracker-form">
-              <label>Meal <select value={meal.mealType} onChange={(e) => setMeal({ ...meal, mealType: e.target.value })}><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option></select></label>
-              <label>Calories <input type="number" value={meal.calories} onChange={(e) => setMeal({ ...meal, calories: parseInt(e.target.value) })} /></label>
-              <button type="submit">Save Meal</button>
-            </form>
+            <>
+              <form onSubmit={onSubmitMeal} className="tracker-form">
+                <label>Meal <select value={meal.mealType} onChange={(e) => setMeal({ ...meal, mealType: e.target.value })}><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
+                <label>Calories <input type="number" value={meal.calories} onChange={(e) => setMeal({ ...meal, calories: parseInt(e.target.value) })} /></label>
+                <button type="submit">Save Meal</button>
+              </form>
+              <div className="recent-logs" style={{ marginTop: '24px' }}>
+                <h3>Recent Meals</h3>
+                {recentMeals.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No recent meals.</p> : recentMeals.slice(0, 5).map((m, i) => (
+                  <div key={i} className="card" style={{ padding: '15px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                         <strong>{m.mealType ? m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1) : "Meal"}</strong>
+                         <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(m.loggedAt || m.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div style={{ textAlign: 'right', color: '#f59e0b', fontSize: '16px', fontWeight: 'bold' }}>
+                         {m.calories} kcal
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
 
           {tab === "water" && (
@@ -373,6 +406,20 @@ const Trackers = () => {
                 <label>Liters <input type="number" step="0.1" value={water.amountLiters} onChange={(e) => setWater({ ...water, amountLiters: e.target.value })} /></label>
                 <button type="submit">Save Water</button>
               </form>
+              <div className="recent-logs" style={{ marginTop: '24px' }}>
+                <h3>Recent Hydration</h3>
+                {recentWater.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No recent water logs.</p> : recentWater.slice(0, 5).map((w, i) => (
+                  <div key={i} className="card" style={{ padding: '15px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                         <strong>Water</strong>
+                         <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(w.loggedAt || w.createdAt).toLocaleDateString()} {new Date(w.loggedAt || w.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    </div>
+                    <div style={{ textAlign: 'right', color: '#3b82f6', fontSize: '16px', fontWeight: 'bold' }}>
+                         {w.liters || w.amountLiters || w.amount} L
+                    </div>
+                  </div>
+                ))}
+              </div>
             </>
           )}
 
@@ -388,6 +435,20 @@ const Trackers = () => {
                 <label>Hours <input type="number" value={sleep.hours} onChange={(e) => setSleep({ ...sleep, hours: e.target.value })} /></label>
                 <button type="submit">Save Sleep</button>
               </form>
+              <div className="recent-logs" style={{ marginTop: '24px' }}>
+                <h3>Recent Sleep Logs</h3>
+                {recentSleep.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No recent sleep logs.</p> : recentSleep.slice(0, 5).map((s, i) => (
+                  <div key={i} className="card" style={{ padding: '15px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                         <strong>Sleep</strong>
+                         <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(s.sleepDate || s.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div style={{ textAlign: 'right', color: '#8b5cf6', fontSize: '16px', fontWeight: 'bold' }}>
+                         {s.hours} hours
+                    </div>
+                  </div>
+                ))}
+              </div>
             </>
           )}
 
