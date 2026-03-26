@@ -115,7 +115,7 @@ public class NotificationService {
                     
                     var water = trackerService.getWaterForUser(user.getId());
                     double waterToday = water.stream()
-                        .filter(w -> w.getLoggedAt().isAfter(startOfToday.toInstant(java.time.ZoneOffset.UTC)))
+                        .filter(w -> w.getLoggedAt().isAfter(startOfToday))
                         .mapToDouble(com.wellnest.app.model.WaterIntake::getLiters)
                         .sum();
                     context.append("Water today: ").append(String.format("%.1f", waterToday)).append("L (Target: ").append(user.getTargetWaterLiters()).append("L). ");
