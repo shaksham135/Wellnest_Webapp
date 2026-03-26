@@ -44,6 +44,20 @@ public class DatabaseFixer implements CommandLineRunner {
                 // System.out.println("Phone column already exists.");
             }
 
+            // Add is_premium column to users table if missing
+            Integer premiumCount = jdbcTemplate.queryForObject(
+                    "SELECT count(*) FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'is_premium' AND table_schema = DATABASE()",
+                    Integer.class);
+
+            if (premiumCount != null && premiumCount == 0) {
+                try {
+                    jdbcTemplate.execute("ALTER TABLE users ADD COLUMN is_premium BOOLEAN DEFAULT FALSE");
+                    System.out.println("Added is_premium column to users table");
+                } catch (Exception e) {
+                    System.out.println("Failed to add is_premium column: " + e.getMessage());
+                }
+            }
+
         } catch (Exception e) {
             // Ignore errors (e.g., if table doesn't exist yet, though ddl-auto runs before
             // this)
