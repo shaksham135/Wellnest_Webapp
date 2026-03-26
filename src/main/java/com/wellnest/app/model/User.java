@@ -18,6 +18,7 @@ public class User {
     private Long id;
 
     @Column(nullable = false)
+    @com.fasterxml.jackson.annotation.JsonProperty("isPremium")
     private boolean isPremium = false;
 
     private String name;

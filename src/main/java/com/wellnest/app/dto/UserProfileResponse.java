@@ -21,6 +21,7 @@ public class UserProfileResponse {
     @com.fasterxml.jackson.annotation.JsonProperty("isVerified")
     private boolean isVerified;
     private boolean verificationRequested;
+    @com.fasterxml.jackson.annotation.JsonProperty("isPremium")
     private boolean isPremium;
     private GoalTargetsDto targets;
 

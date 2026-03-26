@@ -88,9 +88,9 @@ public class NotificationService {
     }
 
     private void ensureDailyTip(User user) {
-        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-        boolean alreadyGotTip = notificationRepository.existsByUser_IdAndTitleAndCreatedAtAfter(
-                user.getId(), "Daily Health Tip", startOfToday);
+        java.time.Instant startOfToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+        boolean alreadyGotTip = notificationRepository.existsByUser_IdAndTypeAndCreatedAtAfter(
+                user.getId(), "TIP", startOfToday);
 
         if (!alreadyGotTip) {
             String name = user.getName() != null ? user.getName() : "Hero";
@@ -135,7 +135,7 @@ public class NotificationService {
                 tip = STATIC_TIPS[0];
             }
 
-            Notification notification = new Notification(user, title, tip, "INFO");
+            Notification notification = new Notification(user, title, tip, "TIP");
             notificationRepository.save(notification);
 
             // Also push to mobile
