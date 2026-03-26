@@ -458,10 +458,29 @@ const Trackers = () => {
                   <div style={{ width: '80px', height: '80px' }}><CircularProgressbar value={Math.min((activityToday.steps / targets.targetSteps) * 100, 100)} text="Steps" /></div>
                   <div style={{ width: '80px', height: '80px' }}><CircularProgressbar value={Math.min((activityToday.activeCalories / targets.targetActiveCalories) * 100, 100)} text="kcal" /></div>
                </div>
+               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', gap: '10px' }}>
+                 <button type="button" onClick={() => setIsSyncing(!isSyncing)} className={isSyncing ? "ghost-btn" : "primary-btn"}>
+                   {isSyncing ? "Pause Tracking" : "Start Live Tracking"}
+                 </button>
+               </div>
+               {isSyncing && (
+                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                   <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#3b82f6' }}>{liveSteps}</div>
+                   <div style={{ color: 'var(--text-muted)' }}>Live Steps</div>
+                 </div>
+               )}
+               {liveSteps > 0 && !isSyncing && (
+                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                   <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#22c55e' }}>{liveSteps}</div>
+                   <div style={{ color: 'var(--text-muted)' }}>Steps to Sync</div>
+                 </div>
+               )}
                <form onSubmit={onSubmitActivity} className="tracker-form">
-                  <label>Steps <input type="number" value={activity.steps} onChange={(e) => setActivity({ ...activity, steps: e.target.value })} /></label>
-                  <button type="submit">Save Activity</button>
-                  <button type="button" onClick={handleSyncToCloud} className="primary-btn" style={{ marginTop: '10px' }}>Sync to Cloud</button>
+                  <label>Manual Steps Entry <input type="number" value={activity.steps || ''} onChange={(e) => setActivity({ ...activity, steps: e.target.value })} /></label>
+                  <button type="submit">Save Manual Activity</button>
+                  {liveSteps > 0 && (
+                     <button type="button" onClick={handleSyncToCloud} className="primary-btn" style={{ marginTop: '10px', backgroundColor: '#3b82f6', color: '#fff' }}>Sync Live Steps to Cloud</button>
+                  )}
                </form>
             </>
           )}
