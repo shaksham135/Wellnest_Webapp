@@ -174,10 +174,10 @@ public class NotificationService {
 
     // --- Automated AI Nudges (Industry Standard Proactive System) ---
 
-    @Scheduled(cron = "0 20 23 * * *") // TEST: Every day at 11:20 PM (23:20)
+    @Scheduled(cron = "0 30 8 * * *") // Every day at 8:30 AM
     public void scheduleMorningMotivation() {
-        logger.info("Triggering TEST Morning AI Nudges at 11:20 PM...");
-        processScheduledNudges("Test Nudge", "Start your test strong!");
+        logger.info("Triggering Morning AI Nudges...");
+        processScheduledNudges("Morning Motivation", "Start your day strong!");
     }
 
     @Scheduled(cron = "0 0 14 * * *") // Every day at 2:00 PM
