@@ -1,6 +1,6 @@
 // src/pages/HealthReport.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import { Line } from "react-chartjs-2";
@@ -149,7 +149,6 @@ const HealthReport = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const printRef = useRef(null);
-  const navigate = useNavigate();
 
   const fetchReport = useCallback(async () => {
     setLoading(true);
