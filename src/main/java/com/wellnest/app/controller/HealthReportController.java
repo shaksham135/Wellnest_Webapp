@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.*;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 @RestController
@@ -226,8 +227,7 @@ public class HealthReportController {
     }
 
     /** Safely execute a repository call, returning empty list on any exception. */
-    @SuppressWarnings("unchecked")
-    private <T> List<T> safeGet(java.util.concurrent.Callable<List<T>> supplier) {
+    private <T> List<T> safeGet(Callable<List<T>> supplier) {
         try {
             return supplier.call();
         } catch (Exception e) {
