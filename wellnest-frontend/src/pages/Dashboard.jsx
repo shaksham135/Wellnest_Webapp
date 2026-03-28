@@ -1,7 +1,7 @@
 // src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiUser, FiAward } from "react-icons/fi";
+import { FiUser, FiAward, FiFileText } from "react-icons/fi";
 
 import storageService from "../api/storageService";
 import { useData } from "../context/DataContext";
@@ -308,6 +308,52 @@ const Dashboard = () => {
                }
                return null;
             })()}
+          </div>
+        )}
+
+        {/* ================= WEEKLY REPORT BANNER ================= */}
+        {!isTrainer && (
+          <div
+            onClick={() => navigate('/report')}
+            style={{
+              background: user.isPremium
+                ? 'linear-gradient(135deg, rgba(79,70,229,0.15), rgba(124,58,237,0.1))'
+                : 'var(--card-bg)',
+              border: user.isPremium ? '1px solid rgba(79,70,229,0.35)' : '1px solid var(--card-border)',
+              borderRadius: '20px',
+              padding: '20px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              cursor: 'pointer',
+              transition: 'all 0.25s ease',
+              backdropFilter: 'var(--glass-blur)',
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
+              background: user.isPremium ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : 'rgba(255,255,255,0.06)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.4rem', boxShadow: user.isPremium ? '0 6px 14px rgba(79,70,229,0.3)' : 'none'
+            }}>
+              {user.isPremium ? '📊' : '📋'}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Your Weekly Health Report is Ready
+                {user.isPremium && (
+                  <span style={{ fontSize: '10px', background: 'linear-gradient(90deg,#f59e0b,#fbbf24)', color: '#1e1b4b', padding: '2px 8px', borderRadius: '8px', fontWeight: 900 }}>PRO</span>
+                )}
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                {user.isPremium ? 'AI insights, health score, action plan & PDF download' : 'Preview your stats — upgrade for AI insights & full report'}
+              </div>
+            </div>
+            <div style={{ color: user.isPremium ? '#818cf8' : 'var(--text-muted)', fontSize: '1.2rem', flexShrink: 0 }}>
+              <FiFileText />
+            </div>
           </div>
         )}
 

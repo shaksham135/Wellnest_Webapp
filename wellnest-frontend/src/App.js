@@ -37,6 +37,7 @@ import TermsOfService from "./pages/TermsOfService";
 import Support from "./pages/Support";
 import AdminDashboard from "./pages/AdminDashboard";
 import CommunityPage from "./pages/CommunityPage";
+import HealthReport from "./pages/HealthReport";
 
 // Analytics Detail Pages
 import WorkoutAnalyticsDetail from "./pages/detailed-analytics/WorkoutAnalyticsDetail";
@@ -217,6 +218,7 @@ const AppContent = ({
             <Route path="/setup-profile" element={<ProtectedRoute isLoggedIn={isLoggedIn}><SetupProfile /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute isLoggedIn={isLoggedIn}><Notifications /></ProtectedRoute>} />
             <Route path="/bmi-calculator" element={<ProtectedRoute isLoggedIn={isLoggedIn}><BmiCalculator /></ProtectedRoute>} />
+            <Route path="/report" element={<ProtectedRoute isLoggedIn={isLoggedIn}><HealthReport /></ProtectedRoute>} />
 
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
