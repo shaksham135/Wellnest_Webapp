@@ -130,6 +130,8 @@ public class ChatbotController {
         String aiResponse = groqService.getResponse(promptBuilder.toString());
 
         return ResponseEntity.ok(Map.of("response", aiResponse));
+    }
+
     @PostMapping("/analyze-meal")
     public ResponseEntity<?> analyzeMeal(@RequestBody Map<String, String> request) {
         String description = request.get("description");
