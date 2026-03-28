@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+        <package android:name="com.google.android.apps.health.connect" />
+        <package android:name="com.samsung.android.shealth" />
+    </queries>
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -34,6 +39,24 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="wellnest-eight-psi.vercel.app" />
             </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+
+            <!-- Mandatory for Health Connect API 34+ -->
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <meta-data android:name="health_permissions_rationale" android:value="com.wellnest.app.MainActivity" />
+            <meta-data android:name="com.google.android.apps.healthdata.rationale_activity" android:value="com.wellnest.app.MainActivity" />
+            <!-- New Rationale Activity Metadata API 34+ -->
+            <meta-data android:name="androidx.health.permissions.rationale_activity" android:value="com.wellnest.app.MainActivity" />
+            <meta-data android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" android:value="com.wellnest.app.MainActivity" />
         </activity>
 
         <provider
@@ -54,4 +77,13 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- Health Connect Permissions -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_DISTANCE" />
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
+    <uses-permission android:name="android.permission.health.WRITE_STEPS" />
 </manifest>

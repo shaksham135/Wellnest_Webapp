@@ -55,6 +55,7 @@ import SplashScreen from "./components/common/SplashScreen";
 import ChatbotWidget from "./components/common/ChatbotWidget";
 import BottomNav from "./components/layout/BottomNav";
 import { NotificationProvider } from "./context/NotificationContext";
+import { ActivityProvider } from "./context/ActivityContext";
 import storageService from "./api/storageService";
 
 // Styles
@@ -345,16 +346,18 @@ const App = () => {
   return (
     <NotificationProvider>
       <DataProvider>
-        <Router>
-          <AppContent 
-            isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}
-            userRole={userRole} setUserRole={setUserRole}
-            isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen}
-            toggleMenu={toggleMenu} closeMenu={closeMenu}
-            isAuthReady={isAuthReady} isSplashFinished={isSplashFinished}
-            handleSplashFinish={handleSplashFinish}
-          />
-        </Router>
+        <ActivityProvider>
+          <Router>
+            <AppContent 
+              isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}
+              userRole={userRole} setUserRole={setUserRole}
+              isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen}
+              toggleMenu={toggleMenu} closeMenu={closeMenu}
+              isAuthReady={isAuthReady} isSplashFinished={isSplashFinished}
+              handleSplashFinish={handleSplashFinish}
+            />
+          </Router>
+        </ActivityProvider>
       </DataProvider>
     </NotificationProvider>
   );

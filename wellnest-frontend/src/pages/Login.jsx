@@ -16,12 +16,10 @@ import apiClient from "../api/apiClient";
 
 import storageService from "../api/storageService";
 
-// Capacitor bridge
-let Biometric = null;
+// Plugins
 let Browser = null;
 try {
   if (window.Capacitor) {
-    import('@capgo/capacitor-native-biometric').then(m => { Biometric = m.NativeBiometric; });
     import('@capacitor/browser').then(m => { Browser = m.Browser; });
   }
 } catch (e) { console.log("Native plugins not available"); }
@@ -222,39 +220,6 @@ const Login = ({ onLoginSuccess }) => {
       <button className="primary-btn" disabled={loading}>
         {loading ? "Signing in..." : "Login"}
       </button>
-
-      {isNative && (
-        <button 
-          type="button" 
-          className="secondary-btn" 
-          style={{ marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-          onClick={async () => {
-            try {
-              const result = await Biometric.verifyIdentity({
-                 reason: "Login to Wellnest",
-                 title: "Biometric Login",
-                 subtitle: "Touch the sensor to log in",
-                 description: "Use your fingerprint or face to sign in instantly."
-              });
-              if (result) {
-                const token = await storageService.getItem('token');
-                if (token) {
-                  toast.success("Welcome back!");
-                  onLoginSuccess?.();
-                  navigate("/dashboard");
-                } else {
-                  toast.error("Please login manually once to enable biometrics.");
-                }
-              }
-            } catch (e) {
-              console.error(e);
-              toast.error("Biometric authentication failed.");
-            }
-          }}
-        >
-          <FiShield /> Use Biometrics
-        </button>
-      )}
 
       <button 
         type="button" 

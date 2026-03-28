@@ -21,6 +21,9 @@ export const getSleep = () => apiClient.get("/trackers/sleep");
 export const createActivity = (data) => apiClient.post("/trackers/activity", data);
 export const getActivity = () => apiClient.get("/trackers/activity");
 
+// AI Meal Analysis
+export const analyzeMeal = (description) => apiClient.post("/chat/analyze-meal", { description });
+
 // Delete
 export const deleteWorkout = (id) => apiClient.delete(`/trackers/workouts/${id}`);
 export const deleteMeal = (id) => apiClient.delete(`/trackers/meals/${id}`);

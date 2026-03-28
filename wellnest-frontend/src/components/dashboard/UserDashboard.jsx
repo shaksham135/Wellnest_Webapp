@@ -152,7 +152,7 @@ const UserDashboard = ({ user }) => {
 
                 {/* Box 3: BMI */}
                 <div className="dash-box">
-                    <div className="dash-box-icon"><FiClock /></div>
+                    <div className="dash-box-icon" style={{ borderColor: 'var(--primary)' }}><FiClock /></div>
                     <h3>BMI</h3>
                     <div className="bmi-box-content">
                         <div className="bmi-value">{bmi}</div>
@@ -163,6 +163,7 @@ const UserDashboard = ({ user }) => {
                     </div>
                     <Link to="/bmi-calculator" className="link-btn">Calculator</Link>
                 </div>
+
             </div>
 
             {/* --- DIVIDER --- */}

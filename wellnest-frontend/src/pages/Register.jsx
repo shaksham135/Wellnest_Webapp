@@ -49,15 +49,22 @@ const Register = ({ onLoginSuccess }) => {
   React.useEffect(() => {
     if (!isNative) return;
     
-    const checkHash = () => {
+    const checkHash = async () => {
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
       const accessToken = params.get('access_token');
       
       if (accessToken) {
           console.log("Detected Google Access Token in Hash");
-          handleGoogleSuccess({ access_token: accessToken });
-          // Clean up hash
+          const { Preferences } = await import('@capacitor/preferences');
+          const { value: storedRole } = await Preferences.get({ key: 'pending_reg_role' });
+          const { value: storedGoal } = await Preferences.get({ key: 'pending_reg_goal' });
+          
+          handleGoogleSuccess({ access_token: accessToken }, storedRole || "USER", storedGoal || "");
+          
+          // Cleanup
+          await Preferences.remove({ key: 'pending_reg_role' });
+          await Preferences.remove({ key: 'pending_reg_goal' });
           window.history.replaceState({}, document.title, window.location.pathname);
       }
     };
@@ -159,14 +166,14 @@ const Register = ({ onLoginSuccess }) => {
     }
   };
 
-  const handleGoogleSuccess = async (tokenResponse) => {
+  const handleGoogleSuccess = async (tokenResponse, forcedRole = null, forcedGoal = null) => {
     setLoading(true);
     setMessage("");
     try {
       const res = await apiClient.post("/auth/google", {
         token: tokenResponse.access_token || tokenResponse.credential,
-        role: form.role,
-        fitnessGoal: form.fitnessGoal
+        role: forcedRole || form.role || "USER",
+        fitnessGoal: forcedGoal || form.fitnessGoal || ""
       });
       if (res.data.token) {
         await saveCredentials(res.data);
@@ -190,11 +197,18 @@ const Register = ({ onLoginSuccess }) => {
 
   const handleNativeGoogleLogin = async () => {
     const clientId = "824393698796-2a2k17e527hbnd9irvhjv72pnngc5jc7.apps.googleusercontent.com";
-    const redirectUri = "https://wellnest-eight-psi.vercel.app/"; // Reverting to Vercel for Web Client ID compatibility
+    const redirectUri = "https://wellnest-eight-psi.vercel.app/";
     const scope = encodeURIComponent("email profile openid");
     
-    // Pass role and other data in a way the backend/frontend can handle after redirect
-    // (Usually via state or just assume 'USER' for registration and then they can adjust profile)
+    // PERSIST ROLE BEFORE REDIRECT
+    try {
+      const { Preferences } = await import('@capacitor/preferences');
+      await Preferences.set({ key: 'pending_reg_role', value: form.role });
+      if (form.fitnessGoal) {
+        await Preferences.set({ key: 'pending_reg_goal', value: form.fitnessGoal });
+      }
+    } catch (e) { console.error("Could not save pending role", e); }
+
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&status=register&response_type=token&scope=${scope}`;
     
     if (Browser) {

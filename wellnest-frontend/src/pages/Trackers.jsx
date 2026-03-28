@@ -26,6 +26,8 @@ import cacheService from "../api/cacheService";
 import toast from "react-hot-toast";
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
+import { useActivity } from "../context/ActivityContext";
+import { FiActivity, FiRefreshCw } from "react-icons/fi";
 
 const Trackers = () => {
   const location = useLocation();
@@ -95,8 +97,18 @@ const Trackers = () => {
   const [editingGoal, setEditingGoal] = useState(null);
   const [tempGoalValue, setTempGoalValue] = useState("");
 
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [liveSteps, setLiveSteps] = useState(0);
+
+  
+  // Connect to Global Activity Context
+  const { 
+    liveSteps, 
+    isTracking, 
+    isHealthConnected, 
+    startTracking, 
+    stopTracking, 
+    connectHealth,
+    syncHealthData 
+  } = useActivity();
 
   const handleOpenEditGoal = (goalKey, currentValue) => {
     setEditingGoal(goalKey);
@@ -138,58 +150,11 @@ const Trackers = () => {
   
   const activityToday = recentActivity.find(a => isToday(a.date || a.createdAt)) || { steps: 0, activeCalories: 0, distanceKm: 0 };
 
-  useEffect(() => {
-    let lastX = 0, lastY = 0, lastZ = 0;
-    let threshold = 12;
-    let lastUpdate = 0;
-
-    const handleMotion = (event) => {
-      const { x, y, z } = event.accelerationIncludingGravity || { x: 0, y: 0, z: 0 };
-      const currentTime = Date.now();
-
-      if ((currentTime - lastUpdate) > 100) {
-        const diff = Math.abs(x + y + z - lastX - lastY - lastZ);
-        if (diff > threshold) {
-          setLiveSteps(prev => prev + 1);
-        }
-        lastX = x; lastY = y; lastZ = z;
-        lastUpdate = currentTime;
-      }
-    };
-
-    if (isSyncing) {
-      window.addEventListener('devicemotion', handleMotion);
-    }
-
-    return () => window.removeEventListener('devicemotion', handleMotion);
-  }, [isSyncing]);
 
 
 
 
 
-  const handleSyncToCloud = async () => {
-    const stepsToSync = liveSteps;
-    const caloriesToSync = Math.round(liveSteps * 0.04);
-    const distanceToSync = Number((liveSteps * 0.0008).toFixed(2));
-
-    if (stepsToSync === 0) {
-      toast.error("No activity recorded to sync");
-      return;
-    }
-    const toastId = toast.loading("Syncing to Cloud...");
-    try {
-      const payload = { steps: stepsToSync, activeCalories: caloriesToSync, distanceKm: distanceToSync };
-      await createActivity(payload);
-      toast.success("Synced to cloud!", { id: toastId });
-      setLiveSteps(0);
-      setIsSyncing(false);
-      const res = await getActivity();
-      setRecentActivity(res.data || []);
-    } catch (err) {
-      toast.error("Failed to sync activity", { id: toastId });
-    }
-  };
 
   useEffect(() => {
     const load = async () => {
@@ -434,26 +399,147 @@ const Trackers = () => {
 
           {tab === "meal" && (
             <>
-              <form onSubmit={onSubmitMeal} className="tracker-form">
-                <label>Meal <select value={meal.mealType} onChange={(e) => setMeal({ ...meal, mealType: e.target.value })}><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
-                <label>Calories <input type="number" value={meal.calories} onChange={(e) => setMeal({ ...meal, calories: parseInt(e.target.value) })} /></label>
-                <button type="submit">Save Meal</button>
+              {/* SMART MEAL AI SECTION */}
+              <div className="card" style={{ 
+                background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(167, 139, 250, 0.05))',
+                border: '1px solid rgba(79, 70, 229, 0.2)',
+                padding: '24px',
+                marginBottom: '24px',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{ position: 'relative', zIndex: 2 }}>
+                  <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#818cf8', display: 'flex', alignItems: 'center' }}>✨</span>
+                    Smart AI Meal Logger
+                  </h3>
+                  <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Describe your meal (e.g., "2 paneer parathas and a bowl of curd") and our AI will estimate your macros instantly!
+                  </p>
+                  
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <input 
+                      type="text" 
+                      placeholder="What did you eat?"
+                      value={meal.notes || ""}
+                      onChange={(e) => setMeal({ ...meal, notes: e.target.value })}
+                      style={{ 
+                        flex: 1, 
+                        background: 'var(--bg-main)', 
+                        border: '1px solid var(--card-border)',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        color: 'var(--text-main)',
+                        fontSize: '14px'
+                      }}
+                    />
+                    <button 
+                      type="button" 
+                      onClick={async () => {
+                        const description = meal.notes?.trim();
+                        if (!description) return toast.error("Please describe your meal first!");
+                        
+                        const normalized = description.toLowerCase().replace(/\s+/g, ' ');
+                        const cacheKey = `meal_cache_${normalized}`;
+                        
+                        try {
+                          toast.loading("Analyzing meal...", { id: "meal-ai" });
+                          
+                          // 1. Check Cache first
+                          const { default: storageService } = await import("../api/storageService");
+                          const cachedData = await storageService.getItem(cacheKey);
+                          
+                          if (cachedData) {
+                            const parsed = JSON.parse(cachedData);
+                            setMeal(prev => ({ ...prev, ...parsed }));
+                            toast.success("Loaded from cache! 🧠", { id: "meal-ai" });
+                            return;
+                          }
+                          
+                          // 2. Not in cache, ask Groq (via backend)
+                          const { analyzeMeal: apiAnalyze } = await import("../api/trackerApi");
+                          const res = await apiAnalyze(description);
+                          
+                          // The backend might return the JSON string or object
+                          let nutrition = res.data;
+                          if (typeof nutrition === 'string') {
+                            nutrition = JSON.parse(nutrition);
+                          }
+                          
+                          const result = {
+                            calories: Number(nutrition.calories) || 0,
+                            protein: Number(nutrition.protein) || 0,
+                            carbs: Number(nutrition.carbs) || 0,
+                            fats: Number(nutrition.fats) || 0
+                          };
+                          
+                          setMeal(prev => ({ ...prev, ...result }));
+                          
+                          // 3. Save to Cache
+                          await storageService.setItem(cacheKey, JSON.stringify(result));
+                          
+                          toast.success("AI Analysis complete! ✨", { id: "meal-ai" });
+                        } catch (err) {
+                          console.error("AI Estimation Error:", err);
+                          toast.error("AI was unable to analyze this meal. Please enter manually.", { id: "meal-ai" });
+                        }
+                      }}
+                      className="primary-btn"
+                      style={{ width: 'auto', padding: '0 20px', borderRadius: '12px', background: 'var(--primary)', color: 'white', fontWeight: 600 }}
+                    >
+                      Analyze
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={onSubmitMeal} className="tracker-form" style={{ background: 'var(--card-bg)', padding: '24px', borderRadius: '20px', border: '1px solid var(--card-border)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <label>Type <select value={meal.mealType} onChange={(e) => setMeal({ ...meal, mealType: e.target.value })}><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
+                  <label>Calories <input type="number" value={meal.calories} onChange={(e) => setMeal({ ...meal, calories: parseInt(e.target.value) })} /></label>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '16px' }}>
+                  <label>Protein (g) <input type="number" placeholder="0" value={meal.protein} onChange={(e) => setMeal({ ...meal, protein: e.target.value })} /></label>
+                  <label>Carbs (g) <input type="number" placeholder="0" value={meal.carbs} onChange={(e) => setMeal({ ...meal, carbs: e.target.value })} /></label>
+                  <label>Fats (g) <input type="number" placeholder="0" value={meal.fats} onChange={(e) => setMeal({ ...meal, fats: e.target.value })} /></label>
+                </div>
+
+                <button type="submit" style={{ marginTop: '24px', borderRadius: '14px' }}>Save Log</button>
               </form>
-              <div className="recent-logs" style={{ marginTop: '24px' }}>
-                <h3>Recent Meals</h3>
+
+              <div className="recent-logs" style={{ marginTop: '32px' }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '20px' }}>Daily Nutrition History</h3>
                 {recentMeals.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No recent meals.</p> : recentMeals.slice(0, 5).map((m, i) => (
-                  <div key={i} className="card" style={{ padding: '15px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                         <strong>{m.mealType ? m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1) : "Meal"}</strong>
-                         <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(m.loggedAt || m.createdAt).toLocaleDateString()}</div>
-                    </div>
-                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                         <div style={{ color: '#f59e0b', fontSize: '16px', fontWeight: 'bold' }}>
-                            {m.calories} kcal
+                  <div key={i} className="card" style={{ padding: '20px', marginBottom: '16px', borderRadius: '18px', border: '1px solid var(--card-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                         <div>
+                              <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>{m.mealType ? m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1) : "Meal"}</strong>
+                              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{new Date(m.loggedAt || m.createdAt).toLocaleDateString()} at {new Date(m.loggedAt || m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                          </div>
-                         <button onClick={() => onDeleteMeal(m.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-                            <FiTrash2 size={18} />
-                         </button>
+                         <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{ color: '#f59e0b', fontSize: '1.2rem', fontWeight: 800 }}>
+                                 {m.calories} <small style={{ fontSize: '10px', textTransform: 'uppercase' }}>kcal</small>
+                              </div>
+                              <button onClick={() => onDeleteMeal(m.id)} style={{ padding: '8px', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '10px', transition: 'all 0.2s ease' }}>
+                                 <FiTrash2 size={16} />
+                              </button>
+                         </div>
+                    </div>
+                    
+                    {/* MACRO BAR CHART */}
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '12px', borderTop: '1px solid var(--card-border)', paddingTop: '12px' }}>
+                        {[
+                          { label: 'P', val: m.protein || 0, color: '#ef4444' },
+                          { label: 'C', val: m.carbs || 0, color: '#3b82f6' },
+                          { label: 'F', val: m.fats || 0, color: '#f59e0b' }
+                        ].map(macro => (
+                          <div key={macro.label} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ width: '4px', height: '16px', background: macro.color, borderRadius: '2px' }}></div>
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>{macro.label}: </span>
+                            <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-main)' }}>{macro.val}g</span>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 ))}
@@ -536,28 +622,43 @@ const Trackers = () => {
                   <div style={{ width: '80px', height: '80px' }}><CircularProgressbar value={Math.min((activityToday.activeCalories / targets.targetActiveCalories) * 100, 100)} text="kcal" /></div>
                </div>
                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', gap: '10px' }}>
-                 <button type="button" onClick={() => setIsSyncing(!isSyncing)} className={isSyncing ? "ghost-btn" : "primary-btn"}>
-                   {isSyncing ? "Pause Tracking" : "Start Live Tracking"}
+                 <button type="button" onClick={() => isTracking ? stopTracking() : startTracking()} className={isTracking ? "ghost-btn" : "primary-btn"}>
+                   {isTracking ? "Stop Live Tracking" : "Start Live Tracking"}
                  </button>
                </div>
-               {isSyncing && (
+               
+               {/* Health Connect Section */}
+               <div className="card" style={{ padding: '20px', marginBottom: '20px', border: isHealthConnected ? '1px solid #22c55e' : '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <FiActivity size={24} color={isHealthConnected ? '#22c55e' : '#6366f1'} />
+                      <div>
+                        <div style={{ fontWeight: 'bold' }}>Google Fit / Health Connect</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                          {isHealthConnected ? "Connected & Syncing" : "Sync data from your phone sensors"}
+                        </div>
+                      </div>
+                    </div>
+                    {isHealthConnected ? (
+                      <button onClick={syncHealthData} className="ghost-btn small" title="Sync Now">
+                        <FiRefreshCw size={18} />
+                      </button>
+                    ) : (
+                      <button onClick={connectHealth} className="primary-btn small">Connect</button>
+                    )}
+                  </div>
+               </div>
+
+               {isTracking && (
                  <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                    <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#3b82f6' }}>{liveSteps}</div>
-                   <div style={{ color: 'var(--text-muted)' }}>Live Steps</div>
+                   <div style={{ color: 'var(--text-muted)' }}>Live Steps (Persistent)</div>
                  </div>
                )}
-               {liveSteps > 0 && !isSyncing && (
-                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                   <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#22c55e' }}>{liveSteps}</div>
-                   <div style={{ color: 'var(--text-muted)' }}>Steps to Sync</div>
-                 </div>
-               )}
+
                <form onSubmit={onSubmitActivity} className="tracker-form">
                   <label>Manual Steps Entry <input type="number" value={activity.steps || ''} onChange={(e) => setActivity({ ...activity, steps: e.target.value })} /></label>
                   <button type="submit">Save Manual Activity</button>
-                  {liveSteps > 0 && (
-                     <button type="button" onClick={handleSyncToCloud} className="primary-btn" style={{ marginTop: '10px', backgroundColor: '#3b82f6', color: '#fff' }}>Sync Live Steps to Cloud</button>
-                  )}
                </form>
 
                <div className="recent-logs" style={{ marginTop: '24px' }}>

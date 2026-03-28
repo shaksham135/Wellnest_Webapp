@@ -93,9 +93,15 @@ const TrainerCard = ({ trainer, connectionStatus, onConnectRefresh, onViewDiet }
     };
 
     useEffect(() => {
-        if (chatOpen && chatEndRef.current) {
-            chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+        if (chatOpen) {
+            document.body.classList.add('modal-open');
+            if (chatEndRef.current) {
+                chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+            }
+        } else {
+            document.body.classList.remove('modal-open');
         }
+        return () => document.body.classList.remove('modal-open');
     }, [chatHistory, chatOpen]);
 
 
@@ -266,8 +272,8 @@ const TrainerCard = ({ trainer, connectionStatus, onConnectRefresh, onViewDiet }
 
             {/* Chat Modal */}
             {chatOpen && (
-                <div className="modal-overlay">
-                    <div className="chat-modal-content">
+                <div className="modal-overlay" style={{ zIndex: 3000 }}>
+                    <div className="chat-modal-content" style={{ zIndex: 3001, width: '95%', maxWidth: '500px' }}>
                         {/* Header */}
                         <div className="modal-header">
                             <div>Chat with {trainer.name}</div>
@@ -290,11 +296,11 @@ const TrainerCard = ({ trainer, connectionStatus, onConnectRefresh, onViewDiet }
                             <div ref={chatEndRef} />
                         </div>
 
-                        {/* Input */}
-                        <div className="chat-input-area">
+                        <div className="chat-input-area" style={{ paddingRight: '12px' }}>
                             <input
                                 type="text"
                                 className="chat-input"
+                                style={{ paddingRight: '45px' }} /* Space for send icon */
                                 value={chatInput}
                                 onChange={(e) => setChatInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}

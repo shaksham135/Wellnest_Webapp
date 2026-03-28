@@ -130,5 +130,34 @@ public class ChatbotController {
         String aiResponse = groqService.getResponse(promptBuilder.toString());
 
         return ResponseEntity.ok(Map.of("response", aiResponse));
+    @PostMapping("/analyze-meal")
+    public ResponseEntity<?> analyzeMeal(@RequestBody Map<String, String> request) {
+        String description = request.get("description");
+        if (description == null || description.isBlank()) {
+            return ResponseEntity.badRequest().body("Description is required");
+        }
+
+        String prompt = "Analyze the nutritional content of this meal: \"" + description + "\". " +
+                "Return ONLY a valid JSON object with these exact keys: " +
+                "{\"calories\": number, \"protein\": number, \"carbs\": number, \"fats\": number}. " +
+                "Do not include any other text, markdown blocks, or explanation. " +
+                "If you cannot determine the values, provide reasonable estimates based on average portions.";
+
+        try {
+            String aiResponse = groqService.getResponse(prompt);
+            
+            // Clean up AI response in case it wraps with ```json ... ```
+            String cleanedResponse = aiResponse.replaceAll("(?s).*?\\{(.*)\\}.*", "{$1}").trim();
+            
+            // Since we need to return it as a JSON object to the frontend, 
+            // we'll just proxy the cleaned string if it looks like JSON.
+            if (cleanedResponse.startsWith("{") && cleanedResponse.endsWith("}")) {
+                return ResponseEntity.ok(cleanedResponse);
+            } else {
+                return ResponseEntity.status(500).body("AI returned invalid data format");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("AI Analysis failed: " + e.getMessage());
+        }
     }
 }
