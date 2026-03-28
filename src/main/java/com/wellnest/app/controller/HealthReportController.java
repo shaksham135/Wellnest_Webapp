@@ -54,11 +54,13 @@ public class HealthReportController {
         List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, weekStart, now);
         List<Meal> meals = mealRepository.findByUserIdAndLoggedAtBetween(userId, weekStart, now);
         List<WaterIntake> water = waterIntakeRepository.findByUserIdAndLoggedAtBetween(userId, weekStart, now);
-        List<SleepLog> sleep = sleepLogRepository.findByUserIdAndSleepDateBetween(userId, weekStart, now);
+        // SleepLog uses a @ManyToOne User relationship, not a plain userId
+        List<SleepLog> sleep = sleepLogRepository.findByUserAndSleepDateBetween(user, weekStart, now);
 
         LocalDate today = LocalDate.now();
+        // DailyActivity uses a @ManyToOne User relationship
         List<DailyActivity> activity = dailyActivityRepository
-                .findByUserIdAndDateBetweenOrderByDateAsc(userId, today.minusDays(7), today);
+                .findByUserAndDateBetweenOrderByDateAsc(user, today.minusDays(7), today);
 
         // Compute raw stats
         int totalWorkouts = workouts.size();
@@ -66,7 +68,7 @@ public class HealthReportController {
         double avgWaterLiters = water.isEmpty() ? 0.0 :
                 water.stream().mapToDouble(w -> w.getLiters() != null ? w.getLiters() : 0.0).average().orElse(0.0);
         double avgSleepHours = sleep.isEmpty() ? 0.0 :
-                sleep.stream().mapToDouble(SleepLog::getHours).average().orElse(0.0);
+                sleep.stream().mapToDouble(s -> s.getHours() != null ? s.getHours() : 0.0).average().orElse(0.0);
         int totalSteps = activity.stream().mapToInt(a -> a.getSteps() != null ? a.getSteps() : 0).sum();
         int avgDailyCaloriesConsumed = meals.isEmpty() ? 0 :
                 (int) meals.stream().mapToInt(m -> m.getCalories() != null ? m.getCalories() : 0).average().orElse(0);
