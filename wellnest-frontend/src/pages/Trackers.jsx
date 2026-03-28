@@ -28,6 +28,7 @@ import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { useActivity } from "../context/ActivityContext";
 import { FiActivity, FiRefreshCw } from "react-icons/fi";
+import "./Trackers.css";
 
 const Trackers = () => {
   const location = useLocation();
@@ -207,7 +208,12 @@ const Trackers = () => {
 
 
   const calculateCaloriesBurned = (type, duration, weight) => {
-    const metValues = { cardio: 7.0, strength: 5.0, yoga: 3.0, pilates: 3.0, sports: 6.5, flexibility: 2.3 };
+    const metValues = {
+      cardio: 7.0, running: 9.8, walking: 3.5, cycling: 7.5, swimming: 8.0,
+      strength: 5.0, hiit: 10.0, crossfit: 9.0, calisthenics: 5.5, rowing: 7.0,
+      yoga: 3.0, pilates: 3.0, flexibility: 2.3, stretching: 2.0,
+      boxing: 9.5, dancing: 5.5, sports: 6.5, jump_rope: 11.0
+    };
     const met = metValues[type] || 4.0;
     const calories = Math.round(met * weight * (duration / 60));
     return { calories };
@@ -350,17 +356,17 @@ const Trackers = () => {
         </div>
       )}
 
-      <div className="tracker-page container" style={{ position: 'relative' }}>
+      <div className="tracker-page container">
         <h2 className="auth-title">Health Trackers</h2>
         <div className="tabs">
           {["workout", "meal", "water", "sleep", "activity"].map(t => (
-            <button key={t} className={tab === t ? "active" : ""} onClick={() => setTab(t)} style={{ textTransform: 'capitalize' }}>{t}</button>
+            <button key={t} className={tab === t ? "active" : ""} onClick={() => setTab(t)}>{t}</button>
           ))}
         </div>
 
         <div className="tab-content">
           {tab === "workout" && (
-            <>
+            <div className="workout-tracker-content">
               <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px', padding: '20px' }}>
                 <div style={{ width: '120px', height: '120px', marginBottom: '10px' }}>
                   <CircularProgressbar value={Math.min((workoutsToday / targets.targetWorkoutsPerDay) * 100, 100)} text={`${workoutsToday}/${targets.targetWorkoutsPerDay}`} styles={buildStyles({ pathColor: '#22c55e', textColor: 'var(--text-main)' })} />
@@ -369,45 +375,73 @@ const Trackers = () => {
                 <button type="button" onClick={() => handleOpenEditGoal('targetWorkoutsPerDay', targets.targetWorkoutsPerDay || 1)} className="ghost-btn small" style={{ color: '#3b82f6', textDecoration: 'underline' }}>Edit Target</button>
               </div>
               <form onSubmit={onSubmitWorkout} className="tracker-form">
-                <label>Weight (kg) <input type="number" value={userWeight} onChange={(e) => setUserWeight(parseFloat(e.target.value))} /></label>
-                <label>Type <select value={workout.type} onChange={(e) => setWorkout({ ...workout, type: e.target.value })}><option value="cardio">Cardio</option><option value="strength">Strength</option><option value="yoga">Yoga</option></select></label>
-                <label>Duration (min) <input type="number" value={workout.durationMinutes} onChange={(e) => setWorkout({ ...workout, durationMinutes: parseInt(e.target.value) })} /></label>
+                <div className="tracker-grid-row grid-2-col">
+                  <label>Weight (kg) <input type="number" value={userWeight} onChange={(e) => setUserWeight(parseFloat(e.target.value))} /></label>
+                  <label>Type
+                    <select value={workout.type} onChange={(e) => setWorkout({ ...workout, type: e.target.value })}>
+                      <optgroup label="Cardio">
+                        <option value="cardio">General Cardio</option>
+                        <option value="running">Running</option>
+                        <option value="walking">Walking</option>
+                        <option value="cycling">Cycling</option>
+                        <option value="swimming">Swimming</option>
+                        <option value="jump_rope">Jump Rope</option>
+                        <option value="rowing">Rowing</option>
+                      </optgroup>
+                      <optgroup label="Strength & HIIT">
+                        <option value="strength">Strength Training</option>
+                        <option value="hiit">HIIT</option>
+                        <option value="crossfit">CrossFit</option>
+                        <option value="calisthenics">Calisthenics</option>
+                        <option value="boxing">Boxing</option>
+                      </optgroup>
+                      <optgroup label="Mind & Body">
+                        <option value="yoga">Yoga</option>
+                        <option value="pilates">Pilates</option>
+                        <option value="flexibility">Flexibility</option>
+                        <option value="stretching">Stretching</option>
+                      </optgroup>
+                      <optgroup label="Other">
+                        <option value="dancing">Dancing</option>
+                        <option value="sports">Sports</option>
+                      </optgroup>
+                    </select>
+                  </label>
+                </div>
+                <div className="tracker-grid-row">
+                  <label>Duration (min) <input type="number" value={workout.durationMinutes} onChange={(e) => setWorkout({ ...workout, durationMinutes: parseInt(e.target.value) })} /></label>
+                </div>
                 <button type="submit">Save Workout</button>
               </form>
-              <div className="recent-logs" style={{ marginTop: '24px' }}>
-                <h3>Recent Workouts</h3>
+              <div className="recent-logs">
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '32px 0 20px 0' }}>Recent Workouts</h3>
                 {recentWorkouts.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No recent workouts.</p> : recentWorkouts.slice(0, 5).map((w, i) => (
-                  <div key={i} className="card" style={{ padding: '15px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                         <strong>{w.type ? w.type.charAt(0).toUpperCase() + w.type.slice(1) : "Workout"}</strong>
-                         <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(w.performedAt || w.createdAt).toLocaleDateString()}</div>
-                    </div>
-                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                         <div>
-                            <div>{w.durationMinutes} min</div>
-                            <div style={{ color: '#ef4444', fontSize: '13px', fontWeight: 'bold' }}>{w.caloriesBurned} kcal</div>
+                  <div key={i} className="log-card">
+                    <div className="log-header">
+                         <div className="log-title-area">
+                              <span className="log-type">{w.type ? w.type.charAt(0).toUpperCase() + w.type.slice(1) : "Workout"}</span>
+                              <span className="log-date">{new Date(w.performedAt || w.createdAt).toLocaleDateString()}</span>
                          </div>
-                         <button onClick={() => onDeleteWorkout(w.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-                            <FiTrash2 size={18} />
-                         </button>
+                         <div className="log-stats-area">
+                              <div>
+                                 <div>{w.durationMinutes} min</div>
+                                 <div className="log-calories">{w.caloriesBurned} <small>kcal</small></div>
+                              </div>
+                              <button onClick={() => onDeleteWorkout(w.id)} className="delete-log-btn" title="Delete Workout">
+                                 <FiTrash2 size={16} />
+                              </button>
+                         </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           )}
 
           {tab === "meal" && (
-            <>
+            <div className="meal-tracker-content">
               {/* SMART MEAL AI SECTION */}
-              <div className="card" style={{ 
-                background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(167, 139, 250, 0.05))',
-                border: '1px solid rgba(79, 70, 229, 0.2)',
-                padding: '24px',
-                marginBottom: '24px',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
+              <div className="smart-ai-section">
                 <div style={{ position: 'relative', zIndex: 2 }}>
                   <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ color: '#818cf8', display: 'flex', alignItems: 'center' }}>✨</span>
@@ -417,21 +451,12 @@ const Trackers = () => {
                     Describe your meal (e.g., "2 paneer parathas and a bowl of curd") and our AI will estimate your macros instantly!
                   </p>
                   
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                  <div className="ai-input-group">
                     <input 
                       type="text" 
                       placeholder="What did you eat?"
                       value={meal.notes || ""}
                       onChange={(e) => setMeal({ ...meal, notes: e.target.value })}
-                      style={{ 
-                        flex: 1, 
-                        background: 'var(--bg-main)', 
-                        border: '1px solid var(--card-border)',
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        color: 'var(--text-main)',
-                        fontSize: '14px'
-                      }}
                     />
                     <button 
                       type="button" 
@@ -444,48 +469,32 @@ const Trackers = () => {
                         
                         try {
                           toast.loading("Analyzing meal...", { id: "meal-ai" });
-                          
-                          // 1. Check Cache first
                           const { default: storageService } = await import("../api/storageService");
                           const cachedData = await storageService.getItem(cacheKey);
-                          
                           if (cachedData) {
                             const parsed = JSON.parse(cachedData);
                             setMeal(prev => ({ ...prev, ...parsed }));
                             toast.success("Loaded from cache! 🧠", { id: "meal-ai" });
                             return;
                           }
-                          
-                          // 2. Not in cache, ask Groq (via backend)
                           const { analyzeMeal: apiAnalyze } = await import("../api/trackerApi");
                           const res = await apiAnalyze(description);
-                          
-                          // The backend might return the JSON string or object
                           let nutrition = res.data;
-                          if (typeof nutrition === 'string') {
-                            nutrition = JSON.parse(nutrition);
-                          }
-                          
+                          if (typeof nutrition === 'string') nutrition = JSON.parse(nutrition);
                           const result = {
                             calories: Number(nutrition.calories) || 0,
                             protein: Number(nutrition.protein) || 0,
                             carbs: Number(nutrition.carbs) || 0,
                             fats: Number(nutrition.fats) || 0
                           };
-                          
                           setMeal(prev => ({ ...prev, ...result }));
-                          
-                          // 3. Save to Cache
                           await storageService.setItem(cacheKey, JSON.stringify(result));
-                          
                           toast.success("AI Analysis complete! ✨", { id: "meal-ai" });
                         } catch (err) {
-                          console.error("AI Estimation Error:", err);
-                          toast.error("AI was unable to analyze this meal. Please enter manually.", { id: "meal-ai" });
+                          toast.error("AI Analysis failed. Please enter manually.", { id: "meal-ai" });
                         }
                       }}
-                      className="primary-btn"
-                      style={{ width: 'auto', padding: '0 20px', borderRadius: '12px', background: 'var(--primary)', color: 'white', fontWeight: 600 }}
+                      className="ai-analyze-btn"
                     >
                       Analyze
                     </button>
@@ -493,62 +502,61 @@ const Trackers = () => {
                 </div>
               </div>
 
-              <form onSubmit={onSubmitMeal} className="tracker-form" style={{ background: 'var(--card-bg)', padding: '24px', borderRadius: '20px', border: '1px solid var(--card-border)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <form onSubmit={onSubmitMeal} className="tracker-form">
+                <div className="tracker-grid-row grid-2-col">
                   <label>Type <select value={meal.mealType} onChange={(e) => setMeal({ ...meal, mealType: e.target.value })}><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
                   <label>Calories <input type="number" value={meal.calories} onChange={(e) => setMeal({ ...meal, calories: parseInt(e.target.value) })} /></label>
                 </div>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '16px' }}>
+                <div className="tracker-grid-row grid-3-col">
                   <label>Protein (g) <input type="number" placeholder="0" value={meal.protein} onChange={(e) => setMeal({ ...meal, protein: e.target.value })} /></label>
                   <label>Carbs (g) <input type="number" placeholder="0" value={meal.carbs} onChange={(e) => setMeal({ ...meal, carbs: e.target.value })} /></label>
                   <label>Fats (g) <input type="number" placeholder="0" value={meal.fats} onChange={(e) => setMeal({ ...meal, fats: e.target.value })} /></label>
                 </div>
 
-                <button type="submit" style={{ marginTop: '24px', borderRadius: '14px' }}>Save Log</button>
+                <button type="submit">Save Log</button>
               </form>
 
-              <div className="recent-logs" style={{ marginTop: '32px' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '20px' }}>Daily Nutrition History</h3>
+              <div className="recent-logs">
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '32px 0 20px 0' }}>Daily Nutrition History</h3>
                 {recentMeals.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No recent meals.</p> : recentMeals.slice(0, 5).map((m, i) => (
-                  <div key={i} className="card" style={{ padding: '20px', marginBottom: '16px', borderRadius: '18px', border: '1px solid var(--card-border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                         <div>
-                              <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>{m.mealType ? m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1) : "Meal"}</strong>
-                              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{new Date(m.loggedAt || m.createdAt).toLocaleDateString()} at {new Date(m.loggedAt || m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                  <div key={i} className="log-card">
+                    <div className="log-header">
+                         <div className="log-title-area">
+                              <span className="log-type">{m.mealType ? m.mealType.charAt(0).toUpperCase() + m.mealType.slice(1) : "Meal"}</span>
+                              <span className="log-date">{new Date(m.loggedAt || m.createdAt).toLocaleDateString()} at {new Date(m.loggedAt || m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                          </div>
-                         <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div style={{ color: '#f59e0b', fontSize: '1.2rem', fontWeight: 800 }}>
-                                 {m.calories} <small style={{ fontSize: '10px', textTransform: 'uppercase' }}>kcal</small>
+                         <div className="log-stats-area">
+                              <div className="log-calories">
+                                 {m.calories} <small>kcal</small>
                               </div>
-                              <button onClick={() => onDeleteMeal(m.id)} style={{ padding: '8px', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '10px', transition: 'all 0.2s ease' }}>
+                              <button onClick={() => onDeleteMeal(m.id)} className="delete-log-btn" title="Delete Log">
                                  <FiTrash2 size={16} />
                               </button>
                          </div>
                     </div>
                     
-                    {/* MACRO BAR CHART */}
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '12px', borderTop: '1px solid var(--card-border)', paddingTop: '12px' }}>
+                    <div className="macro-bars">
                         {[
-                          { label: 'P', val: m.protein || 0, color: '#ef4444' },
-                          { label: 'C', val: m.carbs || 0, color: '#3b82f6' },
-                          { label: 'F', val: m.fats || 0, color: '#f59e0b' }
+                          { label: 'Protein', val: m.protein || 0, color: '#ef4444', short: 'P' },
+                          { label: 'Carbs', val: m.carbs || 0, color: '#3b82f6', short: 'C' },
+                          { label: 'Fats', val: m.fats || 0, color: '#f59e0b', short: 'F' }
                         ].map(macro => (
-                          <div key={macro.label} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <div style={{ width: '4px', height: '16px', background: macro.color, borderRadius: '2px' }}></div>
-                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>{macro.label}: </span>
-                            <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-main)' }}>{macro.val}g</span>
+                          <div key={macro.label} className="macro-item">
+                            <div className="macro-indicator" style={{ background: macro.color }}></div>
+                            <span className="macro-label">{macro.label}: </span>
+                            <span className="macro-value">{macro.val}g</span>
                           </div>
                         ))}
                     </div>
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           )}
 
           {tab === "water" && (
-            <>
+            <div className="water-tracker-content">
               <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px', padding: '20px' }}>
                  <div style={{ width: '100px', height: '100px', marginBottom: '10px' }}>
                     <CircularProgressbar value={Math.min((waterToday / targets.targetWaterLiters) * 100, 100)} text={`${waterToday.toFixed(1)}L`} styles={buildStyles({ pathColor: '#3b82f6', textColor: 'var(--text-main)' })} />
@@ -556,33 +564,37 @@ const Trackers = () => {
                  <button onClick={() => handleOpenEditGoal('targetWaterLiters', targets.targetWaterLiters)} className="ghost-btn small">Edit Target</button>
               </div>
               <form onSubmit={onSubmitWater} className="tracker-form">
-                <label>Liters <input type="number" step="0.1" value={water.amountLiters} onChange={(e) => setWater({ ...water, amountLiters: e.target.value })} /></label>
+                <div className="tracker-grid-row">
+                  <label>Liters <input type="number" step="0.1" value={water.amountLiters} onChange={(e) => setWater({ ...water, amountLiters: e.target.value })} /></label>
+                </div>
                 <button type="submit">Save Water</button>
               </form>
-              <div className="recent-logs" style={{ marginTop: '24px' }}>
-                <h3>Recent Hydration</h3>
+              <div className="recent-logs">
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '32px 0 20px 0' }}>Recent Hydration</h3>
                 {recentWater.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No recent water logs.</p> : recentWater.slice(0, 5).map((w, i) => (
-                  <div key={i} className="card" style={{ padding: '15px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                         <strong>Water</strong>
-                         <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(w.loggedAt || w.createdAt).toLocaleDateString()} {new Date(w.loggedAt || w.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                    </div>
-                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                         <div style={{ color: '#3b82f6', fontSize: '16px', fontWeight: 'bold' }}>
-                            {w.liters || w.amountLiters || w.amount} L
+                  <div key={i} className="log-card">
+                    <div className="log-header">
+                         <div className="log-title-area">
+                              <span className="log-type">Water Intake</span>
+                              <span className="log-date">{new Date(w.loggedAt || w.createdAt).toLocaleDateString()} {new Date(w.loggedAt || w.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                          </div>
-                         <button onClick={() => onDeleteWater(w.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-                            <FiTrash2 size={18} />
-                         </button>
+                         <div className="log-stats-area">
+                              <div style={{ color: '#3b82f6', fontSize: '1.2rem', fontWeight: 800 }}>
+                                 {w.liters || w.amountLiters || w.amount} <small>L</small>
+                              </div>
+                              <button onClick={() => onDeleteWater(w.id)} className="delete-log-btn" title="Delete Log">
+                                 <FiTrash2 size={16} />
+                              </button>
+                         </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           )}
 
           {tab === "sleep" && (
-            <>
+            <div className="sleep-tracker-content">
               <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px', padding: '20px' }}>
                  <div style={{ width: '100px', height: '100px', marginBottom: '10px' }}>
                     <CircularProgressbar value={Math.min((recentSleepHours / targets.targetSleepHours) * 100, 100)} text={`${recentSleepHours}h`} styles={buildStyles({ pathColor: '#8b5cf6', textColor: 'var(--text-main)' })} />
@@ -590,52 +602,62 @@ const Trackers = () => {
                  <button onClick={() => handleOpenEditGoal('targetSleepHours', targets.targetSleepHours)} className="ghost-btn small">Edit Target</button>
               </div>
               <form onSubmit={onSubmitSleep} className="tracker-form">
-                <label>Hours <input type="number" value={sleep.hours} onChange={(e) => setSleep({ ...sleep, hours: e.target.value })} /></label>
+                <div className="tracker-grid-row">
+                  <label>Hours <input type="number" value={sleep.hours} onChange={(e) => setSleep({ ...sleep, hours: e.target.value })} /></label>
+                </div>
                 <button type="submit">Save Sleep</button>
               </form>
-              <div className="recent-logs" style={{ marginTop: '24px' }}>
-                <h3>Recent Sleep Logs</h3>
+              <div className="recent-logs">
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '32px 0 20px 0' }}>Recent Sleep Logs</h3>
                 {recentSleep.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No recent sleep logs.</p> : recentSleep.slice(0, 5).map((s, i) => (
-                  <div key={i} className="card" style={{ padding: '15px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                         <strong>Sleep</strong>
-                         <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(s.sleepDate || s.createdAt).toLocaleDateString()}</div>
-                    </div>
-                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                         <div style={{ color: '#8b5cf6', fontSize: '16px', fontWeight: 'bold' }}>
-                            {s.hours} hours
+                  <div key={i} className="log-card">
+                    <div className="log-header">
+                         <div className="log-title-area">
+                              <span className="log-type">Sleep Session</span>
+                              <span className="log-date">{new Date(s.sleepDate || s.createdAt).toLocaleDateString()}</span>
                          </div>
-                         <button onClick={() => onDeleteSleep(s.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-                            <FiTrash2 size={18} />
-                         </button>
+                         <div className="log-stats-area">
+                              <div style={{ color: '#8b5cf6', fontSize: '1.2rem', fontWeight: 800 }}>
+                                 {s.hours} <small>hours</small>
+                              </div>
+                              <button onClick={() => onDeleteSleep(s.id)} className="delete-log-btn" title="Delete Log">
+                                 <FiTrash2 size={16} />
+                              </button>
+                         </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           )}
 
           {tab === "activity" && (
-            <>
-               <div className="card" style={{ display: 'flex', gap: '20px', padding: '20px', justifyContent: 'center' }}>
-                  <div style={{ width: '80px', height: '80px' }}><CircularProgressbar value={Math.min((activityToday.steps / targets.targetSteps) * 100, 100)} text="Steps" /></div>
-                  <div style={{ width: '80px', height: '80px' }}><CircularProgressbar value={Math.min((activityToday.activeCalories / targets.targetActiveCalories) * 100, 100)} text="kcal" /></div>
+            <div className="activity-tracker-content">
+               <div className="card" style={{ display: 'flex', gap: '20px', padding: '24px', justifyContent: 'center', marginBottom: '24px' }}>
+                  <div style={{ width: '80px', height: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <CircularProgressbar value={Math.min((activityToday.steps / targets.targetSteps) * 100, 100)} text="Steps" styles={buildStyles({ pathColor: '#3b82f6', textColor: 'var(--text-main)' })} />
+                    <span style={{ fontSize: '10px', marginTop: '4px', color: 'var(--text-muted)' }}>{activityToday.steps}</span>
+                  </div>
+                  <div style={{ width: '80px', height: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <CircularProgressbar value={Math.min((activityToday.activeCalories / targets.targetActiveCalories) * 100, 100)} text="kcal" styles={buildStyles({ pathColor: '#22c55e', textColor: 'var(--text-main)' })} />
+                    <span style={{ fontSize: '10px', marginTop: '4px', color: 'var(--text-muted)' }}>{activityToday.activeCalories}</span>
+                  </div>
                </div>
-               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', gap: '10px' }}>
-                 <button type="button" onClick={() => isTracking ? stopTracking() : startTracking()} className={isTracking ? "ghost-btn" : "primary-btn"}>
+               
+               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', gap: '12px' }}>
+                 <button type="button" onClick={() => isTracking ? stopTracking() : startTracking()} className={isTracking ? "secondary-btn" : "primary-btn"}>
                    {isTracking ? "Stop Live Tracking" : "Start Live Tracking"}
                  </button>
                </div>
                
-               {/* Health Connect Section */}
-               <div className="card" style={{ padding: '20px', marginBottom: '20px', border: isHealthConnected ? '1px solid #22c55e' : '1px solid var(--border-color)' }}>
+               <div className="card" style={{ padding: '20px', marginBottom: '24px', border: isHealthConnected ? '1px solid #22c55e' : '1px solid var(--card-border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <FiActivity size={24} color={isHealthConnected ? '#22c55e' : '#6366f1'} />
                       <div>
-                        <div style={{ fontWeight: 'bold' }}>Google Fit / Health Connect</div>
+                        <div style={{ fontWeight: '700', fontSize: '14px' }}>Health Connect</div>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                          {isHealthConnected ? "Connected & Syncing" : "Sync data from your phone sensors"}
+                          {isHealthConnected ? "Connected & Syncing" : "Sync health data"}
                         </div>
                       </div>
                     </div>
@@ -644,44 +666,48 @@ const Trackers = () => {
                         <FiRefreshCw size={18} />
                       </button>
                     ) : (
-                      <button onClick={connectHealth} className="primary-btn small">Connect</button>
+                      <button onClick={connectHealth} className="primary-btn small" style={{ width: 'auto' }}>Connect</button>
                     )}
                   </div>
                </div>
 
                {isTracking && (
-                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                   <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#3b82f6' }}>{liveSteps}</div>
-                   <div style={{ color: 'var(--text-muted)' }}>Live Steps (Persistent)</div>
+                 <div style={{ textAlign: 'center', marginBottom: '24px', padding: '20px', background: 'var(--primary-light)', borderRadius: '16px' }}>
+                   <div style={{ fontSize: '42px', fontWeight: '800', color: 'var(--primary)', letterSpacing: '-1px' }}>{liveSteps}</div>
+                   <div style={{ color: 'var(--text-muted)', fontSize: '14px', fontWeight: '600' }}>Live Steps Today</div>
                  </div>
                )}
 
                <form onSubmit={onSubmitActivity} className="tracker-form">
-                  <label>Manual Steps Entry <input type="number" value={activity.steps || ''} onChange={(e) => setActivity({ ...activity, steps: e.target.value })} /></label>
-                  <button type="submit">Save Manual Activity</button>
+                  <div className="tracker-grid-row">
+                    <label>Manual Steps Entry <input type="number" value={activity.steps || ''} onChange={(e) => setActivity({ ...activity, steps: e.target.value })} /></label>
+                  </div>
+                  <button type="submit">Save Activity</button>
                </form>
 
-               <div className="recent-logs" style={{ marginTop: '24px' }}>
-                 <h3>Recent Activity</h3>
+               <div className="recent-logs">
+                 <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '32px 0 20px 0' }}>Recent Activity</h3>
                  {recentActivity.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No recent activity logs.</p> : recentActivity.slice(0, 5).map((a, i) => (
-                   <div key={i} className="card" style={{ padding: '15px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                     <div>
-                          <strong>Activity</strong>
-                          <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(a.date || a.createdAt).toLocaleDateString()}</div>
-                     </div>
-                     <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div>
-                             <div>{a.steps} steps</div>
-                             <div style={{ color: '#22c55e', fontSize: '13px', fontWeight: 'bold' }}>{a.activeCalories} kcal</div>
+                   <div key={i} className="log-card">
+                     <div className="log-header">
+                          <div className="log-title-area">
+                               <span className="log-type">Activity Log</span>
+                               <span className="log-date">{new Date(a.date || a.createdAt).toLocaleDateString()}</span>
                           </div>
-                          <button onClick={() => onDeleteActivity(a.id)} style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-                             <FiTrash2 size={18} />
-                          </button>
+                          <div className="log-stats-area">
+                               <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontWeight: '800', fontSize: '1.1rem' }}>{a.steps} <small style={{ fontSize: '10px' }}>steps</small></div>
+                                  <div style={{ color: '#22c55e', fontSize: '12px', fontWeight: 'bold' }}>{a.activeCalories} kcal</div>
+                               </div>
+                               <button onClick={() => onDeleteActivity(a.id)} className="delete-log-btn" title="Delete Log">
+                                  <FiTrash2 size={16} />
+                               </button>
+                          </div>
                      </div>
                    </div>
                  ))}
                </div>
-            </>
+            </div>
           )}
         </div>
       </div>
