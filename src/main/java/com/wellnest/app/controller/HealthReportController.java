@@ -101,14 +101,38 @@ public class HealthReportController {
                            .average().orElse(0);
 
             // --- Health Score (0–100) across 5 dimensions ---
-            int fitnessScore   = Math.min(100, totalWorkouts * 20);
-            int hydrationScore = (int) Math.min(100.0, (avgWaterLiters / 2.5) * 100);
-            int sleepScore     = (int) Math.min(100.0, (avgSleepHours / 8.0) * 100);
-            int nutritionScore = avgDailyCaloriesConsumed > 0
-                    ? Math.min(100, (int)(100.0 - Math.abs(2000.0 - avgDailyCaloriesConsumed) / 20.0)) : 0;
-            int activityScore  = Math.min(100, (int)((double) totalSteps / 70000.0 * 100));
-            int healthScore    = (int)((fitnessScore * 0.25) + (hydrationScore * 0.20)
-                    + (sleepScore * 0.25) + (nutritionScore * 0.15) + (activityScore * 0.15));
+            // Rule: if a dimension has NO data this week, it is "neutral" (50) not penalised (0).
+            // This aligns with the Wellness Grade which rewards consistency, not perfection.
+
+            // Fitness: 1 workout = 25pts, 2 = 50, 3 = 75, 4+ = 100
+            int fitnessScore = totalWorkouts == 0 ? 50
+                    : Math.min(100, totalWorkouts * 25);
+
+            // Hydration: neutral if no water logged, else % of 2.5L goal
+            int hydrationScore = water.isEmpty() ? 50
+                    : (int) Math.min(100.0, (avgWaterLiters / 2.5) * 100);
+
+            // Sleep: neutral if no sleep logged, else % of 8h goal
+            int sleepScore = sleep.isEmpty() ? 50
+                    : (int) Math.min(100.0, (avgSleepHours / 8.0) * 100);
+
+            // Nutrition: neutral if no meals logged (many users skip meal tracking)
+            int nutritionScore = meals.isEmpty() ? 50
+                    : Math.max(0, Math.min(100, (int)(100.0 - Math.abs(2000.0 - avgDailyCaloriesConsumed) / 15.0)));
+
+            // Activity: neutral if no steps logged (Health Connect may not be synced)
+            // Goal: 50,000 steps/week (~7k/day, realistic)
+            int activityScore = (totalSteps == 0) ? 50
+                    : Math.min(100, (int)((double) totalSteps / 50000.0 * 100));
+
+            // Weighted score — fitness and sleep are most important
+            int healthScore = (int)(
+                    (fitnessScore   * 0.30) +
+                    (sleepScore     * 0.25) +
+                    (hydrationScore * 0.20) +
+                    (nutritionScore * 0.15) +
+                    (activityScore  * 0.10)
+            );
 
             // --- Score breakdown ---
             Map<String, Integer> breakdown = new LinkedHashMap<>();
