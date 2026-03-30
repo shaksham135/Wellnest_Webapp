@@ -1,7 +1,7 @@
 // src/pages/Profile.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget, FiCheck, FiZap, FiStar, FiBell } from "react-icons/fi";
+import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget, FiCheck, FiStar, FiBell } from "react-icons/fi";
 import { updateUserProfile, togglePremium } from "../api/userApi";
 import apiClient from "../api/apiClient";
 import storageService from "../api/storageService";
@@ -174,16 +174,20 @@ const Profile = ({ onLogout }) => {
                   style={{ 
                     fontSize: '11px', 
                     width: '100%', 
-                    padding: '6px', 
+                    padding: '8px', 
+                    borderRadius: '12px',
                     border: '1px solid ' + (user.isPremium ? '#ca8a04' : 'var(--primary)'), 
+                    background: user.isPremium ? 'rgba(202, 138, 4, 0.05)' : 'transparent',
                     color: user.isPremium ? '#ca8a04' : 'var(--primary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '4px'
+                    gap: '6px',
+                    fontWeight: '700',
+                    transition: 'all 0.2s'
                   }}
                 >
-                  <FiZap /> {user.isPremium ? "Downgrade (Test)" : "Upgrade to Premium"}
+                  {user.isPremium ? <><FiX /> Cancel Subscription</> : <><FiStar /> Unlock Wellnest Premium</>}
                 </button>
               </div>
             </div>
