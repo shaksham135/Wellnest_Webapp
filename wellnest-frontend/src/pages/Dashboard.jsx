@@ -53,6 +53,7 @@ const Dashboard = () => {
     };
     loadData();
     return () => { isMounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, retryTrigger, refreshUserData]);
 
   if (loading) {
