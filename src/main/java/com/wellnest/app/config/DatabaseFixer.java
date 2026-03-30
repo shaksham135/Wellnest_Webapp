@@ -57,6 +57,32 @@ public class DatabaseFixer implements CommandLineRunner {
                 }
             }
 
+            // --- MONETIZATION: Add daily_chat_count column ---
+            Integer dcCount = jdbcTemplate.queryForObject(
+                    "SELECT count(*) FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'daily_chat_count' AND table_schema = DATABASE()",
+                    Integer.class);
+            if (dcCount != null && dcCount == 0) {
+                try {
+                    jdbcTemplate.execute("ALTER TABLE users ADD COLUMN daily_chat_count INT DEFAULT 0");
+                    System.out.println("Added daily_chat_count column to users table");
+                } catch (Exception e) {
+                    System.out.println("Failed to add daily_chat_count: " + e.getMessage());
+                }
+            }
+
+            // --- MONETIZATION: Add last_chat_date column ---
+            Integer lcdCount = jdbcTemplate.queryForObject(
+                    "SELECT count(*) FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'last_chat_date' AND table_schema = DATABASE()",
+                    Integer.class);
+            if (lcdCount != null && lcdCount == 0) {
+                try {
+                    jdbcTemplate.execute("ALTER TABLE users ADD COLUMN last_chat_date DATE");
+                    System.out.println("Added last_chat_date column to users table");
+                } catch (Exception e) {
+                    System.out.println("Failed to add last_chat_date: " + e.getMessage());
+                }
+            }
+
             // --- AI Briefings Table Fix ---
             Integer briefingsTableCount = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM information_schema.tables WHERE table_name = 'daily_briefings' AND table_schema = DATABASE()",
