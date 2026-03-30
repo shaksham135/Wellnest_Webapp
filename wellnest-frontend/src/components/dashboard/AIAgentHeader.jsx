@@ -10,22 +10,38 @@ const AIAgentHeader = ({ user, readinessScore }) => {
     const hour = new Date().getHours();
     
     useEffect(() => {
+        let isMounted = true;
         const fetchBriefing = async () => {
+            // Safety: timeout if it takes too long
+            const timeoutPromise = new Promise((resolve) => 
+                setTimeout(() => resolve({ timeout: true }), 8000)
+            );
+
             try {
                 setLoading(true);
-                const res = await getDailyBriefing();
-                if (res.data && res.data.content) {
+                // Race the API call against the timeout
+                const res = await Promise.race([getDailyBriefing(), timeoutPromise]);
+                
+                if (!isMounted) return;
+
+                if (res.timeout) {
+                    console.warn("AI Briefing request timed out.");
+                    setBriefing("Focus on your goal today! Every small step brings you closer to peak fitness.");
+                } else if (res.data && res.data.content) {
                     setBriefing(res.data.content);
                 }
             } catch (err) {
                 console.error("AI Briefing fetch error:", err);
-                setBriefing("Focus on your goals today! I'm here to support your journey.");
+                if (isMounted) {
+                    setBriefing("Keep pushing forward! Consistency is the key to your success.");
+                }
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         };
 
         if (user) fetchBriefing();
+        return () => { isMounted = false; };
     }, [user]);
 
     const getGreeting = () => {

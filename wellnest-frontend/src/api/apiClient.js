@@ -1,12 +1,19 @@
 import axios from "axios";
 import storageService from "./storageService";
 
-// Production URL hardcoded for native reliability
-const baseURL = "https://wellnest-webapp.onrender.com/api";
+// Dynamic Backend Detection (Native + Web)
+const getBaseURL = () => {
+    // If we're on localhost web, point to local backend
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return "http://localhost:8080/api";
+    }
+    // Default to production for Live site + Native mobile (Capacitor handles proxies)
+    return "https://wellnest-webapp.onrender.com/api";
+};
 
 const apiClient = axios.create({
-  baseURL,
-  timeout: 15000, // 15 seconds timeout
+  baseURL: getBaseURL(),
+  timeout: 15000, 
 });
 
 // Debug logging for production if needed

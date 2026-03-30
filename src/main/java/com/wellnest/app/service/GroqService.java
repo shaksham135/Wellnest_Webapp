@@ -35,7 +35,12 @@ public class GroqService {
 
     public String getResponse(String prompt) {
         try {
-            RestTemplate restTemplate = new RestTemplate();
+            // Using SimpleClientHttpRequestFactory for modern timeout control
+            org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(8000); // 8 seconds
+            factory.setReadTimeout(12000);   // 12 seconds
+            
+            RestTemplate restTemplate = new RestTemplate(factory);
 
             // Headers
             HttpHeaders headers = new HttpHeaders();
