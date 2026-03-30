@@ -14,7 +14,7 @@ const AIAgentHeader = ({ user, readinessScore }) => {
         const fetchBriefing = async () => {
             // Safety: timeout if it takes too long
             const timeoutPromise = new Promise((resolve) => 
-                setTimeout(() => resolve({ timeout: true }), 8000)
+                setTimeout(() => resolve({ timeout: true }), 25000)
             );
 
             try {
