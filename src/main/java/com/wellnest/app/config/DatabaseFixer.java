@@ -43,6 +43,10 @@ public class DatabaseFixer implements CommandLineRunner {
                 // Column already exists, silent continue or debug log
                 // System.out.println("Phone column already exists.");
             }
+            // Add is_premium column to users table if missing
+            Integer premiumCount = jdbcTemplate.queryForObject(
+                    "SELECT count(*) FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'is_premium' AND table_schema = DATABASE()",
+                    Integer.class);
 
             if (premiumCount != null && premiumCount == 0) {
                 try {
