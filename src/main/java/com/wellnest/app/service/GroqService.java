@@ -55,7 +55,7 @@ public class GroqService {
             // Using SimpleClientHttpRequestFactory for modern timeout control
             org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
             factory.setConnectTimeout(10000); // 10 seconds
-            factory.setReadTimeout(35000);  // 35 seconds (Generative AI is slow)
+            factory.setReadTimeout(50000);  // 50 seconds (Weekly reports are complex)
             
             RestTemplate restTemplate = new RestTemplate(factory);
 

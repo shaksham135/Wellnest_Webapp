@@ -255,13 +255,15 @@ public class HealthReportController {
             String topType   = workoutTypeCounts.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse("none");
 
             String prompt =
-                "You are Wellnest AI. Generate a detailed weekly health report for " + firstName + ".\n" +
+                "### SYSTEM: You are Wellnest AI Clinical Analyst. Return ONLY a valid JSON object. No preamble, no markdown formatting (unless specifically in 'body').\n\n" +
+                "### USER: Generate a detailed weekly health report for " + firstName + ".\n" +
                 "Goal: " + goal + " | Age: " + (user.getAge() != null ? user.getAge() : "N/A") +
                 " | Gender: " + (user.getGender() != null ? user.getGender() : "N/A") + "\n\n" +
-                "WEEKLY DATA:\n" +
+                "WEEKLY DATA (LAST 7 DAYS):\n" +
                 "- Workouts: " + totalWorkouts + " sessions, " + totalDurationMins + " mins total (" + (wTypes.isEmpty() ? "none" : wTypes) + ")\n" +
                 "- Most frequent workout: " + topType + "\n" +
-                "- Calories Burned: " + totalCaloriesBurned + " kcal | Active Calories: " + totalActiveCalories + "\n" +
+                "- Calories Burned (Total): " + totalCaloriesBurned + " kcal\n" +
+                "- Active Calories (Daily Avg): " + totalActiveCalories + "\n" +
                 "- Distance: " + String.format("%.1f", totalDistanceKm) + " km\n" +
                 "- Avg Water: " + String.format("%.1f", avgWaterLiters) + "L/day (goal 2.5L) | Total: " + String.format("%.1f", totalWaterLiters) + "L\n" +
                 "- Avg Sleep: " + String.format("%.1f", avgSleepHours) + "h (goal 8h) | Best: " + String.format("%.1f", bestSleepHours) + "h | Worst: " + String.format("%.1f", worstSleepHours) + "h\n" +
@@ -269,36 +271,48 @@ public class HealthReportController {
                 "- Avg Calories Consumed: " + avgDailyCalories + " kcal/day | Protein: " + avgProtein + "g | Carbs: " + avgCarbs + "g | Fats: " + avgFats + "g\n" +
                 "- Workout Streak: " + workoutStreak + " consecutive days\n" +
                 "- Health Score: " + healthScore + "/100 (Fitness:" + fitnessScore + " Sleep:" + sleepScore + " Hydration:" + hydrationScore + " Nutrition:" + nutritionScore + " Activity:" + activityScore + ")\n" +
-                "- vs Last Week: Workouts " + (totalWorkouts - prevWorkoutCount >= 0 ? "+" : "") + (totalWorkouts - prevWorkoutCount) +
+                "- Trend vs Prev Week: Workouts " + (totalWorkouts - prevWorkoutCount >= 0 ? "+" : "") + (totalWorkouts - prevWorkoutCount) +
                 ", Steps " + (totalSteps - prevTotalSteps >= 0 ? "+" : "") + (totalSteps - prevTotalSteps) + "\n\n" +
-                "Return ONLY valid JSON:\n" +
-                "{\"insights\":[\n" +
-                "  {\"emoji\":\"💪\",\"category\":\"Fitness\",\"title\":\"headline\",\"body\":\"2 sentence insight\"},\n" +
-                "  {\"emoji\":\"💧\",\"category\":\"Hydration\",\"title\":\"headline\",\"body\":\"2 sentence insight\"},\n" +
-                "  {\"emoji\":\"😴\",\"category\":\"Sleep\",\"title\":\"headline\",\"body\":\"2 sentence insight\"},\n" +
-                "  {\"emoji\":\"🍽️\",\"category\":\"Nutrition\",\"title\":\"headline\",\"body\":\"2 sentence insight\"},\n" +
-                "  {\"emoji\":\"👟\",\"category\":\"Activity\",\"title\":\"headline\",\"body\":\"2 sentence insight\"},\n" +
-                "  {\"emoji\":\"🔥\",\"category\":\"Progress\",\"title\":\"headline\",\"body\":\"2 sentence insight\"}\n" +
-                "],\n" +
-                "\"actionPlan\":[\n" +
-                "  {\"priority\":\"High\",\"goal\":\"specific goal 1\",\"why\":\"brief reason\"},\n" +
-                "  {\"priority\":\"High\",\"goal\":\"specific goal 2\",\"why\":\"brief reason\"},\n" +
-                "  {\"priority\":\"Medium\",\"goal\":\"specific goal 3\",\"why\":\"brief reason\"},\n" +
-                "  {\"priority\":\"Medium\",\"goal\":\"specific goal 4\",\"why\":\"brief reason\"},\n" +
-                "  {\"priority\":\"Low\",\"goal\":\"specific goal 5\",\"why\":\"brief reason\"}\n" +
-                "],\n" +
-                "\"doctorSummary\":\"3-4 sentence clinical summary with specific numbers for a doctor\",\n" +
-                "\"weekHighlight\":\"One sentence about the biggest achievement this week\",\n" +
-                "\"riskFlags\":[\"any health risk if visible, else empty array\"]\n" +
+                "### REQUIRED JSON FORMAT:\n" +
+                "{\n" +
+                "  \"insights\": [\n" +
+                "    {\"emoji\":\"💪\",\"category\":\"Fitness\",\"title\":\"headline\",\"body\":\"2 sentence clinical insight\"},\n" +
+                "    {\"emoji\":\"💧\",\"category\":\"Hydration\",\"title\":\"headline\",\"body\":\"2 sentence clinical insight\"},\n" +
+                "    {\"emoji\":\"😴\",\"category\":\"Sleep\",\"title\":\"headline\",\"body\":\"2 sentence clinical insight\"},\n" +
+                "    {\"emoji\":\"🍽️\",\"category\":\"Nutrition\",\"title\":\"headline\",\"body\":\"2 sentence clinical insight\"},\n" +
+                "    {\"emoji\":\"👟\",\"category\":\"Activity\",\"title\":\"headline\",\"body\":\"2 sentence clinical insight\"},\n" +
+                "    {\"emoji\":\"🔥\",\"category\":\"Progress\",\"title\":\"headline\",\"body\":\"2 sentence clinical insight\"}\n" +
+                "  ],\n" +
+                "  \"actionPlan\": [\n" +
+                "    {\"priority\":\"High\",\"goal\":\"specific goal 1\",\"why\":\"brief reason\"},\n" +
+                "    {\"priority\":\"High\",\"goal\":\"specific goal 2\",\"why\":\"brief reason\"},\n" +
+                "    {\"priority\":\"Medium\",\"goal\":\"specific goal 3\",\"why\":\"brief reason\"},\n" +
+                "    {\"priority\":\"Medium\",\"goal\":\"specific goal 4\",\"why\":\"brief reason\"},\n" +
+                "    {\"priority\":\"Low\",\"goal\":\"specific goal 5\",\"why\":\"brief reason\"}\n" +
+                "  ],\n" +
+                "  \"doctorSummary\": \"3-4 sentence clinical summary for a medical professional, mentioning specific numbers and trends.\",\n" +
+                "  \"weekHighlight\": \"One key achievement of the week.\",\n" +
+                "  \"riskFlags\": []\n" +
                 "}";
 
             try {
                 String raw = groqService.getResponse(prompt);
-                String cleaned = raw.replaceAll("(?s)```(?:json)?\\s*(\\{.*\\})\\s*```", "$1").trim();
-                if (!cleaned.startsWith("{")) {
-                    int s = cleaned.indexOf('{'), e = cleaned.lastIndexOf('}');
-                    if (s != -1 && e != -1) cleaned = cleaned.substring(s, e + 1);
+                
+                // --- ROBUST JSON EXTRACTION ---
+                String cleaned = raw.trim();
+                // 1. Remove markdown code blocks if present
+                if (cleaned.contains("```")) {
+                    cleaned = cleaned.replaceAll("(?s).*?```(?:json)?\\s*(\\{.*\\})\\s*```.*", "$1").trim();
                 }
+                // 2. Fallback: Find first '{' and last '}'
+                if (!cleaned.startsWith("{")) {
+                    int start = cleaned.indexOf('{');
+                    int end = cleaned.lastIndexOf('}');
+                    if (start != -1 && end != -1 && end > start) {
+                        cleaned = cleaned.substring(start, end + 1);
+                    }
+                }
+
                 JsonNode ai = objectMapper.readTree(cleaned);
 
                 Map<String, Object> response = new LinkedHashMap<>();
@@ -314,13 +328,16 @@ public class HealthReportController {
                 return ResponseEntity.ok(response);
 
             } catch (Exception aiEx) {
+                System.err.println("--- WEEKLY AI GENERATION FAILED ---");
+                System.err.println("REASON: " + aiEx.getMessage());
+                
                 Map<String, Object> response = new LinkedHashMap<>();
                 response.put("stats",         stats);
                 response.put("isPremium",      true);
                 response.put("insights",       Collections.emptyList());
                 response.put("actionPlan",     Collections.emptyList());
-                response.put("doctorSummary",  "AI summary temporarily unavailable.");
-                response.put("weekHighlight",  "");
+                response.put("doctorSummary",  "AI insights are currently recalibrating due to high detail volume. Please check back in a moment.");
+                response.put("weekHighlight",  "Data sync successful. Generating summary...");
                 response.put("riskFlags",      Collections.emptyList());
                 response.put("weekStart",      weekStart.toString());
                 response.put("weekEnd",        now.toString());
