@@ -34,6 +34,9 @@ public class DailyBriefing {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(length = 255)
+    private String notes;
+
     public DailyBriefing() {
     }
 

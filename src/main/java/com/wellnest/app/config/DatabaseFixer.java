@@ -105,6 +105,19 @@ public class DatabaseFixer implements CommandLineRunner {
                 }
             }
 
+            // --- AI Briefings: Add notes column (for timeOfDay) ---
+            Integer notesCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.columns WHERE table_name = 'daily_briefings' AND column_name = 'notes' AND table_schema = DATABASE()",
+                Integer.class);
+            if (notesCount != null && notesCount == 0) {
+                try {
+                    jdbcTemplate.execute("ALTER TABLE daily_briefings ADD COLUMN notes VARCHAR(255)");
+                    System.out.println("Added notes column to daily_briefings table");
+                } catch (Exception e) {
+                    System.out.println("Failed to add notes column: " + e.getMessage());
+                }
+            }
+
         } catch (Exception e) {
             // Ignore errors (e.g., if table doesn't exist yet, though ddl-auto runs before
             // this)

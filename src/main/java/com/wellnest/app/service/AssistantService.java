@@ -38,7 +38,7 @@ public class AssistantService {
 
     @Transactional
     public DailyBriefing getTodayBriefing(Long userId, String dateStr) {
-        log.info("Fetching today's briefing for userId: {} on date: {}", userId, dateStr);
+        log.info("Fetching tiered briefing for userId: {} on date: {}", userId, dateStr);
         
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -50,38 +50,65 @@ public class AssistantService {
             today = LocalDate.now();
         }
 
-        // 1. Check if briefing already exists for today
-        Optional<DailyBriefing> existing = briefingRepository.findByUserAndDate(user, today);
-        if (existing.isPresent()) {
-            log.info("Found existing briefing for today.");
-            return existing.get();
-        }
+        // 1. Determine Time of Day (Morning/Afternoon/Evening)
+        int hour = java.time.LocalDateTime.now().getHour();
+        String timeOfDay = (hour < 12) ? "MORNING" : (hour < 17) ? "AFTERNOON" : "EVENING";
 
-        // 2. MONETIZATION CHECK: Only Premium gets full AI logic
+        // 2. MONETIZATION LOGIC: Free Users get a static daily tip
         if (!user.isPremium()) {
-             log.info("Non-premium user. Returning placeholder briefing.");
-             return new DailyBriefing(user, "UNLOCKED_PREMIUM_ONLY", today);
+             log.info("Free user. Providing stable Daily Pro-Tip.");
+             return getFreeDailyTip(user, today);
         }
 
-        // 3. Gather context for the AI
-        log.info("Generating new AI briefing. Gathering user context...");
+        // 3. PREMIUM LOGIC: Time-Aware AI Briefing
+        Optional<DailyBriefing> existing = briefingRepository.findByUserAndDate(user, today);
+        
+        // Fetch current steps to check freshness
+        Optional<DailyActivity> currentActivity = dailyActivityRepository.findByUserIdAndDate(user.getId(), today);
+        int currentSteps = currentActivity.map(DailyActivity::getSteps).orElse(0);
+
+        if (existing.isPresent()) {
+            String oldContent = existing.get().getContent();
+            boolean isStale = (oldContent.contains("steps") && !oldContent.contains(String.valueOf(currentSteps))) ||
+                             (existing.get().getNotes() != null && !existing.get().getNotes().equals(timeOfDay));
+
+            if (!isStale) {
+                return existing.get();
+            } else {
+                briefingRepository.delete(existing.get());
+            }
+        }
+
+        // 4. Generate Premium AI Content
         String context = gatherUserContext(user, today);
-        log.info("User context gathered: {}", context);
-
-        // 3. Generate content using Groq
         String prompt = "You are an elite, high-energy Pro-Athlete Coach for the Wellnest app. " +
-                "Based on the following data for " + user.getName() + ", generate a 2-sentence daily briefing. " +
-                "Be hyper-motivating, reference their specific numbers, and give one actionable tip for today. " +
-                "Data: " + context + ". " +
-                "Keep it under 250 characters.";
+                "It is currently " + timeOfDay.toLowerCase() + ". " +
+                "Based on the following data for " + user.getName() + ", generate a 2-sentence " + timeOfDay.toLowerCase() + " briefing. " +
+                "Tone: Hyper-motivating, athlete-focused. Reference their specific steps. " +
+                "Current Data: " + context + ". " +
+                "Limit to 250 characters.";
 
-        log.info("Calling Groq API...");
         String aiMessage = groqService.getResponse(prompt);
-        log.info("Groq API response received: {}", aiMessage);
-
-        // 4. Save permanently
+        
         DailyBriefing briefing = new DailyBriefing(user, aiMessage, today);
+        briefing.setNotes(timeOfDay); // Store timeOfDay in notes to detect period changes
         return briefingRepository.save(briefing);
+    }
+
+    private DailyBriefing getFreeDailyTip(User user, LocalDate date) {
+        String[] tips = {
+            "Hydration is key! Aim to drink 3L of water today to keep your energy high.",
+            "Consistency beats intensity. Even a 10-minute walk counts toward your fitness journey.",
+            "Prioritize protein! Your muscles need fuel to recover and grow stronger.",
+            "Sleep is your superpower. Aim for 7-8 hours of quality rest tonight.",
+            "Stretching for 5 minutes after a workout reduces soreness and improves flexibility.",
+            "Start your day with a glass of water to kickstart your metabolism.",
+            "Active recovery is real! Use today for a light walk or yoga session."
+        };
+        // Use user ID and date to pick a stable tip for the same user on the same day
+        int tipIndex = (int) ((user.getId() + date.getDayOfYear()) % tips.length);
+        String tip = "💡 Daily Pro-Tip: " + tips[tipIndex];
+        return new DailyBriefing(user, tip, date);
     }
 
     private String gatherUserContext(User user, LocalDate today) {
