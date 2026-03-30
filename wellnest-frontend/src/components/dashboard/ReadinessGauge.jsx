@@ -41,7 +41,14 @@ const ReadinessGauge = ({ score }) => {
                 animation: 'pulse-glow 4s infinite ease-in-out'
             }}></div>
 
-            <div style={{ width: '160px', height: '160px', position: 'relative', zIndex: 2 }}>
+            <div style={{ 
+                width: '100%', 
+                maxWidth: '180px', 
+                height: 'auto', 
+                aspectRatio: '1',
+                position: 'relative', 
+                zIndex: 2 
+            }}>
                 <CircularProgressbar
                     value={score}
                     text={`${score}%`}
@@ -57,7 +64,7 @@ const ReadinessGauge = ({ score }) => {
             </div>
 
             <div style={{ marginTop: '20px', position: 'relative', zIndex: 2 }}>
-                <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--text-main)' }}>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--text-main)' }}>
                     Ready to Go
                 </h3>
                 <p style={{ margin: '8px 0 0', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>

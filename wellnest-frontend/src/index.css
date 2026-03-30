@@ -50,77 +50,83 @@ body {
   --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
-/* LIGHT */
+/* LIGHT (STARTUP PREMIUM) */
 [data-theme="light"] {
-  --primary: #4f46e5;
-  --secondary: #6366f1; /* Indigo 500 */
-  --accent-red: #ef4444; /* High contrast red */
-  --primary-light: #f5f3ff; /* Very light purple/indigo */
-  --primary-border: #ddd6fe; /* violet-200 */
-  --primary-glow: rgba(79, 70, 229, 0.3);
+  --primary: #0d9488; /* Deep Mint/Teal */
+  --secondary: #7c3aed; /* Soft Purple */
+  --accent-red: #e11d48; /* Rose */
+  --primary-light: #f0fdfa;
+  --primary-border: #ccfbf1;
+  --primary-glow: rgba(13, 148, 136, 0.2);
 
-  /* Modern "Clean" Background: subtle warmth */
   --bg-main: radial-gradient(circle at 50% 10%,
-      #fff1f2 0%,
-      /* Very Light Rose */
-      #eff6ff 50%,
-      /* Very Light Blue */
-      #f8fafc 100%);
-  /* Slate White */
+      #f8fafc 0%,
+      #f1f5f9 100%);
 
-  /* Crisper Cards */
-  --card-bg: rgba(255, 255, 255, 0.9);
-  /* Whiter, less transparent */
-  --card-border: #ffffff;
-  /* pure white border for "cutout" look */
-
+  /* Premium Light Glassmorphism */
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(255, 255, 255, 0.6);
   --input-bg: #ffffff;
-  --input-border: #cbd5e1;
+  --input-border: #e2e8f0;
 
-  --text-main: #1e1b4b;
-  /* Deep Navy (High Contrast) */
+  --text-main: #0f172a;
   --text-muted: #64748b;
-  /* Slate 500 */
 
-  --glass-blur: blur(16px);
-
-  /* Softer, larger diffused shadows */
-  --shadow-lg: 0 25px 50px -12px rgba(99, 102, 241, 0.25);
-  /* Indigo Shadow */
-  --shadow-md: 0 10px 25px -5px rgba(99, 102, 241, 0.15);
+  --glass-blur: blur(20px);
+  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.05), 0 0 1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 10px 20px rgba(0, 0, 0, 0.03);
 }
 
 /* ---------------- BODY ---------------- */
 body {
   font-family: "Outfit", "Inter", system-ui, sans-serif;
-  /* Try Outfit if available, else Inter */
   background: var(--bg-main);
   background-attachment: fixed;
-  /* Parallax feel */
   color: var(--text-main);
   min-height: 100vh;
+  margin: 0;
   transition: background 0.4s ease, color 0.25s ease;
 }
 
-/* ---------------- MAIN WRAPPER ---------------- */
-main {
-  padding: 32px 16px;
-  max-width: 1400px;
+/* ---------------- LAYOUT UTILITIES ---------------- */
+.container {
+  width: 100%;
+  max-width: 1100px;
   margin: 0 auto;
+  padding: 0 20px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 16px;
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr; /* Stack on mobile */
+  }
 }
 
 /* ---------------- COMMON CARD BASE ---------------- */
 .card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 24px;
-  /* More rounded */
+  border-radius: 28px;
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-lg);
   color: var(--text-main);
   position: relative;
   overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
 }
 
 /* Shine effect on top of cards */
@@ -131,8 +137,8 @@ main {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  opacity: 0.5;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  opacity: 0.3;
 }
 
 /* =====================================================

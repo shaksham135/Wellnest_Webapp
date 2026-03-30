@@ -28,48 +28,66 @@ const AIAgentHeader = ({ user, activities, sleep, water, readinessScore }) => {
         <div className="ai-agent-header card" style={{
             padding: '24px',
             display: 'flex',
+            flexWrap: 'wrap',
             alignItems: 'center',
-            gap: '20px',
+            gap: '16px',
             background: 'var(--card-bg)',
             border: '1px solid var(--card-border)',
             marginBottom: '24px'
         }}>
             <div className="ai-avatar" style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '18px',
+                width: '64px',
+                height: '64px',
+                borderRadius: '20px',
                 background: 'linear-gradient(135deg, var(--secondary), var(--primary))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.8rem',
+                fontSize: '2rem',
                 color: 'white',
-                boxShadow: '0 8px 20px rgba(139, 92, 246, 0.3)',
+                boxShadow: '0 8px 24px var(--primary-glow)',
                 flexShrink: 0
             }}>
                 <FiMessageSquare />
             </div>
 
-            <div style={{ flex: 1 }}>
-                <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ flex: '1 1 250px' }}>
+                <h2 style={{ 
+                    margin: 0, 
+                    fontSize: '1.25rem', 
+                    fontWeight: 800, 
+                    color: 'var(--text-main)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px',
+                    flexWrap: 'wrap'
+                }}>
                     {getGreeting()}, {firstName}! {getStatusIcon()}
                 </h2>
-                <p style={{ margin: '4px 0 0', fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.4, fontWeight: 500 }}>
+                <p style={{ 
+                    margin: '6px 0 0', 
+                    fontSize: '14px', 
+                    color: 'var(--text-muted)', 
+                    lineHeight: 1.5, 
+                    fontWeight: 500,
+                    maxWidth: '500px'
+                }}>
                     {getInsight()}
                 </p>
             </div>
             
             {user.isPremium && (
                 <div style={{
-                    padding: '4px 12px',
-                    background: 'rgba(94, 234, 212, 0.1)',
-                    border: '1px solid var(--primary)',
-                    borderRadius: '12px',
-                    fontSize: '10px',
+                    padding: '6px 14px',
+                    background: 'var(--primary-light)',
+                    border: '1px solid var(--primary-border)',
+                    borderRadius: '14px',
+                    fontSize: '11px',
                     fontWeight: 900,
                     color: 'var(--primary)',
                     textTransform: 'uppercase',
-                    letterSpacing: '1px'
+                    letterSpacing: '1.2px',
+                    boxShadow: '0 4px 12px rgba(94, 234, 212, 0.1)'
                 }}>
                     A.I. Active
                 </div>
