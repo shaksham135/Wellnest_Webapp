@@ -47,7 +47,7 @@ export const DataProvider = ({ children }) => {
                 getMeals().catch(() => ({ data: [] })),
                 getWater().catch(() => ({ data: [] })),
                 getSleep().catch(() => ({ data: [] })),
-                apiClient.get('/api/activity').catch(() => ({ data: [] })),
+                apiClient.get('/trackers/activity').catch(() => ({ data: [] })),
                 apiClient.get('/analytics/summary').catch(() => ({ data: {} })),
                 getMyDietPlan().catch(() => ({ data: null }))
             ]);

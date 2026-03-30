@@ -277,7 +277,7 @@ public class TrackerService {
         LocalDate start = startDate != null ? startDate : LocalDate.now().minusDays(30);
         LocalDate end = endDate != null ? endDate : LocalDate.now();
         
-        return dailyActivityRepository.findByUserIdAndDateBetweenOrderByDateAsc(userId, start, end);
+        return dailyActivityRepository.findByUserIdAndDateBetweenOrderByDateDesc(userId, start, end);
     }
 
     public void deleteDailyActivity(Long userId, Long activityId) {

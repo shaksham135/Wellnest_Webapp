@@ -53,7 +53,7 @@ const Dashboard = () => {
     };
     loadData();
     return () => { isMounted = false; };
-  }, [navigate, retryTrigger, userData, refreshUserData]);
+  }, [navigate, retryTrigger, refreshUserData]);
 
   if (loading) {
     return (
