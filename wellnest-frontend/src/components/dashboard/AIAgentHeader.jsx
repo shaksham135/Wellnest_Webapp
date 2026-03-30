@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { FiMessageSquare, FiZap, FiMoon, FiActivity } from 'react-icons/fi';
 import { getDailyBriefing } from '../../api/assistantApi';
+import EnergyCrystal from './EnergyCrystal';
+import { useData } from '../../context/DataContext';
 
 const AIAgentHeader = ({ user, readinessScore }) => {
+    const { energyForecast } = useData();
     const [briefing, setBriefing] = useState(null);
     const [loading, setLoading] = useState(true);
     
@@ -19,20 +22,18 @@ const AIAgentHeader = ({ user, readinessScore }) => {
 
             try {
                 setLoading(true);
-                // Race the API call against the timeout
                 const localDate = new Date().toISOString().split('T')[0];
                 const res = await Promise.race([getDailyBriefing(localDate), timeoutPromise]);
                 
                 if (!isMounted) return;
 
                 if (res.timeout) {
-                    console.warn("AI Briefing request timed out.");
                     setBriefing("Focus on your goal today! Every small step brings you closer to peak fitness.");
                 } else if (res.data && res.data.content) {
                     setBriefing(res.data.content);
                 }
             } catch (err) {
-                console.error("AI Briefing fetch error:", err);
+                console.error("AI Header fetch error:", err);
                 if (isMounted) {
                     setBriefing("Keep pushing forward! Consistency is the key to your success.");
                 }
@@ -66,25 +67,32 @@ const AIAgentHeader = ({ user, readinessScore }) => {
             gap: '16px',
             background: 'var(--card-bg)',
             border: '1px solid var(--card-border)',
-            marginBottom: '24px'
+            marginBottom: '24px',
+            position: 'relative',
+            overflow: 'hidden'
         }}>
+            {/* Energy Crystal / Avatar Slot */}
             <div className="ai-avatar" style={{
                 width: '64px',
                 height: '64px',
                 borderRadius: '20px',
-                background: 'linear-gradient(135deg, var(--secondary), var(--primary))',
+                background: user?.isPremium ? 'transparent' : 'linear-gradient(135deg, var(--secondary), var(--primary))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '2rem',
                 color: 'white',
-                boxShadow: '0 8px 24px var(--primary-glow)',
+                boxShadow: user?.isPremium ? 'none' : '0 8px 24px var(--primary-glow)',
                 flexShrink: 0
             }}>
-                <FiMessageSquare />
+                {user?.isPremium && energyForecast ? (
+                    <EnergyCrystal energy={energyForecast.currentEnergy} status={energyForecast.status} />
+                ) : (
+                    <FiMessageSquare />
+                )}
             </div>
 
-            <div style={{ flex: '1 1 250px' }}>
+            <div style={{ flex: '1 1 250px', zIndex: 2 }}>
                 <h2 style={{ 
                     margin: 0, 
                     fontSize: '1.25rem', 

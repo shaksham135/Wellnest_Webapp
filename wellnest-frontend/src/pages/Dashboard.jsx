@@ -9,6 +9,7 @@ import UserDashboard from "../components/dashboard/UserDashboard";
 import TrainerDashboard from "../components/dashboard/TrainerDashboard";
 import SkeletonUI from "../components/common/SkeletonUI";
 import AIAgentHeader from "../components/dashboard/AIAgentHeader";
+import EnergyForecastCard from "../components/dashboard/EnergyForecastCard";
 import ReadinessGauge from "../components/dashboard/ReadinessGauge";
 import WellnessGradeCard from "../components/dashboard/WellnessGradeCard";
 
@@ -17,6 +18,7 @@ const Dashboard = () => {
     const { 
         userData, isUserDataLoaded, refreshUserData, 
         activities, isTrackersLoaded, refreshTrackers, isSyncing,
+        energyForecast, refreshEnergyForecast,
         sleep, workouts 
     } = useData();
 
@@ -52,7 +54,8 @@ const Dashboard = () => {
                 // Fire requests in parallel
                 await Promise.all([
                     refreshUserData().catch(e => console.error("Sync User failed", e)),
-                    refreshTrackers().catch(e => console.error("Sync Trackers failed", e))
+                    refreshTrackers().catch(e => console.error("Sync Trackers failed", e)),
+                    user?.isPremium ? refreshEnergyForecast().catch(e => console.error("Sync Energy failed", e)) : Promise.resolve()
                 ]);
 
                 if (isMounted) setLoading(false);
@@ -213,6 +216,7 @@ const Dashboard = () => {
         {!isTrainer && (
           <div className="dashboard-grid">
             <WellnessGradeCard score={readinessScore || 0} />
+            <EnergyForecastCard forecast={energyForecast?.forecast} />
 
             <div
               onClick={() => navigate('/trackers?tab=activity')}

@@ -1,0 +1,45 @@
+.energy-crystal-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+}
+
+.energy-crystal-container svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.pulse-aura {
+    animation: crystal-pulse 3s infinite ease-in-out;
+    transform-origin: center;
+}
+
+@keyframes crystal-pulse {
+    0%, 100% {
+        transform: scale(0.95);
+        opacity: 0.1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.3;
+    }
+}
+
+.spin {
+    animation: spin-anim 2s linear infinite;
+}
+
+@keyframes spin-anim {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}

@@ -28,6 +28,7 @@ export const DataProvider = ({ children }) => {
     const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
     const [isTrackersLoaded, setIsTrackersLoaded] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [energyForecast, setEnergyForecast] = useState(null);
 
     // --- INDUSTRY-READY OFFLINE CACHING ---
     useEffect(() => {
@@ -44,6 +45,7 @@ export const DataProvider = ({ children }) => {
                     setActivities(manifest.activities || []);
                     setGoalData(manifest.goalData || null);
                     setDietPlan(manifest.dietPlan || null);
+                    setEnergyForecast(manifest.energyForecast || null);
                     
                     // Show cached data instantly
                     setIsUserDataLoaded(!!manifest.user);
@@ -78,6 +80,16 @@ export const DataProvider = ({ children }) => {
         } catch (error) {
             console.error("DataContext: Failed to fetch user", error);
             throw error;
+        }
+    }, [saveToCache]);
+
+    const refreshEnergyForecast = useCallback(async () => {
+        try {
+            const res = await apiClient.get('/analytics/energy-forecast');
+            setEnergyForecast(res.data);
+            saveToCache({ energyForecast: res.data });
+        } catch (error) {
+            console.error("DataContext: Energy Forecast fetch failed", error);
         }
     }, [saveToCache]);
 
@@ -150,6 +162,9 @@ export const DataProvider = ({ children }) => {
         isTrackersLoaded,
         refreshTrackers,
         isSyncing,
+        
+        energyForecast,
+        refreshEnergyForecast,
         
         clearAllData
     };

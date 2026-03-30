@@ -21,19 +21,22 @@ public class AssistantService {
     private final DailyActivityRepository dailyActivityRepository;
     private final SleepLogRepository sleepLogRepository;
     private final WaterIntakeRepository waterIntakeRepository;
+    private final EnergyService energyService;
 
     public AssistantService(DailyBriefingRepository briefingRepository,
                             GroqService groqService,
                             UserRepository userRepository,
                             DailyActivityRepository dailyActivityRepository,
                             SleepLogRepository sleepLogRepository,
-                            WaterIntakeRepository waterIntakeRepository) {
+                            WaterIntakeRepository waterIntakeRepository,
+                            EnergyService energyService) {
         this.briefingRepository = briefingRepository;
         this.groqService = groqService;
         this.userRepository = userRepository;
         this.dailyActivityRepository = dailyActivityRepository;
         this.sleepLogRepository = sleepLogRepository;
         this.waterIntakeRepository = waterIntakeRepository;
+        this.energyService = energyService;
     }
 
     @Transactional
@@ -50,9 +53,13 @@ public class AssistantService {
             today = LocalDate.now();
         }
 
-        // 1. Determine Time of Day (Morning/Afternoon/Evening)
+        // 1. Determine Time Window (Early Morning, Peak, Midday, Evening, Late Night)
         int hour = java.time.LocalDateTime.now().getHour();
-        String timeOfDay = (hour < 12) ? "MORNING" : (hour < 17) ? "AFTERNOON" : "EVENING";
+        String timeWindow = "MIDDAY";
+        if (hour >= 23 || hour < 5) timeWindow = "LATE_NIGHT";
+        else if (hour < 9) timeWindow = "EARLY_MORNING";
+        else if (hour < 12) timeWindow = "PEAK_PERFORMANCE";
+        else if (hour >= 17) timeWindow = "EVENING";
 
         // 2. MONETIZATION LOGIC: Free Users get a static daily tip
         if (!user.isPremium()) {
@@ -60,17 +67,25 @@ public class AssistantService {
              return getFreeDailyTip(user, today);
         }
 
-        // 3. PREMIUM LOGIC: Time-Aware AI Briefing
+        // 3. PREMIUM LOGIC: Time-Aware AI Briefing + Energy Forecast
         Optional<DailyBriefing> existing = briefingRepository.findByUserAndDate(user, today);
         
-        // Fetch current steps to check freshness
+        // Fetch current steps and energy to check freshness
         Optional<DailyActivity> currentActivity = dailyActivityRepository.findByUserIdAndDate(user.getId(), today);
         int currentSteps = currentActivity.map(DailyActivity::getSteps).orElse(0);
+        
+        // Get Energy Status for context
+        com.wellnest.app.dto.EnergyForecast energy = null;
+        try {
+            energy = energyService.getEnergyForecast(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(user.getEmail(), null));
+        } catch (Exception e) {
+            log.error("Failed to get energy forecast for AI context", e);
+        }
 
         if (existing.isPresent()) {
             String oldContent = existing.get().getContent();
             boolean isStale = (oldContent.contains("steps") && !oldContent.contains(String.valueOf(currentSteps))) ||
-                             (existing.get().getNotes() != null && !existing.get().getNotes().equals(timeOfDay));
+                             (existing.get().getNotes() != null && !existing.get().getNotes().equals(timeWindow));
 
             if (!isStale) {
                 return existing.get();
@@ -79,19 +94,23 @@ public class AssistantService {
             }
         }
 
-        // 4. Generate Premium AI Content
+        // 4. Generate Premium AI Content with Predicted Energy context
         String context = gatherUserContext(user, today);
+        String energyContext = (energy != null) ? 
+            String.format("Current Energy: %d%% Status: %s. Insight: %s.", energy.getCurrentEnergy(), energy.getStatus(), energy.getMessage()) : "";
+
         String prompt = "You are an elite, high-energy Pro-Athlete Coach for the Wellnest app. " +
-                "It is currently " + timeOfDay.toLowerCase() + ". " +
-                "Based on the following data for " + user.getName() + ", generate a 2-sentence " + timeOfDay.toLowerCase() + " briefing. " +
-                "Tone: Hyper-motivating, athlete-focused. Reference their specific steps. " +
-                "Current Data: " + context + ". " +
-                "Limit to 250 characters.";
+                "It is currently " + timeWindow.replace("_", " ").toLowerCase() + ". " +
+                "Based on the following data for " + user.getName() + " and their predicted energy, generate a 2-sentence " + timeWindow.toLowerCase() + " coaching briefing. " +
+                "Tone: Hyper-motivating. Reference specific stats. " +
+                "Current State: " + context + ". " +
+                "Energy Insight: " + energyContext + ". " +
+                "Limit to 220 characters.";
 
         String aiMessage = groqService.getResponse(prompt);
         
         DailyBriefing briefing = new DailyBriefing(user, aiMessage, today);
-        briefing.setNotes(timeOfDay); // Store timeOfDay in notes to detect period changes
+        briefing.setNotes(timeWindow); // Store timeWindow in notes to detect period changes
         return briefingRepository.save(briefing);
     }
 

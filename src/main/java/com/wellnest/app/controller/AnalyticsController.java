@@ -16,11 +16,17 @@ public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
     private final com.wellnest.app.service.TrainerInteractionService trainerInteractionService;
+    private final com.wellnest.app.service.EnergyService energyService;
+    private final com.wellnest.app.repository.UserRepository userRepository;
 
     public AnalyticsController(AnalyticsService analyticsService,
-            com.wellnest.app.service.TrainerInteractionService trainerInteractionService) {
+            com.wellnest.app.service.TrainerInteractionService trainerInteractionService,
+            com.wellnest.app.service.EnergyService energyService,
+            com.wellnest.app.repository.UserRepository userRepository) {
         this.analyticsService = analyticsService;
         this.trainerInteractionService = trainerInteractionService;
+        this.energyService = energyService;
+        this.userRepository = userRepository;
     }
 
     @GetMapping("/client/{clientId}")
@@ -47,5 +53,17 @@ public class AnalyticsController {
         }
 
         return ResponseEntity.ok(summary);
+    }
+
+    @GetMapping("/energy-forecast")
+    public ResponseEntity<?> getEnergyForecast(Authentication authentication) {
+        // --- PREMIUM CHECK ---
+        String email = authentication.getName();
+        com.wellnest.app.model.User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null || !user.isPremium()) {
+            return ResponseEntity.status(403).body(java.util.Map.of("error", "Energy Forecast is a premium feature."));
+        }
+        
+        return ResponseEntity.ok(energyService.getEnergyForecast(authentication));
     }
 }
