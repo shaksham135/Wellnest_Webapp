@@ -21,6 +21,9 @@ public class User {
     @com.fasterxml.jackson.annotation.JsonProperty("isPremium")
     private boolean isPremium = false;
 
+    private int dailyChatCount = 0;
+    private java.time.LocalDate lastChatDate;
+
     private String name;
 
     @Column(nullable = false, unique = true)

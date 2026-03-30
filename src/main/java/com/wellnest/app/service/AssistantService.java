@@ -57,7 +57,13 @@ public class AssistantService {
             return existing.get();
         }
 
-        // 2. Gather context for the AI
+        // 2. MONETIZATION CHECK: Only Premium gets full AI logic
+        if (!user.isPremium()) {
+             log.info("Non-premium user. Returning placeholder briefing.");
+             return new DailyBriefing(user, "UNLOCKED_PREMIUM_ONLY", today);
+        }
+
+        // 3. Gather context for the AI
         log.info("Generating new AI briefing. Gathering user context...");
         String context = gatherUserContext(user, today);
         log.info("User context gathered: {}", context);

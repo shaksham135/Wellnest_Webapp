@@ -107,26 +107,33 @@ const AIAgentHeader = ({ user, readinessScore }) => {
                 }}>
                     {loading ? (
                         <span style={{ opacity: 0.6, fontStyle: 'italic' }}>AI is analyzing your stats for today...</span>
-                    ) : (briefing || "Sync your health trackers (steps & sleep) to unlock your personalized AI analysis!")}
+                    ) : (
+                        briefing === "UNLOCKED_PREMIUM_ONLY" ? (
+                            <span style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <FiZap /> Upgrade to Premium to unlock your personalized AI daily briefing and high-energy coaching tips!
+                            </span>
+                        ) : (briefing || "Sync your health trackers (steps & sleep) to unlock your personalized AI analysis!")
+                    )}
                 </p>
             </div>
             
-            {user.isPremium && (
-                <div style={{
-                    padding: '6px 14px',
-                    background: 'var(--primary-light)',
-                    border: '1px solid var(--primary-border)',
-                    borderRadius: '14px',
-                    fontSize: '11px',
-                    fontWeight: 900,
-                    color: 'var(--primary)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '1.2px',
-                    boxShadow: '0 4px 12px rgba(94, 234, 212, 0.1)'
-                }}>
-                    A.I. Active
-                </div>
-            )}
+            <div style={{
+                padding: '6px 14px',
+                background: user?.isPremium ? 'rgba(94, 234, 212, 0.1)' : 'rgba(251, 191, 36, 0.1)',
+                border: user?.isPremium ? '1px solid var(--primary-border)' : '1px solid #fbbf24',
+                borderRadius: '14px',
+                fontSize: '11px',
+                fontWeight: 900,
+                color: user?.isPremium ? 'var(--primary)' : '#fbbf24',
+                textTransform: 'uppercase',
+                letterSpacing: '1.2px',
+                boxShadow: user?.isPremium ? '0 4px 12px rgba(94, 234, 212, 0.1)' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+            }}>
+                {user?.isPremium ? <><FiZap /> AI Active</> : <><FiZap /> Get Premium</>}
+            </div>
         </div>
     );
 };

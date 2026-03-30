@@ -111,7 +111,17 @@ const ChatbotWidget = ({ isLoggedIn }) => {
             setMessages(prev => [...prev, { text: response.data.response, sender: 'bot' }]);
         } catch (error) {
             console.error("Chat error:", error);
-            setMessages(prev => [...prev, { text: "I'm having trouble connecting to the server. Please try again later.", sender: 'bot' }]);
+            
+            // --- MONETIZATION: HANDLE LIMIT REACHED ---
+            if (error.response && error.response.status === 403 && error.response.data?.limitReached) {
+                setMessages(prev => [...prev, { 
+                    text: error.response.data.message || "You've reached your free daily limit. Upgrade to Premium for unlimited coaching!", 
+                    sender: 'bot',
+                    isUpgradePrompt: true 
+                }]);
+            } else {
+                setMessages(prev => [...prev, { text: "I'm having trouble connecting to the server. Please try again later.", sender: 'bot' }]);
+            }
         } finally {
             setLoading(false);
         }
@@ -225,6 +235,13 @@ const ChatbotWidget = ({ isLoggedIn }) => {
                         <div key={index} className={`message ${msg.sender}`}>
                             <div className="message-content">
                                 {formatMessage(msg.text)}
+                                {msg.isUpgradePrompt && (
+                                    <div className="login-actions" style={{ marginTop: '12px' }}>
+                                        <Link to="/profile" className="chat-btn primary" onClick={() => setIsOpen(false)} style={{ background: '#fbbf24', border: 'none' }}>
+                                            Upgrade to Premium 🚀
+                                        </Link>
+                                    </div>
+                                )}
                                 {msg.isLoginPrompt && (
                                     <div className="login-actions">
                                         <Link to="/login" className="chat-btn primary" onClick={() => setIsOpen(false)}>Login</Link>

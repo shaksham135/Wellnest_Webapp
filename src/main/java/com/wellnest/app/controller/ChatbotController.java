@@ -47,6 +47,28 @@ public class ChatbotController {
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
 
+                // --- MONETIZATION LOGIC: DAILY LIMIT ---
+                java.time.LocalDate today = java.time.LocalDate.now();
+                
+                // Reset counter if it's a new day
+                if (user.getLastChatDate() == null || !user.getLastChatDate().isEqual(today)) {
+                    user.setDailyChatCount(0);
+                    user.setLastChatDate(today);
+                }
+
+                // Check limit for non-premium users
+                if (!user.isPremium() && user.getDailyChatCount() >= 10) {
+                    return ResponseEntity.status(403).body(Map.of(
+                        "error", "Limit Reached",
+                        "message", "You've reached your free daily limit of 10 messages. Upgrade to Wellnest Premium for unlimited coaching and 24/7 support!",
+                        "limitReached", true
+                    ));
+                }
+
+                // Increment count for current request
+                user.setDailyChatCount(user.getDailyChatCount() + 1);
+                userService.save(user); // Persist immediately
+
                 // Smart Context Injection: Only provide full stats if the query relates to the
                 // user
                 String lowerQuery = query.toLowerCase();
