@@ -10,6 +10,7 @@ import TrainerDashboard from "../components/dashboard/TrainerDashboard";
 import SkeletonUI from "../components/common/SkeletonUI";
 import AIAgentHeader from "../components/dashboard/AIAgentHeader";
 import ReadinessGauge from "../components/dashboard/ReadinessGauge";
+import WellnessGradeCard from "../components/dashboard/WellnessGradeCard";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -173,6 +174,8 @@ const Dashboard = () => {
         {/* 3. QUICK ACTIONS GRID */}
         {!isTrainer && (
           <div className="dashboard-grid">
+            <WellnessGradeCard score={readinessScore || 0} />
+
             <div
               onClick={() => navigate('/trackers?tab=activity')}
               className="card"
