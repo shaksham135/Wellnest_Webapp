@@ -2,6 +2,7 @@ package com.wellnest.app.service;
 
 import com.wellnest.app.model.*;
 import com.wellnest.app.repository.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,6 +12,7 @@ import java.time.ZoneOffset;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class AssistantService {
 
     private final DailyBriefingRepository briefingRepository;
@@ -36,6 +38,8 @@ public class AssistantService {
 
     @Transactional
     public DailyBriefing getTodayBriefing(Long userId) {
+        log.info("Fetching today's briefing for userId: {}", userId);
+        
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -44,11 +48,14 @@ public class AssistantService {
         // 1. Check if briefing already exists for today
         Optional<DailyBriefing> existing = briefingRepository.findByUserAndDate(user, today);
         if (existing.isPresent()) {
+            log.info("Found existing briefing for today.");
             return existing.get();
         }
 
         // 2. Gather context for the AI
+        log.info("Generating new AI briefing. Gathering user context...");
         String context = gatherUserContext(user, today);
+        log.info("User context gathered: {}", context);
 
         // 3. Generate content using Groq
         String prompt = "You are an elite, high-energy Pro-Athlete Coach for the Wellnest app. " +
@@ -57,7 +64,9 @@ public class AssistantService {
                 "Data: " + context + ". " +
                 "Keep it under 250 characters.";
 
+        log.info("Calling Groq API...");
         String aiMessage = groqService.getResponse(prompt);
+        log.info("Groq API response received: {}", aiMessage);
 
         // 4. Save permanently
         DailyBriefing briefing = new DailyBriefing(user, aiMessage, today);
