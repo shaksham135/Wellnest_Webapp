@@ -13,15 +13,6 @@ export const ActivityProvider = ({ children }) => {
     const liveStepsRef = useRef(0);
     const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
 
-    // Helper: Checks if a date string is today
-    const isToday = (dateInput) => {
-        const d = new Date(dateInput);
-        const today = new Date();
-        return d.getDate() === today.getDate() &&
-               d.getMonth() === today.getMonth() &&
-               d.getFullYear() === today.getFullYear();
-    };
-
     // --- A. Helper Functions First ---
     const syncHealthData = useCallback(async (retryCount = 0) => {
         if (!isNative) return;
