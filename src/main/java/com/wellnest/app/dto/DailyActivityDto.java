@@ -10,4 +10,5 @@ public class DailyActivityDto {
     private Integer steps;
     private Integer activeCalories;
     private Double distanceKm;
+    private Boolean isSync;
 }

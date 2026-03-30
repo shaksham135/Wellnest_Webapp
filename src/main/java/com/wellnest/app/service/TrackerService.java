@@ -255,10 +255,18 @@ public class TrackerService {
             activity.setDate(targetDate);
         }
 
-        // Add to existing values if the user logs multiple times a day manually
-        activity.setSteps(activity.getSteps() + (dto.getSteps() != null ? dto.getSteps() : 0));
-        activity.setActiveCalories(activity.getActiveCalories() + (dto.getActiveCalories() != null ? dto.getActiveCalories() : 0));
-        activity.setDistanceKm(activity.getDistanceKm() + (dto.getDistanceKm() != null ? dto.getDistanceKm() : 0.0));
+        // Sync Behavior vs Manual Log Behavior
+        if (dto.getIsSync() != null && dto.getIsSync()) {
+            // Replacement logic for total-syncs from Health Connect
+            if (dto.getSteps() != null) activity.setSteps(dto.getSteps());
+            if (dto.getActiveCalories() != null) activity.setActiveCalories(dto.getActiveCalories());
+            if (dto.getDistanceKm() != null) activity.setDistanceKm(dto.getDistanceKm());
+        } else {
+            // Additive logic for manual user entries
+            activity.setSteps(activity.getSteps() + (dto.getSteps() != null ? dto.getSteps() : 0));
+            activity.setActiveCalories(activity.getActiveCalories() + (dto.getActiveCalories() != null ? dto.getActiveCalories() : 0));
+            activity.setDistanceKm(activity.getDistanceKm() + (dto.getDistanceKm() != null ? dto.getDistanceKm() : 0.0));
+        }
 
         return dailyActivityRepository.save(activity);
     }

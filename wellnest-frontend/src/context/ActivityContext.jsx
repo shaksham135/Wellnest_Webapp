@@ -29,83 +29,94 @@ export const ActivityProvider = ({ children }) => {
         try {
             const { Health } = await import('@capgo/capacitor-health');
             const { Preferences } = await import('@capacitor/preferences');
+            
             const now = new Date();
-            const todayStr = now.toISOString().split('T')[0]; // "YYYY-MM-DD"
-            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            // Look back 3 days to catch up on any missed data
+            const lookbackDate = new Date();
+            lookbackDate.setDate(lookbackDate.getDate() - 3);
+            lookbackDate.setHours(0, 0, 0, 0);
             
-            const queryParams = {
-                dataType: 'steps',
-                startDate: new Date(startOfDay).toISOString(),
-                endDate: new Date().toISOString(),
-                bucket: 'day',
-                aggregation: 'sum'
+            const startDate = lookbackDate.toISOString();
+            const endDate = now.toISOString();
+            
+            console.log(`ActivityContext: Multi-day sync attempt ${retryCount + 1} (since ${startDate})...`);
+            
+            const dailyDataMap = {}; // Key: "YYYY-MM-DD"
+
+            const processSamples = (samples, field) => {
+                if (!samples) return;
+                samples.forEach(s => {
+                    const dateKey = new Date(s.startDate).toISOString().split('T')[0];
+                    if (!dailyDataMap[dateKey]) dailyDataMap[dateKey] = { steps: 0, activeCalories: 0, distanceKm: 0, date: dateKey };
+                    
+                    if (field === 'distanceKm') {
+                        dailyDataMap[dateKey][field] = Number((s.value / 1000).toFixed(2)); // m to km
+                    } else {
+                        dailyDataMap[dateKey][field] = Math.round(s.value || 0);
+                    }
+                });
             };
-            
-            console.log(`ActivityContext: Sync attempt ${retryCount + 1}...`);
-            let result;
+
             try {
-                result = await Health.queryAggregated(queryParams);
+                // 1. Fetch all metrics bucketed by day
+                const [stepsRes, calsRes, distRes] = await Promise.all([
+                    Health.queryAggregated({ dataType: 'steps', startDate, endDate, bucket: 'day', aggregation: 'sum' }),
+                    Health.queryAggregated({ dataType: 'active_calories', startDate, endDate, bucket: 'day', aggregation: 'sum' }),
+                    Health.queryAggregated({ dataType: 'distance', startDate, endDate, bucket: 'day', aggregation: 'sum' })
+                ]);
+
+                processSamples(stepsRes.samples, 'steps');
+                processSamples(calsRes.samples, 'activeCalories');
+                processSamples(distRes.samples, 'distanceKm');
+
+                console.log("ActivityContext: Phone samples grouped by date:", dailyDataMap);
+
+                // 2. Fetch Backend baseline for the same window
+                const res = await getActivity();
+                const backendActivities = res.data || [];
+
+                // 3. Compare and Sync each day
+                let syncCount = 0;
+                for (const dateKey of Object.keys(dailyDataMap)) {
+                    const phone = dailyDataMap[dateKey];
+                    const backend = backendActivities.find(a => (a.date === dateKey) || (new Date(a.date || a.createdAt).toISOString().split('T')[0] === dateKey));
+                    
+                    const bSteps = backend?.steps || 0;
+                    const bCals  = backend?.activeCalories || 0;
+                    const bDist  = backend?.distanceKm || 0;
+
+                    // Sync if phone data is significantly different/higher than backend (Stateless sync)
+                    if (phone.steps > bSteps || phone.activeCalories > bCals || phone.distanceKm > bDist) {
+                        console.log(`ActivityContext: Syncing ${dateKey} (Phone: ${phone.steps} vs Cloud: ${bSteps})`);
+                        
+                        await createActivity({ 
+                            ...phone,
+                            isSync: true 
+                        });
+                        syncCount++;
+                    }
+                }
+
+                if (syncCount > 0) {
+                    toast.success(`Synced ${syncCount} day(s) of health data!`);
+                    // Update cache/preferences if needed
+                    await Preferences.set({ 
+                        key: 'lastHealthSyncCompleted', 
+                        value: JSON.stringify({ at: new Date().toISOString(), days: syncCount }) 
+                    });
+                } else {
+                    console.log("ActivityContext: Cloud is already up to date for all days.");
+                }
+
             } catch (hErr) {
-                console.error("Health Query fail:", hErr);
-                if (retryCount < 3) {
+                console.error("Health Query/Sync fail:", hErr);
+                if (retryCount < 2) {
                     setTimeout(() => syncHealthData(retryCount + 1), 3000);
                     return;
                 }
-                throw hErr;
-            }
-            
-            if (result && result.samples && result.samples.length > 0) {
-                const totalStepsFromHealth = Math.round(result.samples.reduce((sum, item) => sum + (item.value || 0), 0));
-                
-                // --- STATELESS / SERVER-AWARE SYNC LOGIC ---
-                // 1. Fetch activities from backend for today
-                let totalStepsInBackend = 0;
-                try {
-                    const res = await getActivity();
-                    const activities = res.data || [];
-                    totalStepsInBackend = activities
-                        .filter(a => isToday(a.date || a.createdAt))
-                        .reduce((sum, a) => sum + (a.steps || 0), 0);
-                    
-                    console.log(`ActivityContext: Backend steps today = ${totalStepsInBackend}`);
-                } catch (backendErr) {
-                    console.warn("Could not fetch backend baseline, falling back to Preferences", backendErr);
-                    // Fallback to Preferences if server is down or returns error
-                    const { value: lastSyncDataRaw } = await Preferences.get({ key: 'lastHealthSync' });
-                    let lastSyncData = { date: '', steps: 0 };
-                    try { if (lastSyncDataRaw) lastSyncData = JSON.parse(lastSyncDataRaw); } catch(e) {}
-                    if (lastSyncData.date === todayStr) totalStepsInBackend = lastSyncData.steps;
-                }
-
-                // 2. Calculate the difference: ONLY sync what we don't have on the server
-                const stepsToSync = Math.max(0, totalStepsFromHealth - totalStepsInBackend);
-
-                if (stepsToSync > 0) {
-                    console.log(`ActivityContext: Syncing ${stepsToSync} new steps (Health: ${totalStepsFromHealth}, Backend: ${totalStepsInBackend})`);
-                    const calories = Math.round(stepsToSync * 0.04);
-                    const distance = Number((stepsToSync * 0.0008).toFixed(2));
-                    
-                    try {
-                        await createActivity({ steps: stepsToSync, activeCalories: calories, distanceKm: distance });
-                        
-                        // Update persistence both locally and for UI responsiveness
-                        await Preferences.set({ 
-                            key: 'lastHealthSync', 
-                            value: JSON.stringify({ date: todayStr, steps: totalStepsFromHealth }) 
-                        });
-                        
-                        toast.success(`Synced ${stepsToSync} new steps!`);
-                    } catch (apiErr) {
-                        console.error("Server Sync Error:", apiErr);
-                        toast.error("Cloud sync failed (Server)");
-                    }
-                } else {
-                    console.log("ActivityContext: No new steps to sync (Server already caught up).");
-                }
             }
         } catch (err) {
-            console.error("Sync Error:", err);
-            if (retryCount >= 3) toast.error("Sync failed: " + err.message);
+            console.error("Critical Context Sync Error:", err);
         }
     }, [isNative]);
 
