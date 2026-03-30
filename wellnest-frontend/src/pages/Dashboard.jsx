@@ -1,7 +1,7 @@
 // src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiRefreshCw, FiArrowRight } from "react-icons/fi";
+import { FiRefreshCw, FiArrowRight, FiFileText } from "react-icons/fi";
 
 import storageService from "../api/storageService";
 import { useData } from "../context/DataContext";
@@ -231,6 +231,40 @@ const Dashboard = () => {
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '4px' }}>Active Fitness</div>
                 <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)' }}>{workouts?.length || 0} Session(s)</div>
+              </div>
+            </div>
+            <div
+              onClick={() => navigate('/report')}
+              className="card"
+              style={{
+                padding: '24px',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                background: 'linear-gradient(135deg, var(--secondary-light, rgba(167, 139, 250, 0.1)), transparent)',
+                border: '1px solid var(--card-border)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{
+                  background: 'rgba(167, 139, 250, 0.1)',
+                  color: 'var(--secondary)',
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.4rem'
+                }}>
+                  <FiFileText />
+                </div>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.8px' }}>INSIGHTS</span>
+              </div>
+              <div>
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '4px' }}>Weekly Report</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)' }}>Generate Report</div>
               </div>
             </div>
           </div>

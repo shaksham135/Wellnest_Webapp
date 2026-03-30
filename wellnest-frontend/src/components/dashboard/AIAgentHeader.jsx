@@ -1,21 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiMessageSquare, FiZap, FiMoon, FiActivity } from 'react-icons/fi';
+import { getDailyBriefing } from '../../api/assistantApi';
 
-const AIAgentHeader = ({ user, activities, sleep, water, readinessScore }) => {
+const AIAgentHeader = ({ user, readinessScore }) => {
+    const [briefing, setBriefing] = useState(null);
+    const [loading, setLoading] = useState(true);
+    
     const firstName = user?.name?.split(' ')[0] || 'User';
     const hour = new Date().getHours();
     
+    useEffect(() => {
+        const fetchBriefing = async () => {
+            try {
+                setLoading(true);
+                const res = await getDailyBriefing();
+                if (res.data && res.data.content) {
+                    setBriefing(res.data.content);
+                }
+            } catch (err) {
+                console.error("AI Briefing fetch error:", err);
+                setBriefing("Focus on your goals today! I'm here to support your journey.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user) fetchBriefing();
+    }, [user]);
+
     const getGreeting = () => {
         if (hour < 12) return "Good morning";
         if (hour < 17) return "Good afternoon";
         return "Good evening";
-    };
-
-    const getInsight = () => {
-        if (!readinessScore) return "Let's log your sleep to calculate your daily readiness.";
-        if (readinessScore > 80) return "Your recovery is excellent. Today is perfect for a peak performance session!";
-        if (readinessScore > 60) return "You're in good shape. A steady workout will keep your momentum going.";
-        return "Your body needs some rest. Focus on active recovery and hydration today.";
     };
 
     const getStatusIcon = () => {
@@ -72,7 +88,9 @@ const AIAgentHeader = ({ user, activities, sleep, water, readinessScore }) => {
                     fontWeight: 500,
                     maxWidth: '500px'
                 }}>
-                    {getInsight()}
+                    {loading ? (
+                        <span style={{ opacity: 0.6, fontStyle: 'italic' }}>AI is analyzing your stats for today...</span>
+                    ) : briefing}
                 </p>
             </div>
             
