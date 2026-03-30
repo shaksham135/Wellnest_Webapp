@@ -1,17 +1,19 @@
 // src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiUser, FiAward, FiFileText } from "react-icons/fi";
+import { FiRefreshCw, FiArrowRight } from "react-icons/fi";
 
 import storageService from "../api/storageService";
 import { useData } from "../context/DataContext";
 import UserDashboard from "../components/dashboard/UserDashboard";
 import TrainerDashboard from "../components/dashboard/TrainerDashboard";
 import SkeletonUI from "../components/common/SkeletonUI";
+import AIAgentHeader from "../components/dashboard/AIAgentHeader";
+import ReadinessGauge from "../components/dashboard/ReadinessGauge";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { userData, isUserDataLoaded, refreshUserData, workouts, water, sleep } = useData();
+  const { userData, isUserDataLoaded, refreshUserData, workouts, sleep, activities } = useData();
 
   const [user, setUser] = useState(userData);
   const [loading, setLoading] = useState(!isUserDataLoaded);
@@ -26,77 +28,49 @@ const Dashboard = () => {
     }
   }, [userData]);
 
-  /* ---------------- AUTH & DATA LOAD ---------------- */
+  // Auth & Load
   useEffect(() => {
     let isMounted = true;
     const loadData = async () => {
-      // If we already have data, don't show skeletons, just refresh in background
-      if (!userData) {
-        setLoading(true);
-      }
+      if (!userData) setLoading(true);
       setError("");
       try {
         const token = await storageService.getItem("token");
         if (!token) {
-          if (isMounted) navigate("/");
+          if (isMounted) navigate("/login");
           return;
         }
-
-        const resData = await refreshUserData();
-        if (isMounted) {
-          setUser(resData);
-          setLoading(false);
-        }
+        await refreshUserData();
+        if (isMounted) setLoading(false);
       } catch (err) {
-        console.error("Dashboard data load error:", err);
         if (isMounted) {
-          const status = err.response ? err.response.status : (err.message || 'Unknown');
-          setError(`Unable to connect to server (${status}). Please check your internet.`);
+          console.error("Dashboard load error:", err);
+          setError("Connection failed. Please check your network.");
           setLoading(false);
         }
       }
     };
-
     loadData();
     return () => { isMounted = false; };
   }, [navigate, retryTrigger, userData, refreshUserData]);
 
   if (loading) {
-    return (
-      <div className="dashboard-page">
-        <div style={{ width: '100%', maxWidth: '1100px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div style={{
-            background: 'var(--card-bg)',
-            borderRadius: '24px',
-            padding: '32px',
-            border: '1px solid var(--card-border)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start'
-          }}>
-            <div style={{ flex: 1 }}>
-              <SkeletonUI variant="text" style={{ width: '60%', height: '40px', marginBottom: '16px' }} />
-              <SkeletonUI variant="text" style={{ width: '40%', height: '20px' }} />
-            </div>
-            <div style={{ display: 'flex', gap: '14px' }}>
-              <SkeletonUI variant="circle" />
-            </div>
+      return (
+          <div className="dashboard-page container" style={{ padding: '24px' }}>
+              <SkeletonUI variant="card" style={{ height: '120px', marginBottom: '20px' }} />
+              <SkeletonUI variant="card" style={{ height: '300px', marginBottom: '20px' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <SkeletonUI variant="card" style={{ height: '100px' }} />
+                  <SkeletonUI variant="card" style={{ height: '100px' }} />
+              </div>
           </div>
-          <SkeletonUI variant="text" style={{ width: '120px', height: '24px', borderRadius: '12px' }} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-            <SkeletonUI variant="card" />
-            <SkeletonUI variant="card" />
-            <SkeletonUI variant="card" />
-          </div>
-        </div>
-      </div>
-    );
+      );
   }
 
   if (error || !user) {
     return (
-      <div className="dashboard-page">
-        <div className="dashboard-card" style={{ textAlign: 'center', padding: '40px' }}>
+      <div className="dashboard-page container">
+        <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
           <p style={{ color: 'var(--text-main)', marginBottom: '20px' }}>{error || "Something went wrong"}</p>
           <button 
             className="primary-btn" 
@@ -112,252 +86,133 @@ const Dashboard = () => {
 
   const isTrainer = user.role === 'ROLE_TRAINER' || user.role === 'TRAINER';
 
+  // Calculate Readiness (Simple Algorithm)
+  const calculateReadiness = () => {
+    if (isTrainer) return null;
+
+    // Check if we have sleep for today
+    const hasSleepToday = sleep?.some(s => {
+        const d = new Date(s.sleepDate || s.createdAt);
+        const today = new Date();
+        return d.getDate() === today.getDate() && d.getMonth() === today.getMonth();
+    });
+
+    if (!hasSleepToday) return null; // Readiness is Locked until sleep is logged
+
+    // Algorithm: Sleep Hours (40%) + Steps (40%) + Water (20%)
+    const lastSleep = sleep[0]?.hours || 0;
+    const sleepScore = Math.min((lastSleep / 8) * 40, 40);
+    
+    // Find today's activity
+    const today = new Date().toISOString().split('T')[0];
+    const todayActivity = activities?.find(a => (a.date === today) || (new Date(a.date || a.createdAt).toISOString().split('T')[0] === today));
+    
+    const stepsScore = Math.min(((todayActivity?.steps || 0) / 10000) * 40, 40);
+    const waterScore = 20; // Defaulting for simple illustration
+    
+    return Math.round(sleepScore + stepsScore + waterScore);
+  };
+
+  const readinessScore = calculateReadiness();
+
   return (
-    <div className="dashboard-page">
-      <div style={{ width: '100%', maxWidth: '1100px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="dashboard-page container" style={{ paddingBottom: '100px' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        
+        {/* 1. COMPANION HEADER */}
+        <AIAgentHeader 
+            user={user} 
+            activities={activities} 
+            sleep={sleep} 
+            readinessScore={readinessScore} 
+        />
 
-        {/* ================= TOP HEADER ================= */}
-        <div style={{
-          background: 'linear-gradient(135deg, var(--primary), #1e1b4b)',
-          borderRadius: '24px',
-          padding: '32px',
-          color: 'white',
-          position: 'relative',
-          width: '100%',
-          boxShadow: 'var(--shadow-lg)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start'
-        }}>
-          {/* Background Layer */}
-          <div style={{ position: 'absolute', inset: 0, borderRadius: '24px', overflow: 'hidden', pointerEvents: 'none' }}>
-            <div style={{
-              position: 'absolute', top: '-50px', right: '-50px',
-              width: '300px', height: '300px', borderRadius: '50%',
-              background: 'rgba(255,255,255,0.1)', filter: 'blur(50px)'
-            }}></div>
-          </div>
-
-          {/* Text Content */}
-          <div style={{ position: 'relative', zIndex: 10 }}>
-            <h1 style={{ margin: '0 0 8px 0', fontSize: '2.5rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              Hey, {user?.name?.split(' ')[0] || 'Trainer'}! 👋
-              {user.isPremium && (
-                <span style={{ 
-                  background: 'linear-gradient(90deg, #f59e0b, #fbbf24)', 
-                  color: '#1e1b4b', 
-                  fontSize: '12px', 
-                  padding: '4px 10px', 
-                  borderRadius: '12px', 
-                  fontWeight: 900,
-                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase'
-                }}>
-                  PRO
-                </span>
-              )}
-            </h1>
-            <p style={{ margin: 0, fontSize: '1.1rem', opacity: 0.9 }}>
-              {isTrainer ? 'Ready to inspire your clients today?' : 'Welcome to your smart health & fitness hub'}
-            </p>
-            {isTrainer && (
-              <div style={{ marginTop: '14px', display: 'inline-block', padding: '6px 14px', background: 'rgba(255,255,255,0.15)', borderRadius: '20px', fontSize: '12px', fontWeight: 700, border: '1px solid rgba(255,255,255,0.2)' }}>
-                TRAINER DASHBOARD
-              </div>
-            )}
-          </div>
-
-          {/* Profile Icon Only */}
-          <div style={{ position: 'relative', zIndex: 20 }}>
-            <button
-              onClick={() => navigate('/profile')}
-              style={{
-                background: 'rgba(255,255,255,0.15)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                color: 'white',
-                width: '44px',
-                height: '44px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                fontSize: '1.4rem',
-                transition: 'all 0.3s ease'
-              }}
-              title="Go to Profile"
-              className="dashboard-profile-btn"
-            >
-              <FiUser />
-            </button>
-          </div>
-        </div>
-
-        <p className="role-pill" style={{ alignSelf: 'flex-start', margin: 0 }}>
-          Logged in as {user.role?.replace("ROLE_", "")}
-        </p>
-
-        {/* ================= PREMIUM WELLNESS GRADE (Repositioned) ================= */}
-        {!isTrainer && user.isPremium && (
-          <div className="dashboard-card premium-glass-card" style={{ 
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            marginTop: '-12px',
-            animation: 'pulse-glow 4s infinite ease-in-out'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ 
-                  background: 'linear-gradient(135deg, var(--primary), #818cf8)', 
-                  color: 'white',
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.8rem',
-                  boxShadow: '0 8px 16px rgba(79, 70, 229, 0.3)'
-                }}>
-                  <FiAward />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    Wellness Grade
-                    <span style={{ fontSize: '10px', background: '#f59e0b', color: '#1e1b4b', padding: '2px 8px', borderRadius: '6px', fontWeight: 900, boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)' }}>PRO</span>
-                  </h3>
-                  <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
-                    {(() => {
-                      const totalDataPoints = (workouts?.length || 0) + (water?.length || 0) + (sleep?.length || 0);
-                      const avg = totalDataPoints / 3;
-                      
-                      if (totalDataPoints === 0) return "Welcome! Track your first activity to calculate your grade. ✨";
-                      if (avg >= 5) return "Master of Consistency! Top 1% achieved. 🏅";
-                      if (avg >= 3) return "Great work! You're in the Top 10%. 🚀";
-                      return "Keep moving! You're doing better than 60% of peers.";
-                    })()}
-                  </p>
-                </div>
-              </div>
-
-              {/* GRADE BADGE */}
-              <div style={{ 
-                fontSize: '42px', 
-                fontWeight: '950', 
-                background: 'linear-gradient(135deg, var(--primary) 0%, #c7d2fe 50%, var(--primary) 100%)',
-                backgroundSize: '200% auto',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                animation: 'shimmer 3s linear infinite',
-                padding: '0 10px',
-                textAlign: 'center',
-                letterSpacing: '-2px'
-              }}>
-                {(() => {
-                  const totalDataPoints = (workouts?.length || 0) + (water?.length || 0) + (sleep?.length || 0);
-                  const avg = totalDataPoints / 3;
-                  
-                  if (totalDataPoints === 0) return "—";
-                  if (avg >= 5) return "A+";
-                  if (avg >= 3) return "A";
-                  if (avg >= 1.5) return "B+";
-                  if (avg >= 1) return "B";
-                  return "C";
-                })()}
-              </div>
-            </div>
-
-            {/* MINI PROGRESS TRACKER */}
-            <div style={{ marginTop: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>
-                <span>Weekly Momentum</span>
-                <span>{(() => {
-                  const totalDataPoints = (workouts?.length || 0) + (water?.length || 0) + (sleep?.length || 0);
-                  return Math.min(100, Math.round((totalDataPoints / 21) * 100));
-                })()}%</span>
-              </div>
-              <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ 
-                  height: '100%', 
-                  width: `${(() => {
-                    const totalDataPoints = (workouts?.length || 0) + (water?.length || 0) + (sleep?.length || 0);
-                    return Math.min(100, Math.round((totalDataPoints / 21) * 100));
-                  })()}%`,
-                  background: 'linear-gradient(90deg, var(--primary), #818cf8)',
-                  borderRadius: '10px',
-                  boxShadow: '0 0 10px rgba(79, 70, 229, 0.4)',
-                  transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}></div>
-              </div>
-            </div>
-
-            {/* A+ DECORATION */}
-            {(() => {
-               const totalDataPoints = (workouts?.length || 0) + (water?.length || 0) + (sleep?.length || 0);
-               const avg = totalDataPoints / 3;
-               if (totalDataPoints > 0 && avg >= 5) {
-                 return (
-                   <div style={{ position: 'absolute', top: '10px', right: '10px', color: '#f59e0b', animation: 'sparkle 2s infinite ease-in-out' }}>
-                     ✨
-                   </div>
-                 );
-               }
-               return null;
-            })()}
-          </div>
-        )}
-
-        {/* ================= WEEKLY REPORT BANNER ================= */}
+        {/* 2. HERO GAUGE (Locked/Unlocked) */}
         {!isTrainer && (
-          <div
-            onClick={() => navigate('/report')}
-            style={{
-              background: user.isPremium
-                ? 'linear-gradient(135deg, rgba(79,70,229,0.15), rgba(124,58,237,0.1))'
-                : 'var(--card-bg)',
-              border: user.isPremium ? '1px solid rgba(79,70,229,0.35)' : '1px solid var(--card-border)',
-              borderRadius: '20px',
-              padding: '20px 24px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px',
-              cursor: 'pointer',
-              transition: 'all 0.25s ease',
-              backdropFilter: 'var(--glass-blur)',
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-          >
-            <div style={{
-              width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
-              background: user.isPremium ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : 'rgba(255,255,255,0.06)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.4rem', boxShadow: user.isPremium ? '0 6px 14px rgba(79,70,229,0.3)' : 'none'
-            }}>
-              {user.isPremium ? '📊' : '📋'}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                Your Weekly Health Report is Ready
-                {user.isPremium && (
-                  <span style={{ fontSize: '10px', background: 'linear-gradient(90deg,#f59e0b,#fbbf24)', color: '#1e1b4b', padding: '2px 8px', borderRadius: '8px', fontWeight: 900 }}>PRO</span>
+            <div style={{ position: 'relative' }}>
+                <ReadinessGauge score={readinessScore || 0} />
+                
+                {!readinessScore && (
+                    <div className="morning-briefing-overlay" style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(7, 10, 19, 0.6)',
+                        backdropFilter: 'blur(12px)',
+                        borderRadius: '32px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '24px',
+                        textAlign: 'center',
+                        zIndex: 10,
+                        border: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>💤</div>
+                        <h3 style={{ margin: 0, color: 'white', fontWeight: 800 }}>Morning Briefing</h3>
+                        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', margin: '8px 0 20px 0', maxWidth: '280px' }}>
+                            Log your sleep to unlock your Daily Readiness score and AI insights.
+                        </p>
+                        <button 
+                            className="primary-btn" 
+                            style={{ 
+                                width: 'auto', 
+                                padding: '12px 28px', 
+                                background: 'var(--secondary)',
+                                boxShadow: '0 8px 20px rgba(139, 92, 246, 0.4)' 
+                            }}
+                            onClick={() => navigate('/trackers?tab=sleep')}
+                        >
+                            Sync Sleep <FiArrowRight style={{ marginLeft: '8px' }} />
+                        </button>
+                    </div>
                 )}
-              </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                {user.isPremium ? 'AI insights, health score, action plan & PDF download' : 'Preview your stats — upgrade for AI insights & full report'}
-              </div>
             </div>
-            <div style={{ color: user.isPremium ? '#818cf8' : 'var(--text-muted)', fontSize: '1.2rem', flexShrink: 0 }}>
-              <FiFileText />
-            </div>
-          </div>
         )}
 
-        {/* ================= CONTENT SWITCHER ================= */}
+        {/* 3. QUICK ACTIONS GRID */}
+        {!isTrainer && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div 
+                    onClick={() => navigate('/trackers?tab=activity')}
+                    className="card" 
+                    style={{ padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '12px' }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ color: 'var(--primary)', fontSize: '1.2rem' }}><FiRefreshCw /></div>
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>SYNCED</span>
+                    </div>
+                    <div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Steps</div>
+                        <div style={{ fontSize: '1.6rem', fontWeight: 900 }}>{activities?.[0]?.steps || 0}</div>
+                    </div>
+                </div>
+
+                <div 
+                    onClick={() => navigate('/workouts')}
+                    className="card" 
+                    style={{ 
+                        padding: '20px', 
+                        cursor: 'pointer', 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '12px', 
+                        background: 'linear-gradient(135deg, rgba(139,92,246,0.1), transparent)' 
+                    }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ color: 'var(--secondary)', fontSize: '1.2rem' }}><FiArrowRight /></div>
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>EXPLORE</span>
+                    </div>
+                    <div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Workouts</div>
+                        <div style={{ fontSize: '1.6rem', fontWeight: 900 }}>{workouts?.length || 0}</div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* 4. CONTENT SWITCHER */}
         {isTrainer ? (
           <TrainerDashboard user={user} />
         ) : (

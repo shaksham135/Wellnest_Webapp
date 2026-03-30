@@ -50,15 +50,27 @@ export const ActivityProvider = ({ children }) => {
 
             try {
                 // 1. Fetch all metrics bucketed by day
-                const [stepsRes, calsRes, distRes] = await Promise.all([
+                const [stepsRes, calsRes, distRes, sleepRes] = await Promise.all([
                     Health.queryAggregated({ dataType: 'steps', startDate, endDate, bucket: 'day', aggregation: 'sum' }),
                     Health.queryAggregated({ dataType: 'active_calories', startDate, endDate, bucket: 'day', aggregation: 'sum' }),
-                    Health.queryAggregated({ dataType: 'distance', startDate, endDate, bucket: 'day', aggregation: 'sum' })
+                    Health.queryAggregated({ dataType: 'distance', startDate, endDate, bucket: 'day', aggregation: 'sum' }),
+                    Health.query({ dataType: 'sleep', startDate, endDate }) // Fetch raw sleep sessions
                 ]);
 
                 processSamples(stepsRes.samples, 'steps');
                 processSamples(calsRes.samples, 'activeCalories');
                 processSamples(distRes.samples, 'distanceKm');
+
+                // Process Sleep Sessions (Total hours per day)
+                if (sleepRes.samples) {
+                    sleepRes.samples.forEach(s => {
+                        const dateKey = new Date(s.startDate).toISOString().split('T')[0];
+                        if (!dailyDataMap[dateKey]) dailyDataMap[dateKey] = { steps: 0, activeCalories: 0, distanceKm: 0, date: dateKey, sleepHours: 0 };
+                        
+                        const durationHrs = (new Date(s.endDate) - new Date(s.startDate)) / (1000 * 60 * 60);
+                        dailyDataMap[dateKey].sleepHours = Number((dailyDataMap[dateKey].sleepHours || 0 + durationHrs).toFixed(1));
+                    });
+                }
 
                 console.log("ActivityContext: Phone samples grouped by date:", dailyDataMap);
 
@@ -76,15 +88,18 @@ export const ActivityProvider = ({ children }) => {
                     const bCals  = backend?.activeCalories || 0;
                     const bDist  = backend?.distanceKm || 0;
 
-                    // Sync if phone data is significantly different/higher than backend (Stateless sync)
+                    // Sync activity if significantly different
                     if (phone.steps > bSteps || phone.activeCalories > bCals || phone.distanceKm > bDist) {
-                        console.log(`ActivityContext: Syncing ${dateKey} (Phone: ${phone.steps} vs Cloud: ${bSteps})`);
-                        
-                        await createActivity({ 
-                            ...phone,
-                            isSync: true 
-                        });
+                        console.log(`ActivityContext: Syncing ${dateKey} activity`);
+                        await createActivity({ ...phone, isSync: true });
                         syncCount++;
+                    }
+
+                    // Sync Sleep if auto-detected and not logged yet
+                    if (phone.sleepHours > 0) {
+                        // Assuming createSleep exists or using trackerApi
+                        // For now, we'll focus on activity. If we had createSleep, we'd call it here.
+                        console.log(`ActivityContext: Detected ${phone.sleepHours}h sleep for ${dateKey}`);
                     }
                 }
 

@@ -20,40 +20,34 @@ body {
 
 /* ---------------- THEME VARIABLES ---------------- */
 
-/* DARK (DEFAULT) */
+/* DARK (STARTUP PREMIUM) */
 :root,
 [data-theme="dark"] {
-  --primary: #4f46e5;
-  --secondary: #818cf8; /* Indigo 400 */
-  --accent-red: #ef4444; /* High contrast red */
-  --primary-light: rgba(79, 70, 229, 0.1);
-  --primary-border: rgba(79, 70, 229, 0.2);
-  --primary-glow: rgba(79, 70, 229, 0.5);
+  --primary: #5eead4; /* Vivid Mint */
+  --secondary: #a78bfa; /* Soft Violet */
+  --accent-red: #f43f5e; /* Rose */
+  --primary-light: rgba(94, 234, 212, 0.1);
+  --primary-border: rgba(94, 234, 212, 0.2);
+  --primary-glow: rgba(94, 234, 212, 0.4);
 
-  /* Richer, deeper background */
+  /* Deep Space Navy Background */
   --bg-main: radial-gradient(circle at 50% 0%,
-      #1e1b4b 0%,
-      #0f172a 40%,
-      #020617 100%);
+      #0f172a 0%,
+      #070a13 50%,
+      #02040a 100%);
 
-  /* High Glass Effect */
-  --card-bg: rgba(30, 41, 59, 0.4);
-  /* Much more transparent */
-  --card-border: rgba(255, 255, 255, 0.1);
-  /* Crisp white border */
-
-  --input-bg: rgba(0, 0, 0, 0.2);
+  /* Premium Glassmorphism */
+  --card-bg: rgba(11, 15, 31, 0.75);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --input-bg: rgba(0, 0, 0, 0.3);
   --input-border: rgba(255, 255, 255, 0.1);
 
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
 
-  --glass-blur: blur(24px);
-  /* Heavy Blur */
-
-  --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(79, 70, 229, 0.1);
-  /* Subtle color shine */
-  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.3);
+  --glass-blur: blur(20px);
+  --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 20px rgba(94, 234, 212, 0.05);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 /* LIGHT */
