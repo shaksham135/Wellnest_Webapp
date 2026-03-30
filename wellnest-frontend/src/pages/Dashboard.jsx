@@ -87,32 +87,31 @@ const Dashboard = () => {
 
   const isTrainer = user.role === 'ROLE_TRAINER' || user.role === 'TRAINER';
 
-  // Calculate Readiness (Simple Algorithm)
-  const calculateReadiness = () => {
-    if (isTrainer) return null;
+  // Find today's activity (Moved to component scope)
+  const today = new Date().toISOString().split('T')[0];
+  const todayActivity = activities?.find(a => (a.date === today) || (new Date(a.date || a.createdAt).toISOString().split('T')[0] === today));
 
-    // Check if we have sleep for today
-    const hasSleepToday = sleep?.some(s => {
-      const d = new Date(s.sleepDate || s.createdAt);
-      const today = new Date();
-      return d.getDate() === today.getDate() && d.getMonth() === today.getMonth();
-    });
+    const calculateReadiness = () => {
+        if (isTrainer) return null;
 
-    if (!hasSleepToday) return null; // Readiness is Locked until sleep is logged
+        // Check if we have sleep for today
+        const hasSleepToday = sleep?.some(s => {
+            const d = new Date(s.sleepDate || s.createdAt);
+            const todayDate = new Date();
+            return d.getDate() === todayDate.getDate() && d.getMonth() === todayDate.getMonth();
+        });
 
-    // Algorithm: Sleep Hours (40%) + Steps (40%) + Water (20%)
-    const lastSleep = sleep[0]?.hours || 0;
-    const sleepScore = Math.min((lastSleep / 8) * 40, 40);
+        if (!hasSleepToday) return null; // Readiness is Locked until sleep is logged
 
-    // Find today's activity
-    const today = new Date().toISOString().split('T')[0];
-    const todayActivity = activities?.find(a => (a.date === today) || (new Date(a.date || a.createdAt).toISOString().split('T')[0] === today));
+        // Algorithm: Sleep Hours (40%) + Steps (40%) + Water (20%)
+        const lastSleep = sleep[0]?.hours || 0;
+        const sleepScore = Math.min((lastSleep / 8) * 40, 40);
 
-    const stepsScore = Math.min(((todayActivity?.steps || 0) / 10000) * 40, 40);
-    const waterScore = 20; // Defaulting for simple illustration
+        const stepsScore = Math.min(((todayActivity?.steps || 0) / 10000) * 40, 40);
+        const waterScore = 20; // Defaulting for simple illustration
 
-    return Math.round(sleepScore + stepsScore + waterScore);
-  };
+        return Math.round(sleepScore + stepsScore + waterScore);
+    };
 
   const readinessScore = calculateReadiness();
 
@@ -199,7 +198,9 @@ const Dashboard = () => {
               </div>
               <div>
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '4px' }}>Daily Steps</div>
-                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)' }}>{activities?.[0]?.steps || 0}</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)' }}>
+                  {(todayActivity?.steps || 0).toLocaleString()}
+                </div>
               </div>
             </div>
 

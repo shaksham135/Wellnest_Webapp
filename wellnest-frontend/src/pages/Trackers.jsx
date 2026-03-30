@@ -235,7 +235,8 @@ const Trackers = () => {
   const onSubmitMeal = async (e) => {
     e.preventDefault();
     try {
-      await createMeal(meal);
+      const localDate = new Date().toISOString().split('T')[0];
+      await createMeal({ ...meal, date: localDate });
       toast.success("Meal logged!");
       const res = await getMeals();
       setRecentMeals(res.data || []);
@@ -247,7 +248,8 @@ const Trackers = () => {
   const onSubmitWater = async (e) => {
     e.preventDefault();
     try {
-      await createWater({ liters: Number(water.amountLiters), notes: water.notes });
+      const localDate = new Date().toISOString().split('T')[0];
+      await createWater({ ...water, liters: Number(water.amountLiters), notes: water.notes, date: localDate });
       toast.success("Water intake logged!");
       const res = await getWater();
       setRecentWater(res.data || []);
@@ -259,7 +261,8 @@ const Trackers = () => {
   const onSubmitSleep = async (e) => {
     e.preventDefault();
     try {
-      await createSleep(sleep);
+      const localDate = new Date().toISOString().split('T')[0];
+      await createSleep({ ...sleep, date: localDate });
       toast.success("Sleep logged!");
       const res = await getSleep();
       setRecentSleep(res.data || []);
@@ -271,7 +274,9 @@ const Trackers = () => {
   const onSubmitActivity = async (e) => {
     e.preventDefault();
     try {
-      await createActivity(activity);
+      // Send local date for accurate sync
+      const localDate = new Date().toISOString().split('T')[0];
+      await createActivity({ ...activity, date: localDate });
       toast.success("Activity logged!");
       const res = await getActivity();
       setRecentActivity(res.data || []);

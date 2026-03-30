@@ -18,8 +18,9 @@ const WellnessGradeCard = ({ score }) => {
         return 'var(--accent-red)'; // Rose
     };
 
-    const grade = getGrade(score);
-    const color = getColor(score);
+    const isPending = !score || score === 0;
+    const grade = isPending ? '--' : getGrade(score);
+    const color = isPending ? 'var(--text-muted)' : getColor(score);
 
     return (
         <div className="card wellness-grade-card" style={{
@@ -27,18 +28,19 @@ const WellnessGradeCard = ({ score }) => {
             display: 'flex',
             flexDirection: 'column',
             gap: '16px',
-            background: `linear-gradient(135deg, ${color}1a, transparent)`,
+            background: isPending ? 'var(--card-bg)' : `linear-gradient(135deg, ${color}1a, transparent)`,
             cursor: 'pointer',
             minHeight: '180px',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            opacity: isPending ? 0.8 : 1
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ width: '60px', height: '60px' }}>
                     <CircularProgressbar
-                        value={score}
+                        value={score || 0}
                         text={grade}
                         styles={buildStyles({
-                            pathColor: color,
+                            pathColor: isPending ? 'rgba(255,255,255,0.05)' : color,
                             textColor: 'var(--text-main)',
                             trailColor: 'rgba(255,255,255,0.05)',
                             textSize: '32px',
@@ -56,14 +58,18 @@ const WellnessGradeCard = ({ score }) => {
                     }}>
                         Wellness Grade
                     </span>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>{score}%</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                        {isPending ? 'Syncing...' : `${score}%`}
+                    </div>
                 </div>
             </div>
 
             <div>
-                <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '2px' }}>Current Standing</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '2px' }}>
+                    {isPending ? 'Sync status' : 'Current Standing'}
+                </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {score >= 80 ? '🏆 Elite Recovery' : score >= 60 ? '⚡ Balanced state' : '💤 Needs Focus'}
+                    {isPending ? '💤 Sync data to unlock' : (score >= 80 ? '🏆 Elite Recovery' : score >= 60 ? '⚡ Balanced state' : '💤 Needs Focus')}
                 </div>
             </div>
         </div>

@@ -21,6 +21,7 @@ export const DataProvider = ({ children }) => {
     const [meals, setMeals] = useState([]);
     const [water, setWater] = useState([]);
     const [sleep, setSleep] = useState([]);
+    const [activities, setActivities] = useState([]);
     const [goalData, setGoalData] = useState(null);
     const [dietPlan, setDietPlan] = useState(null);
     
@@ -41,11 +42,12 @@ export const DataProvider = ({ children }) => {
 
     const refreshTrackers = useCallback(async () => {
         try {
-            const [w, m, wa, s, g, p] = await Promise.all([
+            const [w, m, wa, s, a, g, p] = await Promise.all([
                 getWorkouts().catch(() => ({ data: [] })),
                 getMeals().catch(() => ({ data: [] })),
                 getWater().catch(() => ({ data: [] })),
                 getSleep().catch(() => ({ data: [] })),
+                apiClient.get('/api/activity').catch(() => ({ data: [] })),
                 apiClient.get('/analytics/summary').catch(() => ({ data: {} })),
                 getMyDietPlan().catch(() => ({ data: null }))
             ]);
@@ -54,6 +56,7 @@ export const DataProvider = ({ children }) => {
             setMeals(m.data || []);
             setWater(wa.data || []);
             setSleep(s.data || []);
+            setActivities(a.data || []);
             setGoalData(g.data?.goalProgress || null);
             setDietPlan(p.data || null);
             
@@ -69,6 +72,7 @@ export const DataProvider = ({ children }) => {
         setMeals([]);
         setWater([]);
         setSleep([]);
+        setActivities([]);
         setGoalData(null);
         setDietPlan(null);
         setIsUserDataLoaded(false);
@@ -86,6 +90,7 @@ export const DataProvider = ({ children }) => {
         meals,
         water,
         sleep,
+        activities,
         goalData,
         dietPlan,
         isTrackersLoaded,

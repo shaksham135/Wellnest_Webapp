@@ -22,9 +22,11 @@ public class DailyActivityServiceImpl implements DailyActivityService {
     @Override
     @Transactional
     public void syncActivity(User user, DailyActivityDto dto) {
-        LocalDate today = LocalDate.now();
-        DailyActivity activity = dailyActivityRepository.findByUserIdAndDate(user.getId(), today)
-                .orElse(new DailyActivity(user, today, 0, 0, 0.0));
+        // Trust the local date from the user's phone if provided
+        LocalDate targetDate = (dto.getDate() != null) ? dto.getDate() : LocalDate.now();
+        
+        DailyActivity activity = dailyActivityRepository.findByUserIdAndDate(user.getId(), targetDate)
+                .orElse(new DailyActivity(user, targetDate, 0, 0, 0.0));
 
         // Use the sync values from mobile (these are cumulative for the day usually)
         if (dto.getSteps() != null) activity.setSteps(dto.getSteps());

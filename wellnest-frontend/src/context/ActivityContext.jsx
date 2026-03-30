@@ -183,7 +183,8 @@ export const ActivityProvider = ({ children }) => {
         if (liveSteps > 0) {
             const calories = Math.round(liveSteps * 0.04);
             const distance = Number((liveSteps * 0.0008).toFixed(2));
-            createActivity({ steps: liveSteps, activeCalories: calories, distanceKm: distance })
+            const localDate = new Date().toISOString().split('T')[0];
+            createActivity({ steps: liveSteps, activeCalories: calories, distanceKm: distance, date: localDate })
                 .then(() => setLiveSteps(0))
                 .catch(console.error);
         }
@@ -205,7 +206,8 @@ export const ActivityProvider = ({ children }) => {
                     const { createActivity: syncCall } = await import('../api/trackerApi');
                     const calories = Math.round(currentSteps * 0.04);
                     const distance = Number((currentSteps * 0.0008).toFixed(2));
-                    await syncCall({ steps: currentSteps, activeCalories: calories, distanceKm: distance });
+                    const localDate = new Date().toISOString().split('T')[0];
+                    await syncCall({ steps: currentSteps, activeCalories: calories, distanceKm: distance, date: localDate });
                     setLiveSteps(0);
                     liveStepsRef.current = 0;
                 } catch (err) {
@@ -280,7 +282,8 @@ export const ActivityProvider = ({ children }) => {
                 try {
                     const calories = Math.round(liveSteps * 0.04);
                     const distance = Number((liveSteps * 0.0008).toFixed(2));
-                    await createActivity({ steps: liveSteps, activeCalories: calories, distanceKm: distance });
+                    const localDate = new Date().toISOString().split('T')[0];
+                    await createActivity({ steps: liveSteps, activeCalories: calories, distanceKm: distance, date: localDate });
                     setLiveSteps(0);
                 } catch (err) {
                     console.error("Auto-sync failed:", err);
