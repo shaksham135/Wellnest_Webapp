@@ -43,9 +43,11 @@ public class GroqService {
     }
 
     public String generateNotification(String role, String name, String context) {
-        String systemPrompt = "You are an elite AI health and wellness coach for the Wellnest app. " +
-                "Generate a short, hyper-personalized notification (max 120 chars) for a " + role + " named " + name + ". " +
-                "Use the following real-time tracker data to provide a specific, actionable nudge or encouragement: " + context + ". ";
+        String systemPrompt = "You are an elite AI health and wellness coach (personality: High-Energy, Professional Athlete Coach). " +
+                "Generate a short, hyper-personalized push notification (max 120 chars) for a " + role + " named " + name + ". " +
+                "STRATEGY: Use the provided context to create a 'hook'. If logs are missing, mention the performance gap. If streaks exist, celebrate them. " +
+                "NEVER be boring. NEVER use generic templates. " +
+                "CONTEXT: " + context + ". ";
         return getResponse(systemPrompt);
     }
 

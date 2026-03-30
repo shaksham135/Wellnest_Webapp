@@ -299,4 +299,35 @@ public class TrackerService {
         waterIntakeRepository.deleteByUserId(userId);
         sleepLogRepository.deleteByUserId(userId);
     }
+
+    // --- HELPERS FOR AI NOTIFICATION ENGINE ---
+
+    public List<Workout> getWorkoutsForToday(Long userId) {
+        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant();
+        return workoutRepository.findByUserIdOrderByPerformedAtDesc(userId).stream()
+                .filter(w -> w.getPerformedAt().isAfter(startOfDay))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public List<Meal> getMealsForToday(Long userId) {
+        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant();
+        return mealRepository.findByUserIdOrderByLoggedAtDesc(userId).stream()
+                .filter(m -> m.getLoggedAt().isAfter(startOfDay))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public List<WaterIntake> getWaterForToday(Long userId) {
+        Instant startOfDay = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant();
+        return waterIntakeRepository.findByUserIdOrderByLoggedAtDesc(userId).stream()
+                .filter(w -> w.getLoggedAt().isAfter(startOfDay))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public List<SleepLog> getSleepForToday(Long userId) {
+        // Sleep is usually logged for the previous night, so we check a 24h window
+        Instant last24h = Instant.now().minus(java.time.Duration.ofHours(24));
+        return sleepLogRepository.findByUserIdOrderBySleepDateDesc(userId).stream()
+                .filter(s -> s.getSleepDate().isAfter(last24h))
+                .collect(java.util.stream.Collectors.toList());
+    }
 }

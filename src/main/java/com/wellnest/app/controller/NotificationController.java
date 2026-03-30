@@ -35,4 +35,13 @@ public class NotificationController {
         notificationService.markAllAsRead(authentication.getName());
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/fcm-token")
+    public ResponseEntity<Void> updateFcmToken(@RequestBody java.util.Map<String, String> body, Authentication authentication) {
+        String token = body.get("token");
+        if (token != null && !token.isEmpty()) {
+            notificationService.updateUserFcmToken(authentication.getName(), token);
+        }
+        return ResponseEntity.ok().build();
+    }
 }
