@@ -42,7 +42,7 @@ const storageService = {
    * Clear all auth related storage
    */
   async clearAuth() {
-    const keys = ['token', 'userId', 'role', 'isVerified'];
+    const keys = ['token', 'userId', 'role', 'isVerified', 'dashboard_manifest'];
     localStorage.clear(); // Safe to clear all in web-context usually
     if (getIsNative()) {
       for (const key of keys) {

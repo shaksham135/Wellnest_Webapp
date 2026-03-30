@@ -13,50 +13,63 @@ import ReadinessGauge from "../components/dashboard/ReadinessGauge";
 import WellnessGradeCard from "../components/dashboard/WellnessGradeCard";
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-  const { userData, isUserDataLoaded, refreshUserData, workouts, sleep, activities } = useData();
+    const navigate = useNavigate();
+    const { 
+        userData, isUserDataLoaded, refreshUserData, 
+        activities, isTrackersLoaded, refreshTrackers, isSyncing,
+        sleep, workouts 
+    } = useData();
 
-  const [user, setUser] = useState(userData);
-  const [loading, setLoading] = useState(!isUserDataLoaded);
-  const [error, setError] = useState("");
-  const [retryTrigger, setRetryTrigger] = useState(0);
+    const [user, setUser] = useState(userData);
+    const [loading, setLoading] = useState(!isUserDataLoaded && !isTrackersLoaded);
+    const [error, setError] = useState("");
+    const [retryTrigger, setRetryTrigger] = useState(0);
 
-  // Keep local user in sync with context
-  useEffect(() => {
-    if (userData) {
-      setUser(userData);
-      setLoading(false);
-    }
-  }, [userData]);
-
-  // Auth & Load
-  useEffect(() => {
-    let isMounted = true;
-    const loadData = async () => {
-      if (!userData) setLoading(true);
-      setError("");
-      try {
-        const token = await storageService.getItem("token");
-        if (!token) {
-          if (isMounted) navigate("/login");
-          return;
+    // Sync local user with context
+    useEffect(() => {
+        if (userData) {
+            setUser(userData);
+            setLoading(false);
         }
-        await refreshUserData();
-        if (isMounted) setLoading(false);
-      } catch (err) {
-        if (isMounted) {
-          console.error("Dashboard load error:", err);
-          setError("Connection failed. Please check your network.");
-          setLoading(false);
-        }
-      }
-    };
-    loadData();
-    return () => { isMounted = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, retryTrigger, refreshUserData]);
+    }, [userData]);
 
-  if (loading) {
+    // INDUSTRY-READY BACKGROUND REFRESH
+    useEffect(() => {
+        let isMounted = true;
+        const syncData = async () => {
+            // If we have no data, show initial loading
+            if (!isUserDataLoaded && !isTrackersLoaded) {
+                setLoading(true);
+            }
+            
+            try {
+                const token = await storageService.getItem("token");
+                if (!token) {
+                    if (isMounted) navigate("/login");
+                    return;
+                }
+
+                // Fire requests in parallel
+                await Promise.all([
+                    refreshUserData().catch(e => console.error("Sync User failed", e)),
+                    refreshTrackers().catch(e => console.error("Sync Trackers failed", e))
+                ]);
+
+                if (isMounted) setLoading(false);
+            } catch (err) {
+                if (isMounted) {
+                    setError("Sync failed. Using cached data.");
+                    setLoading(false);
+                }
+            }
+        };
+
+        syncData();
+        return () => { isMounted = false; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [navigate, retryTrigger, refreshUserData, refreshTrackers]);
+
+    if (loading) {
     return (
       <div className="dashboard-page container" style={{ padding: '24px' }}>
         <SkeletonUI variant="card" style={{ height: '120px', marginBottom: '20px' }} />
@@ -121,12 +134,37 @@ const Dashboard = () => {
       <div className="dashboard-main-content" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
         {/* 1. COMPANION HEADER */}
-        <AIAgentHeader
-          user={user}
-          activities={activities}
-          sleep={sleep}
-          readinessScore={readinessScore}
-        />
+        <div style={{ position: 'relative' }}>
+            <AIAgentHeader
+                user={user}
+                activities={activities}
+                sleep={sleep}
+                readinessScore={readinessScore}
+            />
+            {isSyncing && (
+                <div style={{
+                    position: 'absolute',
+                    top: '-12px',
+                    right: '12px',
+                    background: 'rgba(52, 211, 153, 0.1)',
+                    color: '#34d399',
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    letterSpacing: '0.5px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    border: '1px solid rgba(52, 211, 153, 0.2)',
+                    backdropFilter: 'blur(4px)',
+                    animation: 'pulse 2s infinite'
+                }}>
+                    <FiRefreshCw className="spin" style={{ fontSize: '12px' }} />
+                    SYNCING...
+                </div>
+            )}
+        </div>
 
         {/* 2. HERO GAUGE (Locked/Unlocked) */}
         {!isTrainer && (

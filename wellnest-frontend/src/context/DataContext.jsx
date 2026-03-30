@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { fetchCurrentUser } from '../api/userApi';
 import { getWorkouts, getMeals, getWater, getSleep } from '../api/trackerApi';
 import { getMyDietPlan } from '../api/trainerApi';
 import apiClient from '../api/apiClient';
-import cacheService from '../api/cacheService';
+import storageService from '../api/storageService';
 
 const DataContext = createContext();
 
@@ -27,21 +27,63 @@ export const DataProvider = ({ children }) => {
     
     const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
     const [isTrackersLoaded, setIsTrackersLoaded] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    // --- INDUSTRY-READY OFFLINE CACHING ---
+    useEffect(() => {
+        const loadFromCache = async () => {
+            const manifestStr = await storageService.getItem('dashboard_manifest');
+            if (manifestStr) {
+                try {
+                    const manifest = JSON.parse(manifestStr);
+                    setUserData(manifest.user || null);
+                    setWorkouts(manifest.workouts || []);
+                    setMeals(manifest.meals || []);
+                    setWater(manifest.water || []);
+                    setSleep(manifest.sleep || []);
+                    setActivities(manifest.activities || []);
+                    setGoalData(manifest.goalData || null);
+                    setDietPlan(manifest.dietPlan || null);
+                    
+                    // Show cached data instantly
+                    setIsUserDataLoaded(!!manifest.user);
+                    setIsTrackersLoaded(true);
+                    console.log("DataContext: Instant Load from offline manifest complete. 📱🚀");
+                } catch (e) {
+                    console.error("DataContext: Failed to parse cache.", e);
+                }
+            }
+        };
+        loadFromCache();
+    }, []);
+
+    const saveToCache = useCallback(async (data) => {
+        const currentManifestStr = await storageService.getItem('dashboard_manifest');
+        let currentManifest = {};
+        try {
+            currentManifest = currentManifestStr ? JSON.parse(currentManifestStr) : {};
+        } catch (e) {}
+
+        const updatedManifest = { ...currentManifest, ...data };
+        await storageService.setItem('dashboard_manifest', JSON.stringify(updatedManifest));
+    }, []);
 
     const refreshUserData = useCallback(async () => {
         try {
             const res = await fetchCurrentUser();
             setUserData(res.data);
             setIsUserDataLoaded(true);
+            saveToCache({ user: res.data });
             return res.data;
         } catch (error) {
             console.error("DataContext: Failed to fetch user", error);
             throw error;
         }
-    }, []);
+    }, [saveToCache]);
 
     const refreshTrackers = useCallback(async () => {
         try {
+            setIsSyncing(true);
             const [w, m, wa, s, a, g, p] = await Promise.all([
                 getWorkouts().catch(() => ({ data: [] })),
                 getMeals().catch(() => ({ data: [] })),
@@ -52,19 +94,32 @@ export const DataProvider = ({ children }) => {
                 getMyDietPlan().catch(() => ({ data: null }))
             ]);
 
-            setWorkouts(w.data || []);
-            setMeals(m.data || []);
-            setWater(wa.data || []);
-            setSleep(s.data || []);
-            setActivities(a.data || []);
-            setGoalData(g.data?.goalProgress || null);
-            setDietPlan(p.data || null);
+            const freshData = {
+                workouts: w.data || [],
+                meals: m.data || [],
+                water: wa.data || [],
+                sleep: s.data || [],
+                activities: a.data || [],
+                goalData: g.data?.goalProgress || null,
+                dietPlan: p.data || null
+            };
+
+            setWorkouts(freshData.workouts);
+            setMeals(freshData.meals);
+            setWater(freshData.water);
+            setSleep(freshData.sleep);
+            setActivities(freshData.activities);
+            setGoalData(freshData.goalData);
+            setDietPlan(freshData.dietPlan);
             
+            saveToCache(freshData);
             setIsTrackersLoaded(true);
         } catch (error) {
             console.error("DataContext: Failed to fetch trackers", error);
+        } finally {
+            setIsSyncing(false);
         }
-    }, []);
+    }, [saveToCache]);
 
     const clearAllData = useCallback(() => {
         setUserData(null);
@@ -77,7 +132,6 @@ export const DataProvider = ({ children }) => {
         setDietPlan(null);
         setIsUserDataLoaded(false);
         setIsTrackersLoaded(false);
-        cacheService.clear();
     }, []);
 
     const value = {
@@ -95,6 +149,7 @@ export const DataProvider = ({ children }) => {
         dietPlan,
         isTrackersLoaded,
         refreshTrackers,
+        isSyncing,
         
         clearAllData
     };
