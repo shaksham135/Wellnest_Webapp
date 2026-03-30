@@ -44,17 +44,34 @@ public class DatabaseFixer implements CommandLineRunner {
                 // System.out.println("Phone column already exists.");
             }
 
-            // Add is_premium column to users table if missing
-            Integer premiumCount = jdbcTemplate.queryForObject(
-                    "SELECT count(*) FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'is_premium' AND table_schema = DATABASE()",
-                    Integer.class);
-
             if (premiumCount != null && premiumCount == 0) {
                 try {
                     jdbcTemplate.execute("ALTER TABLE users ADD COLUMN is_premium BOOLEAN DEFAULT FALSE");
                     System.out.println("Added is_premium column to users table");
                 } catch (Exception e) {
                     System.out.println("Failed to add is_premium column: " + e.getMessage());
+                }
+            }
+
+            // --- AI Briefings Table Fix ---
+            Integer briefingsTableCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.tables WHERE table_name = 'daily_briefings' AND table_schema = DATABASE()",
+                Integer.class);
+
+            if (briefingsTableCount != null && briefingsTableCount == 0) {
+                try {
+                    System.out.println("Missing daily_briefings table. Initializing schema...");
+                    jdbcTemplate.execute("CREATE TABLE daily_briefings (" +
+                            "id BIGINT AUTO_INCREMENT PRIMARY KEY," +
+                            "user_id BIGINT NOT NULL," +
+                            "content TEXT NOT NULL," +
+                            "date DATE NOT NULL," +
+                            "created_at DATETIME DEFAULT CURRENT_TIMESTAMP," +
+                            "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE" +
+                            ") ENGINE=InnoDB;");
+                    System.out.println("Daily Briefings table created successfully.");
+                } catch (Exception e) {
+                    System.out.println("Failed to create daily_briefings table: " + e.getMessage());
                 }
             }
 
