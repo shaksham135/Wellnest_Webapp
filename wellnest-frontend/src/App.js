@@ -63,6 +63,8 @@ import storageService from "./api/storageService";
 import "./index.css";
 import "./trainer.css";
 
+import { registerPushNotifications } from "./services/pushNotificationService";
+
 const getUserRole = (providedToken) => {
     const token = providedToken || localStorage.getItem("token");
     if (!token) return null;
@@ -111,6 +113,14 @@ const AppContent = ({
   const { clearAllData } = useData();
   const navigate = useNavigate();
 
+  // --- NATIVE PUSH SYNC ---
+  useEffect(() => {
+    if (isLoggedIn) {
+      console.log("AppContent: Initializing industry-ready push notifications...");
+      registerPushNotifications();
+    }
+  }, [isLoggedIn]);
+
   const handleLogout = async () => {
     await storageService.clearAuth();
     if (typeof clearAllData === 'function') clearAllData();
@@ -123,6 +133,7 @@ const AppContent = ({
     const token = await storageService.getItem("token");
     setIsLoggedIn(true);
     setUserRole(getUserRole(token));
+    // Push sync will be triggered by useEffect
   };
 
   if (!isAuthReady || !isSplashFinished) {
