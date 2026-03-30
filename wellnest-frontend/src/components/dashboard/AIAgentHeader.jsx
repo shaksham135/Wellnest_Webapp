@@ -106,7 +106,7 @@ const AIAgentHeader = ({ user, readinessScore }) => {
                 }}>
                     {loading ? (
                         <span style={{ opacity: 0.6, fontStyle: 'italic' }}>AI is analyzing your stats for today...</span>
-                    ) : (readinessScore === null ? "Sync your health trackers (steps & sleep) to unlock your personalized AI analysis!" : briefing)}
+                    ) : (briefing || "Sync your health trackers (steps & sleep) to unlock your personalized AI analysis!")}
                 </p>
             </div>
             
