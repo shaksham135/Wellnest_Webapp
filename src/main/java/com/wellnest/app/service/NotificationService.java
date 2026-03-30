@@ -154,11 +154,23 @@ public class NotificationService {
         notificationRepository.saveAll(list);
     }
 
+    @org.springframework.scheduling.annotation.Async
     public void notifyAllUsers(String title, String message, String type) {
+        logger.info("Starting site-wide broadcast: " + title);
         List<User> users = userRepository.findAll();
+        int successCount = 0;
+        int failCount = 0;
+
         for (User user : users) {
-            createNotification(user.getId(), title, message, type);
+            try {
+                createNotification(user.getId(), title, message, type);
+                successCount++;
+            } catch (Exception e) {
+                failCount++;
+                logger.error("Broadcast failure for user " + user.getId() + ": " + e.getMessage());
+            }
         }
+        logger.info("Broadcast complete. Success: " + successCount + ", Failed: " + failCount);
     }
 
     // --- Automated AI Nudges (Industry Standard Proactive System) ---

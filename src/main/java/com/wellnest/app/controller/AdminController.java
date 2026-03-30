@@ -14,7 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin
+@org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final UserRepository userRepository;
@@ -203,6 +203,6 @@ public class AdminController {
         }
 
         notificationService.notifyAllUsers(title, message, type);
-        return ResponseEntity.ok("Notification broadcasted successfully to all users");
+        return ResponseEntity.accepted().body("Notification broadcasted successfully to all users");
     }
 }

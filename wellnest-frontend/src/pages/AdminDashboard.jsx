@@ -168,12 +168,17 @@ const AdminDashboard = ({ onLogout }) => {
         
         try {
             setIsBroadcasting(true);
-            await apiClient.post("/admin/notifications/broadcast", broadcastData);
-            alert("Notification broadcasted successfully to all users! 📢");
-            setBroadcastData({ title: "", message: "", type: "INFO" });
+            const response = await apiClient.post("/admin/notifications/broadcast", broadcastData);
+            
+            // Handle both 200 and 202 Accepted
+            if (response.status === 202 || response.status === 200) {
+                alert("Success! Your industry-ready broadcast has been queued and is pushing to all devices in the background. 📢🚀");
+                setBroadcastData({ title: "", message: "", type: "INFO" });
+            }
         } catch (error) {
             console.error("Error broadcasting:", error);
-            alert("Failed to send broadcast. Check your connection or permissions.");
+            const errorMsg = error.response?.data?.message || error.response?.data || "Check your connection or permissions.";
+            alert(`Failed to send broadcast: ${errorMsg}`);
         } finally {
             setIsBroadcasting(false);
         }

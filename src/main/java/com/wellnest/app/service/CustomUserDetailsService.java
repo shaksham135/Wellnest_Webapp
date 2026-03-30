@@ -37,9 +37,14 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = repo.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
+        String role = user.getRole();
+        if (role != null && !role.startsWith("ROLE_")) {
+            role = "ROLE_" + role;
+        }
+
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),
-                List.of(new SimpleGrantedAuthority(user.getRole())));
+                List.of(new SimpleGrantedAuthority(role != null ? role : "ROLE_USER")));
     }
 }
