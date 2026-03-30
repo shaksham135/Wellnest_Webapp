@@ -20,7 +20,8 @@ const AIAgentHeader = ({ user, readinessScore }) => {
             try {
                 setLoading(true);
                 // Race the API call against the timeout
-                const res = await Promise.race([getDailyBriefing(), timeoutPromise]);
+                const localDate = new Date().toISOString().split('T')[0];
+                const res = await Promise.race([getDailyBriefing(localDate), timeoutPromise]);
                 
                 if (!isMounted) return;
 

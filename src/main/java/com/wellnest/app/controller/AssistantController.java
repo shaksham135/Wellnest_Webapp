@@ -22,9 +22,9 @@ public class AssistantController {
     }
 
     @GetMapping("/briefing")
-    public ResponseEntity<DailyBriefing> getDailyBriefing(Authentication authentication) {
+    public ResponseEntity<DailyBriefing> getDailyBriefing(Authentication authentication, @RequestParam(required = false) String date) {
         Long userId = appUserService.getUserIdFromAuthentication(authentication);
-        DailyBriefing briefing = assistantService.getTodayBriefing(userId);
+        DailyBriefing briefing = assistantService.getTodayBriefing(userId, date);
         return ResponseEntity.ok(briefing);
     }
 }

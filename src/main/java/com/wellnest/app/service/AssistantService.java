@@ -37,13 +37,18 @@ public class AssistantService {
     }
 
     @Transactional
-    public DailyBriefing getTodayBriefing(Long userId) {
-        log.info("Fetching today's briefing for userId: {}", userId);
+    public DailyBriefing getTodayBriefing(Long userId, String dateStr) {
+        log.info("Fetching today's briefing for userId: {} on date: {}", userId, dateStr);
         
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        LocalDate today = LocalDate.now();
+        LocalDate today;
+        try {
+            today = (dateStr != null) ? LocalDate.parse(dateStr) : LocalDate.now();
+        } catch (Exception e) {
+            today = LocalDate.now();
+        }
 
         // 1. Check if briefing already exists for today
         Optional<DailyBriefing> existing = briefingRepository.findByUserAndDate(user, today);
