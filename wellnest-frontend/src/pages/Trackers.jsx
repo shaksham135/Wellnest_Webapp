@@ -97,6 +97,7 @@ const Trackers = () => {
   });
   const [editingGoal, setEditingGoal] = useState(null);
   const [tempGoalValue, setTempGoalValue] = useState("");
+  const [isSyncingHealth, setIsSyncingHealth] = useState(false);
 
 
   
@@ -108,8 +109,28 @@ const Trackers = () => {
     startTracking, 
     stopTracking, 
     connectHealth,
-    syncHealthData 
+    syncHealthData: globalSyncHealthData 
   } = useActivity();
+
+  const handleSyncHealth = async () => {
+    if (isSyncingHealth) return;
+    try {
+      setIsSyncingHealth(true);
+      toast.loading("Syncing physical vitality... 🧬", { id: "health-sync" });
+      await globalSyncHealthData();
+      
+      // REFRESH DATA FROM BACKEND
+      const res = await getActivity();
+      setRecentActivity(res.data || []);
+      cacheService.set('/trackers/activity', res.data || []);
+      
+      toast.success("Vitality Synced! ✨", { id: "health-sync" });
+    } catch (err) {
+      toast.error("Sync partial or failed. Try again.", { id: "health-sync" });
+    } finally {
+      setIsSyncingHealth(false);
+    }
+  };
 
   const handleOpenEditGoal = (goalKey, currentValue) => {
     setEditingGoal(goalKey);
@@ -667,8 +688,15 @@ const Trackers = () => {
                       </div>
                     </div>
                     {isHealthConnected ? (
-                      <button onClick={syncHealthData} className="ghost-btn small" title="Sync Now">
-                        <FiRefreshCw size={18} />
+                      <button 
+                        onClick={handleSyncHealth} 
+                        className={`ghost-btn small ${isSyncingHealth ? 'spinning' : ''}`} 
+                        title="Sync Now"
+                        disabled={isSyncingHealth}
+                      >
+                        <FiRefreshCw size={18} style={{ 
+                          animation: isSyncingHealth ? 'spin 1s linear infinite' : 'none' 
+                        }} />
                       </button>
                     ) : (
                       <button onClick={connectHealth} className="primary-btn small" style={{ width: 'auto' }}>Connect</button>

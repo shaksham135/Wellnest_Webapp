@@ -158,16 +158,22 @@ export const ActivityProvider = ({ children }) => {
                 result = await Health.requestPermissions(permissions);
             }
 
-            const isAuthorized = result && result.readAuthorized && result.readAuthorized.includes('steps');
+                const isAuthorized = result && (
+                    (result.readAuthorized && (result.readAuthorized.includes('steps') || result.readAuthorized.some(p => p.includes('READ_STEPS')))) ||
+                    (result.grantedPermissions && (result.grantedPermissions.includes('steps') || result.grantedPermissions.some(p => p.includes('READ_STEPS'))))
+                );
 
-            if (isAuthorized) {
-                setIsHealthConnected(true);
-                await Preferences.set({ key: 'isHealthConnected', value: 'true' });
-                toast.success("Health Connect connected!");
-                
-                // Initial Sync
-                setTimeout(() => syncHealthData(), 2000);
-            } else {
+                if (isAuthorized) {
+                    setIsHealthConnected(true);
+                    await Preferences.set({ key: 'isHealthConnected', value: 'true' });
+                    toast.success("Health Connect connected!");
+                    
+                    // Initial Sync
+                    setTimeout(() => {
+                        console.log("ActivityContext: Initial connection sync starting... 🧬");
+                        syncHealthData();
+                    }, 2000);
+                } else {
                 toast.error(`Connection denied.`);
                 setIsHealthConnected(false);
             }
@@ -220,7 +226,13 @@ export const ActivityProvider = ({ children }) => {
         if (isNative) {
             import('@capacitor/app').then(({ App }) => {
                 appListener = App.addListener('appStateChange', ({ isActive }) => {
-                    if (!isActive) handleBackgroundSync();
+                    if (isActive) {
+                        console.log("ActivityContext: App resumed, initiating Vitality Pulse... 🧬");
+                        syncHealthData();
+                    } else {
+                        console.log("ActivityContext: App backgrounded, initiating final sync... 🛡️");
+                        handleBackgroundSync();
+                    }
                 });
             });
         }
@@ -232,7 +244,7 @@ export const ActivityProvider = ({ children }) => {
             if (appListener) appListener.remove();
             window.removeEventListener('beforeunload', handleUnload);
         };
-    }, [isNative]);
+    }, [isNative, syncHealthData]);
 
     // --- Persistence (Load state from phone storage) ---
     useEffect(() => {
