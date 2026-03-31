@@ -200,4 +200,14 @@ CREATE TABLE IF NOT EXISTS daily_activity (
     FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB;
 
-
+CREATE TABLE IF NOT EXISTS mental_states (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    stress_score INT,
+    focus_score INT,
+    mood_score INT,
+    sentiment VARCHAR(64),
+    transcription TEXT,
+    performed_at DATETIME(6),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB;
