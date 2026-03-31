@@ -41,6 +41,26 @@ public class MentalFitnessController {
         return ResponseEntity.ok(state);
     }
 
+    @GetMapping("/latest")
+    public ResponseEntity<?> getLatestMentalState(Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        
+        if (user == null || !user.isPremium()) {
+            return ResponseEntity.status(403).body(Map.of("error", "Mental Diagnostics is a premium feature."));
+        }
+
+        return mentalFitnessService.getLatestMentalState(user)
+            .map(state -> {
+                int reserve = mentalFitnessService.getCognitiveReserve(user);
+                return ResponseEntity.ok(Map.of(
+                    "state", state,
+                    "reserve", reserve
+                ));
+            })
+            .orElse(ResponseEntity.noContent().build());
+    }
+
     @GetMapping("/reserve")
     public ResponseEntity<?> getCognitiveReserve(Authentication authentication) {
         String email = authentication.getName();

@@ -12,6 +12,7 @@ import AIAgentHeader from "../components/dashboard/AIAgentHeader";
 import EnergyForecastCard from "../components/dashboard/EnergyForecastCard";
 import ReadinessGauge from "../components/dashboard/ReadinessGauge";
 import WellnessGradeCard from "../components/dashboard/WellnessGradeCard";
+import MentalReadinessCard from "../components/dashboard/MentalReadinessCard";
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -228,6 +229,7 @@ const Dashboard = () => {
         {/* 3. QUICK ACTIONS GRID */}
         {!isTrainer && (
           <div className="dashboard-grid">
+            {user.isPremium && <MentalReadinessCard />}
             <WellnessGradeCard score={structuralReadiness || 0} />
             <EnergyForecastCard forecast={energyForecast?.forecast} message={energyForecast?.message} />
 

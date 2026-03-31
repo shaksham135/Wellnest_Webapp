@@ -29,6 +29,8 @@ export const DataProvider = ({ children }) => {
     const [isTrackersLoaded, setIsTrackersLoaded] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [energyForecast, setEnergyForecast] = useState(null);
+    const [isMentalSyncing, setIsMentalSyncing] = useState(false);
+    const [latestMentalState, setLatestMentalState] = useState(null);
 
     // --- INDUSTRY-READY OFFLINE CACHING ---
     useEffect(() => {
@@ -46,6 +48,7 @@ export const DataProvider = ({ children }) => {
                     setGoalData(manifest.goalData || null);
                     setDietPlan(manifest.dietPlan || null);
                     setEnergyForecast(manifest.energyForecast || null);
+                    setLatestMentalState(manifest.latestMentalState || null);
                     
                     // Show cached data instantly
                     setIsUserDataLoaded(!!manifest.user);
@@ -93,19 +96,37 @@ export const DataProvider = ({ children }) => {
         }
     }, [saveToCache]);
 
+    const refreshMentalState = useCallback(async () => {
+        try {
+            const res = await apiClient.get('/mental/latest');
+            if (res.data) {
+                setLatestMentalState(res.data);
+                saveToCache({ latestMentalState: res.data });
+            }
+        } catch (error) {
+            console.error("DataContext: Mental State fetch failed", error);
+        }
+    }, [saveToCache]);
+
     const submitVoiceScan = useCallback(async (text) => {
         try {
+            setIsMentalSyncing(true);
             const res = await apiClient.post('/mental/voice-scan', { text });
             if (res.data) {
-                // Instantly update the forecast with the new 'Stress Tax'
-                await refreshEnergyForecast();
+                // Instantly update the forecast and latest state result
+                await Promise.all([
+                    refreshEnergyForecast(),
+                    refreshMentalState()
+                ]);
                 return res.data;
             }
         } catch (error) {
             console.error("DataContext: Voice Scan failed", error);
             throw error;
+        } finally {
+            setIsMentalSyncing(false);
         }
-    }, [refreshEnergyForecast]);
+    }, [refreshEnergyForecast, refreshMentalState]);
 
     const refreshTrackers = useCallback(async () => {
         try {
@@ -117,7 +138,8 @@ export const DataProvider = ({ children }) => {
                 getSleep().catch(() => ({ data: [] })),
                 apiClient.get('/trackers/activity').catch(() => ({ data: [] })),
                 apiClient.get('/analytics/summary').catch(() => ({ data: {} })),
-                getMyDietPlan().catch(() => ({ data: null }))
+                getMyDietPlan().catch(() => ({ data: null })),
+                refreshMentalState().catch(() => null)
             ]);
 
             const freshData = {
@@ -145,7 +167,7 @@ export const DataProvider = ({ children }) => {
         } finally {
             setIsSyncing(false);
         }
-    }, [saveToCache]);
+    }, [saveToCache, refreshMentalState]);
 
     const clearAllData = useCallback(() => {
         setUserData(null);
@@ -156,6 +178,7 @@ export const DataProvider = ({ children }) => {
         setActivities([]);
         setGoalData(null);
         setDietPlan(null);
+        setLatestMentalState(null);
         setIsUserDataLoaded(false);
         setIsTrackersLoaded(false);
     }, []);
@@ -179,7 +202,11 @@ export const DataProvider = ({ children }) => {
         
         energyForecast,
         refreshEnergyForecast,
+        
         submitVoiceScan,
+        latestMentalState,
+        isMentalSyncing,
+        refreshMentalState,
         
         clearAllData
     };
