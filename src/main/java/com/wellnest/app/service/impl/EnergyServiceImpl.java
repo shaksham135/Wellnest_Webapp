@@ -81,25 +81,49 @@ public class EnergyServiceImpl implements EnergyService {
 
         double energy = circadianBase * sleepMult;
 
-        // --- C. ACTIVITY MODIFIER (Fatigue vs Afterburn) ---
+        // --- C. ACTIVITY MODIFIER (Duration-Aware Fatigue vs Afterburn) ---
         Instant recentWorkoutsStart = time.toInstant(ZoneOffset.UTC).minus(Duration.ofHours(24));
         List<Workout> recentWorkouts = workoutRepository.findByUserIdAndPerformedAtBetween(user.getId(), recentWorkoutsStart, time.toInstant(ZoneOffset.UTC));
         
+        double totalFatigue = 0;
+        double totalAfterburn = 0;
+
         for (Workout w : recentWorkouts) {
-            long hoursAgo = Duration.between(w.getPerformedAt(), time.toInstant(ZoneOffset.UTC)).toHours();
-            if (hoursAgo < 2) {
-                energy -= 20; // Instant fatigue
-            } else if (hoursAgo < 6) {
-                energy += 10; // Afterburn endorphins
+            long minutesAgo = Duration.between(w.getPerformedAt(), time.toInstant(ZoneOffset.UTC)).toMinutes();
+            int duration = (w.getDurationMinutes() != null) ? w.getDurationMinutes() : 30;
+            String type = w.getType().toUpperCase();
+
+            // Intensity Weights (High/Med/Low Buckets)
+            double weight = 
+                type.contains("RUN") || type.contains("HIIT") || type.contains("CARDIO") || 
+                type.contains("SWIM") || type.contains("BIKE") || type.contains("CYCLE") ? 0.35 :
+                
+                type.contains("YOGA") || type.contains("STRETCH") || type.contains("WALK") || 
+                type.contains("MEDITATION") || type.contains("PILATES") ? 0.10 : 
+                
+                0.25; // Default for GYM, WEIGHTS, STRENGTH, etc.
+
+            if (minutesAgo < 120) {
+                // Linear Decay: 100% at minute 0 -> 0% at minute 120
+                double decayFactor = 1.0 - (minutesAgo / 120.0);
+                totalFatigue += (duration * weight * decayFactor);
+            } else if (minutesAgo < 360) {
+                // Afterburn: kicks in after 2 hours, lasts for 4 more
+                totalAfterburn += (duration * 0.15);
             }
         }
+
+        // Cap fatigue but reward afterburn
+        energy -= Math.min(45, totalFatigue);
+        energy += Math.min(25, totalAfterburn);
 
         // --- D. FUEL MODIFIER (Meals) ---
         List<Meal> recentMeals = mealRepository.findByUserIdAndLoggedAtBetween(user.getId(), recentWorkoutsStart, time.toInstant(ZoneOffset.UTC));
         for (Meal m : recentMeals) {
-            long hoursAgo = Duration.between(m.getLoggedAt(), time.toInstant(ZoneOffset.UTC)).toHours();
-            if (hoursAgo < 3) {
-                energy += 15; // Glucose spike
+            long minutesAgo = Duration.between(m.getLoggedAt(), time.toInstant(ZoneOffset.UTC)).toMinutes();
+            if (minutesAgo < 180) { // 3 hours window
+                double fuelFactor = 1.0 - (minutesAgo / 180.0);
+                energy += (15 * fuelFactor); // Glucose spike decay
             }
         }
 
