@@ -24,10 +24,14 @@ const AIAgentHeader = ({ user, readinessScore }) => {
     
     useEffect(() => {
         let isMounted = true;
+        
         const fetchBriefing = async () => {
-            // Safety: timeout if it takes too long
+            // If we already have a briefing, don't re-fetch on every user prop update
+            if (briefing && !loading) return;
+
+            // Safety: snappier 7-second timeout for premium speed
             const timeoutPromise = new Promise((resolve) => 
-                setTimeout(() => resolve({ timeout: true }), 25000)
+                setTimeout(() => resolve({ timeout: true }), 7000)
             );
 
             try {
@@ -37,24 +41,25 @@ const AIAgentHeader = ({ user, readinessScore }) => {
                 
                 if (!isMounted) return;
 
-                if (res.timeout) {
-                    setBriefing("Focus on your goal today! Every small step brings you closer to peak fitness.");
-                } else if (res.data && res.data.content) {
+                if (res && res.timeout) {
+                    setBriefing("Focus on your goal today! Every small step brings you closer to peak vitality.");
+                } else if (res && res.data && res.data.content) {
                     setBriefing(res.data.content);
                 }
             } catch (err) {
                 console.error("AI Header fetch error:", err);
                 if (isMounted) {
-                    setBriefing("Keep pushing forward! Consistency is the key to your success.");
+                    setBriefing("Dashboard synchronized. Performance data is mission-ready.");
                 }
             } finally {
                 if (isMounted) setLoading(false);
             }
         };
 
-        if (user) fetchBriefing();
+        if (user?.id) fetchBriefing();
         return () => { isMounted = false; };
-    }, [user]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]); // Only re-run if ID changes, not on every user object mutation
 
     const getGreeting = () => {
         if (hour < 12) return "Good morning";
@@ -81,7 +86,7 @@ const AIAgentHeader = ({ user, readinessScore }) => {
             position: 'relative',
             overflow: 'hidden'
         }}>
-        {/* Performance Hub: The Neural Suite Control Panel (Dual-Node Refinement) */}
+        {/* Performance Hub: The Neural Suite Control Panel (Refined Suite) */}
         <div className="neural-performance-hub" style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -93,25 +98,10 @@ const AIAgentHeader = ({ user, readinessScore }) => {
             boxShadow: 'var(--card-shadow)',
             flexShrink: 0
         }}>
-            <div style={{ textAlign: 'center' }}>
-                <VoiceScanButton onScanComplete={handleVoiceScanComplete} />
-                <div style={{ fontSize: '10px', fontWeight: 800, marginTop: '8px', color: 'var(--text-muted)', letterSpacing: '1px' }}>CLARITY</div>
-            </div>
+            <VoiceScanButton onScanComplete={handleVoiceScanComplete} />
 
             {user?.isPremium && (
-                <div style={{ position: 'relative', width: '60px', height: '60px', textAlign: 'center' }}>
-                    <CognitiveAura reserve={energyForecast?.cognitiveReserve || 85} />
-                    <div style={{
-                        position: 'absolute',
-                        bottom: '-22px',
-                        width: '100%',
-                        textAlign: 'center',
-                        fontSize: '11px',
-                        fontWeight: 900,
-                        color: 'var(--primary)',
-                        letterSpacing: '0.5px'
-                    }}>{energyForecast?.cognitiveReserve || 85}%</div>
-                </div>
+                <CognitiveAura reserve={energyForecast?.cognitiveReserve || 85} />
             )}
         </div>
 
