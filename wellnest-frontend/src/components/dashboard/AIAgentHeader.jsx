@@ -9,10 +9,17 @@ const AIAgentHeader = ({ user, readinessScore }) => {
     const { energyForecast, submitVoiceScan } = useData();
     const [briefing, setBriefing] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
     
-    const handleVoiceScanComplete = async (data) => {
+    const handleVoiceScanComplete = async (audioBlob) => {
         try {
-            await submitVoiceScan(data.text);
+            await submitVoiceScan(audioBlob);
             console.log("AIAgentHeader: Voice Clarity Scan Synchronized. 🛡️🧬");
         } catch (err) {
             console.error("AIAgentHeader: Voice Scan Sync failed.", err);
@@ -77,7 +84,7 @@ const AIAgentHeader = ({ user, readinessScore }) => {
         <div className="ai-agent-header card" style={{
             padding: '24px',
             display: 'flex',
-            flexDirection: window.innerWidth < 768 ? 'column' : 'row-reverse',
+            flexDirection: isMobile ? 'column' : 'row-reverse',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '24px',
@@ -99,8 +106,8 @@ const AIAgentHeader = ({ user, readinessScore }) => {
             boxShadow: 'var(--card-shadow)',
             flexShrink: 0,
             justifyContent: 'center',
-            width: window.innerWidth < 768 ? '100%' : 'auto',
-            order: window.innerWidth < 768 ? 1 : 2
+            width: isMobile ? '100%' : 'auto',
+            order: 2
         }}>
             <VoiceScanButton onScanComplete={handleVoiceScanComplete} />
 
@@ -110,10 +117,10 @@ const AIAgentHeader = ({ user, readinessScore }) => {
         </div>
 
             <div style={{ 
-                flex: '1 1 250px', 
+                flex: isMobile ? '0 1 auto' : '1 1 250px', 
                 zIndex: 2, 
-                order: window.innerWidth < 768 ? 2 : 1,
-                textAlign: window.innerWidth < 768 ? 'center' : 'left'
+                order: 1,
+                textAlign: isMobile ? 'center' : 'left'
             }}>
                 <h2 style={{ 
                     margin: 0, 
@@ -122,7 +129,7 @@ const AIAgentHeader = ({ user, readinessScore }) => {
                     color: 'var(--text-main)', 
                     display: 'flex', 
                     alignItems: 'center', 
-                    justifyContent: window.innerWidth < 768 ? 'center' : 'flex-start',
+                    justifyContent: isMobile ? 'center' : 'flex-start',
                     gap: '8px',
                     flexWrap: 'wrap'
                 }}>
@@ -135,14 +142,14 @@ const AIAgentHeader = ({ user, readinessScore }) => {
                     lineHeight: 1.5, 
                     fontWeight: 500,
                     maxWidth: '500px',
-                    marginLeft: window.innerWidth < 768 ? 'auto' : '0',
-                    marginRight: window.innerWidth < 768 ? 'auto' : '0'
+                    marginLeft: isMobile ? 'auto' : '0',
+                    marginRight: isMobile ? 'auto' : '0'
                 }}>
                     {loading ? (
                         <span style={{ opacity: 0.6, fontStyle: 'italic' }}>AI is analyzing your stats for today...</span>
                     ) : (
                         briefing === "UNLOCKED_PREMIUM_ONLY" ? (
-                            <span style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: window.innerWidth < 768 ? 'center' : 'flex-start' }}>
+                            <span style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
                                 <FiZap /> Upgrade to Premium to unlock AI daily briefing!
                             </span>
                         ) : (briefing || "Sync health data to unlock analysis!")

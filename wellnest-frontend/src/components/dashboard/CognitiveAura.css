@@ -14,7 +14,6 @@
 
 .energy-fill-pulse {
     animation: energy-glow 3s infinite ease-in-out;
-    transform-origin: center;
 }
 
 .neural-wave-one {
