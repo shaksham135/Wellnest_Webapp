@@ -10,15 +10,18 @@ const VoiceScanButton = ({ onScanComplete }) => {
         try {
             // 🎙️ Request Permission and Start Media Stream
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream);
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : '' });
             const audioChunks = [];
 
             mediaRecorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
             };
 
             mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const audioBlob = new Blob(audioChunks, { type: mimeType });
                 setIsRecording(false);
                 setIsProcessing(true);
                 
@@ -33,7 +36,8 @@ const VoiceScanButton = ({ onScanComplete }) => {
             };
 
             setIsRecording(true);
-            mediaRecorder.start();
+            // Request data every 1 second (1000ms) to prevent 0-byte blobs on buggy Mobile Safari versions
+            mediaRecorder.start(1000);
 
             // Record for exactly 10 seconds
             setTimeout(() => {

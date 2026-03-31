@@ -119,9 +119,7 @@ export const DataProvider = ({ children }) => {
             const formData = new FormData();
             formData.append('audio', audioBlob, 'scan.webm');
 
-            const res = await apiClient.post('/mental/voice-scan', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const res = await apiClient.post('/mental/voice-scan', formData);
 
             if (res.data) {
                 // Instantly update the forecast and latest state result
