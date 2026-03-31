@@ -200,6 +200,17 @@ public class NotificationService {
 
         for (User user : premiumUsers) {
             try {
+                // --- NEURAL MEMORY (CACHING) GUARD ---
+                // Check if we already generated this specific nudge for today
+                java.time.Instant startOfToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+                boolean alreadySentSlot = notificationRepository.existsByUser_IdAndTitleAndCreatedAtAfter(
+                        user.getId(), title, startOfToday);
+
+                if (alreadySentSlot) {
+                    logger.info("Neural Cache Hit: {} already sent to user {}. Skipping Groq pulse. 🛡️", title, user.getId());
+                    continue;
+                }
+
                 String name = user.getName() != null ? user.getName() : "Hero";
                 String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "wellbeing";
                 
@@ -214,7 +225,7 @@ public class NotificationService {
                 boolean missingMeals = meals.isEmpty();
                 
                 // Sleep check (was last night's sleep logged?)
-                List<com.wellnest.app.model.SleepLog> sleep = trackerService.getSleepForToday(user.getId()); // Usually checks 24h window
+                List<com.wellnest.app.model.SleepLog> sleep = trackerService.getSleepForToday(user.getId()); 
                 boolean missingSleep = sleep.isEmpty();
 
                 if (missingSleep) context.append("Aha—it looks like you missed your sleep log last night! ");
@@ -224,10 +235,13 @@ public class NotificationService {
                 String aiMessage = groqService.generateNotification("elite coach", name, context.toString());
                 
                 if (aiMessage != null && !aiMessage.contains("Error")) {
-                    // SENT ONLY TO ANDROID (SKIPPING DB TABLE FOR WEB Dashboard)
-                    sendFcmNotification(user, title, aiMessage);
-                    logger.info("Sent personalized AI nudge to: " + user.getId());
+                    // SENT TO ANDROID AND PERSISTED IN DB (CACHED)
+                    createNotification(user.getId(), title, aiMessage, "AI_NUDGE");
+                    logger.info("Sent personalized AI nudge (Cached): {} to user {}", title, user.getId());
                 }
+
+                // RPM Protection: Biological Jitter
+                Thread.sleep(300);
             } catch (Exception e) {
                 logger.error("Error processing scheduled nudge for user " + user.getId() + ": " + e.getMessage());
             }

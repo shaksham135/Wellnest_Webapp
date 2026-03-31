@@ -29,9 +29,13 @@ public class GroqService {
     @Value("${groq.api.key:}")
     private String groqApiKey;
 
+    @Value("${groq.model.heavy:llama-3.3-70b-versatile}")
+    private String heavyModel;
+
+    @Value("${groq.model.fast:llama-3.1-8b-instant}")
+    private String fastModel;
+
     private static final String GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-    // Standard model for stability
-    private static final String MODEL = "llama-3.3-70b-versatile";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -54,7 +58,7 @@ public class GroqService {
                 "STRATEGY: Use the provided context to create a 'hook'. If logs are missing, mention the performance gap. If streaks exist, celebrate them. " +
                 "NEVER be boring. NEVER use generic templates. " +
                 "CONTEXT: " + context + ". ";
-        return getResponse(systemPrompt);
+        return getResponse(systemPrompt, fastModel);
     }
 
     public String transcribeAudio(MultipartFile audio) {
@@ -99,7 +103,11 @@ public class GroqService {
     }
 
     public String getResponse(String prompt) {
-        log.info("Sending prompt to Groq API...");
+        return getResponse(prompt, heavyModel);
+    }
+
+    public String getResponse(String prompt, String modelName) {
+        log.info("Sending prompt to Groq API (Model: {})...", modelName);
         try {
             // Using SimpleClientHttpRequestFactory for modern timeout control
             org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
@@ -115,7 +123,7 @@ public class GroqService {
 
             // Request Body (OpenAI format)
             ObjectNode rootNode = objectMapper.createObjectNode();
-            rootNode.put("model", MODEL);
+            rootNode.put("model", modelName);
             rootNode.put("temperature", 0.7);
 
             ArrayNode messages = rootNode.putArray("messages");

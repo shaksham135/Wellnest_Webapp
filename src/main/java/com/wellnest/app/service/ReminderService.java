@@ -57,8 +57,8 @@ public class ReminderService {
         "Healthy eating: Aim for a variety of colorful vegetables in your next meal. 🥦"
     };
 
-    // Every 4 hours during the day
-    @Scheduled(fixedRate = 14400000) 
+    // Every 12 hours (Sync Economy)
+    @Scheduled(fixedRate = 43200000) 
     public void sendWaterReminders() {
         Instant startOfDay = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant();
         Instant endOfDay = LocalDate.now().atTime(java.time.LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant();
@@ -85,8 +85,8 @@ public class ReminderService {
         }
     }
 
-    // Every 8 hours
-    @Scheduled(fixedRate = 28800000)
+    // Every 24 hours (Daily Motivation Recap)
+    @Scheduled(fixedRate = 86400000)
     public void sendWorkoutReminders() {
         LocalDate today = LocalDate.now();
         List<User> users = userRepository.findAll();
