@@ -1,0 +1,45 @@
+.cognitive-aura-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 60px;
+}
+
+.cognitive-aura-container svg {
+    overflow: visible;
+}
+
+.neural-pulse {
+    animation: brain-glow 4s infinite ease-in-out;
+    transform-origin: center;
+}
+
+.neural-spin {
+    animation: brain-spin 30s linear infinite;
+    transform-origin: center;
+}
+
+.reserve-label {
+    position: absolute;
+    font-size: 10px;
+    font-weight: 900;
+    bottom: -12px;
+}
+
+@keyframes brain-glow {
+    0%, 100% {
+        transform: scale(0.85);
+        opacity: 0.1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.4;
+    }
+}
+
+@keyframes brain-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

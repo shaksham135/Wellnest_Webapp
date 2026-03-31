@@ -2,12 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { FiMessageSquare, FiZap, FiMoon, FiActivity } from 'react-icons/fi';
 import { getDailyBriefing } from '../../api/assistantApi';
 import EnergyCrystal from './EnergyCrystal';
+import CognitiveAura from './CognitiveAura';
+import VoiceScanButton from './VoiceScanButton';
 import { useData } from '../../context/DataContext';
 
 const AIAgentHeader = ({ user, readinessScore }) => {
-    const { energyForecast } = useData();
+    const { energyForecast, submitVoiceScan } = useData();
     const [briefing, setBriefing] = useState(null);
     const [loading, setLoading] = useState(true);
+    
+    const handleVoiceScanComplete = async (data) => {
+        try {
+            await submitVoiceScan(data.text);
+            console.log("AIAgentHeader: Voice Clarity Scan Synchronized. 🛡️🧬");
+        } catch (err) {
+            console.error("AIAgentHeader: Voice Scan Sync failed.", err);
+        }
+    };
     
     const firstName = user?.name?.split(' ')[0] || 'User';
     const hour = new Date().getHours();
@@ -71,24 +82,35 @@ const AIAgentHeader = ({ user, readinessScore }) => {
             position: 'relative',
             overflow: 'hidden'
         }}>
-            {/* Energy Crystal / Avatar Slot */}
-            <div className="ai-avatar" style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '20px',
-                background: user?.isPremium ? 'transparent' : 'linear-gradient(135deg, var(--secondary), var(--primary))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '2rem',
-                color: 'white',
-                boxShadow: user?.isPremium ? 'none' : '0 8px 24px var(--primary-glow)',
-                flexShrink: 0
-            }}>
-                {user?.isPremium && energyForecast ? (
-                    <EnergyCrystal energy={energyForecast.currentEnergy} status={energyForecast.status} />
-                ) : (
-                    <FiMessageSquare />
+            {/* Performance Cockpit: Unified Biological Pulse */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                {user?.isPremium && (
+                    <VoiceScanButton onScanComplete={handleVoiceScanComplete} />
+                )}
+
+                <div className="ai-avatar" style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '20px',
+                    background: user?.isPremium ? 'transparent' : 'linear-gradient(135deg, var(--secondary), var(--primary))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '2rem',
+                    color: 'white',
+                    boxShadow: user?.isPremium ? 'none' : '0 8px 24px var(--primary-glow)',
+                    flexShrink: 0,
+                    cursor: 'pointer'
+                }}>
+                    {user?.isPremium && energyForecast ? (
+                        <EnergyCrystal energy={energyForecast.currentEnergy} status={energyForecast.status} />
+                    ) : (
+                        <FiMessageSquare />
+                    )}
+                </div>
+
+                {user?.isPremium && (
+                    <CognitiveAura reserve={energyForecast?.cognitiveReserve || 85} />
                 )}
             </div>
 

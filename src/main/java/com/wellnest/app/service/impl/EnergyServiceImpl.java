@@ -22,17 +22,20 @@ public class EnergyServiceImpl implements EnergyService {
     private final MealRepository mealRepository;
     private final SleepLogRepository sleepLogRepository;
     private final com.wellnest.app.service.GroqService groqService;
+    private final com.wellnest.app.service.MentalFitnessService mentalFitnessService;
 
     public EnergyServiceImpl(UserRepository userRepository,
                              WorkoutRepository workoutRepository,
                              MealRepository mealRepository,
                              SleepLogRepository sleepLogRepository,
-                             com.wellnest.app.service.GroqService groqService) {
+                             com.wellnest.app.service.GroqService groqService,
+                             com.wellnest.app.service.MentalFitnessService mentalFitnessService) {
         this.userRepository = userRepository;
         this.workoutRepository = workoutRepository;
         this.mealRepository = mealRepository;
         this.sleepLogRepository = sleepLogRepository;
         this.groqService = groqService;
+        this.mentalFitnessService = mentalFitnessService;
     }
 
     @Override
@@ -54,10 +57,11 @@ public class EnergyServiceImpl implements EnergyService {
 
         // 2. Finalize Current Metrics
         int currentEnergy = calculateEnergyAt(user, now);
+        int cognitiveReserve = mentalFitnessService.getCognitiveReserve(user);
         String status = determineStatus(currentEnergy, now.getHour());
         String message = generateInsight(currentEnergy, forecast, now.getHour());
 
-        return new EnergyForecast(currentEnergy, status, message, forecast);
+        return new EnergyForecast(currentEnergy, status, message, forecast, cognitiveReserve);
     }
 
     private int calculateEnergyAt(User user, LocalDateTime time) {
@@ -88,6 +92,10 @@ public class EnergyServiceImpl implements EnergyService {
         double totalFatigue = 0;
         double totalAfterburn = 0;
 
+        // Apply "Stress Tax": Mental fatigue makes physical expenditure more draining
+        int cognitiveReserve = mentalFitnessService.getCognitiveReserve(user);
+        double mentalTaxMultiplier = 1.0 + Math.max(0, (50.0 - cognitiveReserve) / 100.0); // up to 1.4x tax
+
         for (Workout w : recentWorkouts) {
             long minutesAgo = Duration.between(w.getPerformedAt(), time.toInstant(ZoneOffset.UTC)).toMinutes();
             int duration = (w.getDurationMinutes() != null) ? w.getDurationMinutes() : 30;
@@ -106,7 +114,7 @@ public class EnergyServiceImpl implements EnergyService {
             if (minutesAgo < 120) {
                 // Linear Decay: 100% at minute 0 -> 0% at minute 120
                 double decayFactor = 1.0 - (minutesAgo / 120.0);
-                totalFatigue += (duration * weight * decayFactor);
+                totalFatigue += (duration * weight * decayFactor * mentalTaxMultiplier);
             } else if (minutesAgo < 360) {
                 // Afterburn: kicks in after 2 hours, lasts for 4 more
                 totalAfterburn += (duration * 0.15);

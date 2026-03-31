@@ -93,6 +93,20 @@ export const DataProvider = ({ children }) => {
         }
     }, [saveToCache]);
 
+    const submitVoiceScan = useCallback(async (text) => {
+        try {
+            const res = await apiClient.post('/mental/voice-scan', { text });
+            if (res.data) {
+                // Instantly update the forecast with the new 'Stress Tax'
+                await refreshEnergyForecast();
+                return res.data;
+            }
+        } catch (error) {
+            console.error("DataContext: Voice Scan failed", error);
+            throw error;
+        }
+    }, [refreshEnergyForecast]);
+
     const refreshTrackers = useCallback(async () => {
         try {
             setIsSyncing(true);
@@ -165,6 +179,7 @@ export const DataProvider = ({ children }) => {
         
         energyForecast,
         refreshEnergyForecast,
+        submitVoiceScan,
         
         clearAllData
     };
