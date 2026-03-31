@@ -82,37 +82,45 @@ const AIAgentHeader = ({ user, readinessScore }) => {
             position: 'relative',
             overflow: 'hidden'
         }}>
-            {/* Performance Cockpit: Unified Biological Pulse */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                {user?.isPremium && (
-                    <VoiceScanButton onScanComplete={handleVoiceScanComplete} />
-                )}
+        {/* Performance Hub: The Neural Suite Control Panel */}
+        <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '20px', 
+            background: 'rgba(255, 255, 255, 0.03)',
+            padding: '16px 24px',
+            borderRadius: '24px',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            boxShadow: 'inset 0 0 20px rgba(255, 255, 255, 0.02)',
+            flexShrink: 0
+        }}>
+            <VoiceScanButton onScanComplete={handleVoiceScanComplete} />
 
-                <div className="ai-avatar" style={{
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '20px',
-                    background: user?.isPremium ? 'transparent' : 'linear-gradient(135deg, var(--secondary), var(--primary))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '2rem',
-                    color: 'white',
-                    boxShadow: user?.isPremium ? 'none' : '0 8px 24px var(--primary-glow)',
-                    flexShrink: 0,
-                    cursor: 'pointer'
-                }}>
-                    {user?.isPremium && energyForecast ? (
-                        <EnergyCrystal energy={energyForecast.currentEnergy} status={energyForecast.status} />
-                    ) : (
-                        <FiMessageSquare />
-                    )}
-                </div>
-
-                {user?.isPremium && (
-                    <CognitiveAura reserve={energyForecast?.cognitiveReserve || 85} />
+            <div className="ai-avatar" style={{
+                width: '68px',
+                height: '68px',
+                borderRadius: '24px',
+                background: user?.isPremium ? 'transparent' : 'linear-gradient(135deg, var(--secondary), var(--primary))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2rem',
+                color: 'white',
+                boxShadow: user?.isPremium ? 'none' : '0 8px 24px var(--primary-glow)',
+                flexShrink: 0,
+                cursor: 'pointer'
+            }}>
+                {user?.isPremium && energyForecast ? (
+                    <EnergyCrystal energy={energyForecast.currentEnergy} status={energyForecast.status} />
+                ) : (
+                    <FiMessageSquare />
                 )}
             </div>
+
+            {user?.isPremium && (
+                <CognitiveAura reserve={energyForecast?.cognitiveReserve || 85} />
+            )}
+        </div>
 
             <div style={{ flex: '1 1 250px', zIndex: 2 }}>
                 <h2 style={{ 

@@ -13,7 +13,7 @@ const VoiceScanButton = ({ onScanComplete }) => {
             
             setIsRecording(true);
             
-            // Simulate a 5-second high-performance scan
+            // Simulate a 10-second high-performance scan
             setTimeout(() => {
                 // Stop the mic stream to save battery and privacy
                 stream.getTracks().forEach(track => track.stop());
@@ -29,8 +29,8 @@ const VoiceScanButton = ({ onScanComplete }) => {
                         text: "Feeling focused but a bit drained from the morning session.",
                         reserve: 65
                     });
-                }, 1500);
-            }, 4000);
+                }, 2000);
+            }, 10000);
         } catch (err) {
             console.error("Microphone Access Denied:", err);
             alert("Microphone access is required for your Voice Clarity Scan. Please enable it in settings. 🛡️");
