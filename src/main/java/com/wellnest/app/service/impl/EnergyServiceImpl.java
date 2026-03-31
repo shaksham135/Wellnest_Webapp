@@ -21,15 +21,18 @@ public class EnergyServiceImpl implements EnergyService {
     private final WorkoutRepository workoutRepository;
     private final MealRepository mealRepository;
     private final SleepLogRepository sleepLogRepository;
+    private final com.wellnest.app.service.GroqService groqService;
 
     public EnergyServiceImpl(UserRepository userRepository,
                              WorkoutRepository workoutRepository,
                              MealRepository mealRepository,
-                             SleepLogRepository sleepLogRepository) {
+                             SleepLogRepository sleepLogRepository,
+                             com.wellnest.app.service.GroqService groqService) {
         this.userRepository = userRepository;
         this.workoutRepository = workoutRepository;
         this.mealRepository = mealRepository;
         this.sleepLogRepository = sleepLogRepository;
+        this.groqService = groqService;
     }
 
     @Override
@@ -40,12 +43,7 @@ public class EnergyServiceImpl implements EnergyService {
 
         LocalDateTime now = LocalDateTime.now();
         
-        // 1. Calculate Current Energy
-        int currentEnergy = calculateEnergyAt(user, now);
-        String status = determineStatus(currentEnergy, now.getHour());
-        String message = generateInsight(status, now.getHour());
-
-        // 2. Calculate 6-hour Forecast
+        // 1. Calculate and generate hourly predictions
         List<EnergyForecast.HourForecast> forecast = new ArrayList<>();
         for (int i = 1; i <= 6; i++) {
             LocalDateTime futureTime = now.plusHours(i);
@@ -53,6 +51,11 @@ public class EnergyServiceImpl implements EnergyService {
             String timeStr = String.format("%02d:00", futureTime.getHour());
             forecast.add(new EnergyForecast.HourForecast(timeStr, energyValue));
         }
+
+        // 2. Finalize Current Metrics
+        int currentEnergy = calculateEnergyAt(user, now);
+        String status = determineStatus(currentEnergy, now.getHour());
+        String message = generateInsight(currentEnergy, forecast, now.getHour());
 
         return new EnergyForecast(currentEnergy, status, message, forecast);
     }
@@ -111,13 +114,30 @@ public class EnergyServiceImpl implements EnergyService {
         return "DIP";
     }
 
-    private String generateInsight(String status, int hour) {
-        switch (status) {
-            case "PEAK": return "You are at maximum vitality. Lock into your hardest task now! 🚀";
-            case "FLOW": return "Optimal energy for sustained focus. You're in the zone. 🌊";
-            case "RECOVERY": return "Your body is in repair mode. Prioritize deep rest for tomorrow's performance. 💤";
-            case "DIP": return hour < 17 ? "Natural afternoon dip detected. Hydrate or take a 10m walk. 🚶" : "Energy is tapering. Time to wind down. 🌅";
-            default: return "Energy is baseline. Stay consistent with your fuel and movement. ⚡";
+    private String generateInsight(int energy, List<EnergyForecast.HourForecast> forecast, int hour) {
+        // --- 1. DETECT TREND ---
+        int futureEnergy = forecast.get(forecast.size() - 1).getEnergyValue();
+        String trend = (futureEnergy > energy + 10) ? "SURGING" : (futureEnergy < energy - 10) ? "DIPPING" : "STABLE";
+
+        // --- 2. BUILD AI PROMPT ---
+        String prompt = String.format(
+            "You are an elite, 5-word pro-athlete coach for Wellnest. " +
+            "Context: Time %02d:00. Current Energy: %d%%. 6-hour Trend: %s (%d%%). " +
+            "Task: Give one short, high-performance tactical advice. No fluff. Max 10 words.",
+            hour, energy, trend, futureEnergy
+        );
+
+        try {
+            String aiMessage = groqService.getResponse(prompt);
+            // Clean up typical AI boilerplate if any
+            return aiMessage.replace("\"", "").trim();
+        } catch (Exception e) {
+            log.error("Groq Energy Insight failed, using fallback", e);
+            // --- FALLBACK LOGIC ---
+            if (hour >= 23 || hour < 5) return "Prioritize deep recovery for tomorrow. 💤";
+            if (energy >= 85) return "Peak performance window. Use it! 🚀";
+            if (trend.equals("SURGING")) return "Energy surge incoming. Prepare to push. 📈";
+            return "Maintain consistent fuel and focus. ⚡";
         }
     }
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { FiTrendingUp, FiZap } from 'react-icons/fi';
 
-const EnergyForecastCard = ({ forecast, currentEnergy }) => {
+const EnergyForecastCard = ({ forecast, currentEnergy, message }) => {
     if (!forecast || forecast.length === 0) return null;
 
     // Simple sparkline calculation
@@ -49,6 +49,23 @@ const EnergyForecastCard = ({ forecast, currentEnergy }) => {
                     </div>
                 </div>
             </div>
+
+            {/* AI-Generated Energy Insight */}
+            {message && (
+                <div style={{ 
+                    padding: '10px 14px', 
+                    background: 'rgba(245, 158, 11, 0.05)', 
+                    borderRadius: '12px',
+                    borderLeft: '3px solid #f59e0b',
+                    fontSize: '12px',
+                    color: 'var(--text-main)',
+                    fontWeight: 600,
+                    fontStyle: 'italic',
+                    lineHeight: 1.4
+                }}>
+                    "{message}"
+                </div>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>
                 <span>NOW</span>

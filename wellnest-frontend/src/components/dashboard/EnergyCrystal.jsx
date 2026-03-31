@@ -38,7 +38,7 @@ const EnergyCrystal = ({ energy, status }) => {
                     cx="50"
                     cy="50"
                     r={radius}
-                    stroke="rgba(255,255,255,0.05)"
+                    stroke="rgba(128,128,128,0.1)"
                     strokeWidth="6"
                     fill="none"
                 />
@@ -73,7 +73,7 @@ const EnergyCrystal = ({ energy, status }) => {
                     x="50"
                     y="45"
                     textAnchor="middle"
-                    fill="white"
+                    fill="var(--text-main)"
                     fontSize="18"
                     fontWeight="900"
                     style={{ fontVariantNumeric: 'tabular-nums' }}
@@ -84,7 +84,7 @@ const EnergyCrystal = ({ energy, status }) => {
                     x="50"
                     y="62"
                     textAnchor="middle"
-                    fill="rgba(255,255,255,0.6)"
+                    fill="var(--text-muted)"
                     fontSize="8"
                     fontWeight="800"
                     letterSpacing="1"

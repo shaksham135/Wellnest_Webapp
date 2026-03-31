@@ -108,13 +108,19 @@ const Dashboard = () => {
   const today = new Date().toISOString().split('T')[0];
   const todayActivity = activities?.find(a => (a.date === today) || (new Date(a.date || a.createdAt).toISOString().split('T')[0] === today));
 
-    const calculateReadiness = () => {
+    const getUnifiedVitalityScore = () => {
         if (isTrainer) return null;
 
+        // --- 1. PREMIUM LIVE PULSE (Energy Forecast) ---
+        if (user?.isPremium && energyForecast) {
+            return energyForecast.currentEnergy;
+        }
+
+        // --- 2. BASE READINESS FOUNDATION (Free/Fallback) ---
         // Check if we have sleep for today
+        const todayDate = new Date();
         const hasSleepToday = sleep?.some(s => {
             const d = new Date(s.sleepDate || s.createdAt);
-            const todayDate = new Date();
             return d.getDate() === todayDate.getDate() && d.getMonth() === todayDate.getMonth();
         });
 
@@ -123,14 +129,21 @@ const Dashboard = () => {
         // Algorithm: Sleep Hours (40%) + Steps (40%) + Water (20%)
         const lastSleep = sleep[0]?.hours || 0;
         const sleepScore = Math.min((lastSleep / 8) * 40, 40);
-
         const stepsScore = Math.min(((todayActivity?.steps || 0) / 10000) * 40, 40);
-        const waterScore = 20; // Defaulting for simple illustration
+        const waterScore = 20;
 
         return Math.round(sleepScore + stepsScore + waterScore);
     };
 
-  const readinessScore = calculateReadiness();
+  const readinessScore = getUnifiedVitalityScore();
+  
+  // Traditional Readiness Score for the Wellness Grade (Structural Foundation)
+  const structuralReadiness = (() => {
+        const lastSleep = sleep[0]?.hours || 0;
+        const sleepScore = Math.min((lastSleep / 8) * 40, 40);
+        const stepsScore = Math.min(((todayActivity?.steps || 0) / 10000) * 40, 40);
+        return Math.round(sleepScore + stepsScore + 20);
+  })();
 
   return (
     <div className="dashboard-page container" style={{ paddingBottom: '100px', paddingTop: '24px' }}>
@@ -215,8 +228,8 @@ const Dashboard = () => {
         {/* 3. QUICK ACTIONS GRID */}
         {!isTrainer && (
           <div className="dashboard-grid">
-            <WellnessGradeCard score={readinessScore || 0} />
-            <EnergyForecastCard forecast={energyForecast?.forecast} />
+            <WellnessGradeCard score={structuralReadiness || 0} />
+            <EnergyForecastCard forecast={energyForecast?.forecast} message={energyForecast?.message} />
 
             <div
               onClick={() => navigate('/trackers?tab=activity')}
