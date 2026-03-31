@@ -77,9 +77,10 @@ const AIAgentHeader = ({ user, readinessScore }) => {
         <div className="ai-agent-header card" style={{
             padding: '24px',
             display: 'flex',
-            flexWrap: 'wrap',
+            flexDirection: window.innerWidth < 768 ? 'column' : 'row-reverse',
             alignItems: 'center',
-            gap: '16px',
+            justifyContent: 'space-between',
+            gap: '24px',
             background: 'var(--card-bg)',
             border: '1px solid var(--card-border)',
             marginBottom: '24px',
@@ -90,13 +91,16 @@ const AIAgentHeader = ({ user, readinessScore }) => {
         <div className="neural-performance-hub" style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            gap: '40px', 
-            background: 'var(--card-bg)',
-            padding: '16px 32px',
+            gap: '20px', 
+            background: 'rgba(94, 234, 212, 0.05)',
+            padding: '12px 24px',
             borderRadius: '24px',
             border: '1px solid var(--card-border)',
             boxShadow: 'var(--card-shadow)',
-            flexShrink: 0
+            flexShrink: 0,
+            justifyContent: 'center',
+            width: window.innerWidth < 768 ? '100%' : 'auto',
+            order: window.innerWidth < 768 ? 1 : 2
         }}>
             <VoiceScanButton onScanComplete={handleVoiceScanComplete} />
 
@@ -105,7 +109,12 @@ const AIAgentHeader = ({ user, readinessScore }) => {
             )}
         </div>
 
-            <div style={{ flex: '1 1 250px', zIndex: 2 }}>
+            <div style={{ 
+                flex: '1 1 250px', 
+                zIndex: 2, 
+                order: window.innerWidth < 768 ? 2 : 1,
+                textAlign: window.innerWidth < 768 ? 'center' : 'left'
+            }}>
                 <h2 style={{ 
                     margin: 0, 
                     fontSize: '1.25rem', 
@@ -113,6 +122,7 @@ const AIAgentHeader = ({ user, readinessScore }) => {
                     color: 'var(--text-main)', 
                     display: 'flex', 
                     alignItems: 'center', 
+                    justifyContent: window.innerWidth < 768 ? 'center' : 'flex-start',
                     gap: '8px',
                     flexWrap: 'wrap'
                 }}>
@@ -124,16 +134,18 @@ const AIAgentHeader = ({ user, readinessScore }) => {
                     color: 'var(--text-muted)', 
                     lineHeight: 1.5, 
                     fontWeight: 500,
-                    maxWidth: '500px'
+                    maxWidth: '500px',
+                    marginLeft: window.innerWidth < 768 ? 'auto' : '0',
+                    marginRight: window.innerWidth < 768 ? 'auto' : '0'
                 }}>
                     {loading ? (
                         <span style={{ opacity: 0.6, fontStyle: 'italic' }}>AI is analyzing your stats for today...</span>
                     ) : (
                         briefing === "UNLOCKED_PREMIUM_ONLY" ? (
-                            <span style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <FiZap /> Upgrade to Premium to unlock your personalized AI daily briefing and high-energy coaching tips!
+                            <span style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: window.innerWidth < 768 ? 'center' : 'flex-start' }}>
+                                <FiZap /> Upgrade to Premium to unlock AI daily briefing!
                             </span>
-                        ) : (briefing || "Sync your health trackers (steps & sleep) to unlock your personalized AI analysis!")
+                        ) : (briefing || "Sync health data to unlock analysis!")
                     )}
                 </p>
             </div>
