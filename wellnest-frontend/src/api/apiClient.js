@@ -13,7 +13,7 @@ const getBaseURL = () => {
 
 const apiClient = axios.create({
   baseURL: getBaseURL(),
-  timeout: 15000, 
+  timeout: 30000, 
 });
 
 // Debug logging for production if needed

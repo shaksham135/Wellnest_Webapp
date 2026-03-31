@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { fetchCurrentUser } from '../api/userApi';
 import { getWorkouts, getMeals, getWater, getSleep } from '../api/trackerApi';
 import { getMyDietPlan } from '../api/trainerApi';
@@ -31,6 +31,9 @@ export const DataProvider = ({ children }) => {
     const [energyForecast, setEnergyForecast] = useState(null);
     const [isMentalSyncing, setIsMentalSyncing] = useState(false);
     const [latestMentalState, setLatestMentalState] = useState(null);
+    
+    // Sync Guard Ref
+    const syncInProgress = useRef(false);
 
     // --- INDUSTRY-READY OFFLINE CACHING ---
     useEffect(() => {
@@ -137,7 +140,13 @@ export const DataProvider = ({ children }) => {
     }, [refreshEnergyForecast, refreshMentalState]);
 
     const refreshTrackers = useCallback(async () => {
+        if (syncInProgress.current) {
+            console.log("DataContext: Sync already in progress, skipping redundant pulse... 🛡️");
+            return;
+        }
+
         try {
+            syncInProgress.current = true;
             setIsSyncing(true);
             const [w, m, wa, s, a, g, p] = await Promise.all([
                 getWorkouts().catch(() => ({ data: [] })),
@@ -174,6 +183,7 @@ export const DataProvider = ({ children }) => {
             console.error("DataContext: Failed to fetch trackers", error);
         } finally {
             setIsSyncing(false);
+            syncInProgress.current = false;
         }
     }, [saveToCache, refreshMentalState]);
 
@@ -191,7 +201,7 @@ export const DataProvider = ({ children }) => {
         setIsTrackersLoaded(false);
     }, []);
 
-    const value = {
+    const value = useMemo(() => ({
         userData,
         setUserData,
         isUserDataLoaded,
@@ -217,7 +227,13 @@ export const DataProvider = ({ children }) => {
         refreshMentalState,
         
         clearAllData
-    };
+    }), [
+        userData, isUserDataLoaded, refreshUserData,
+        workouts, meals, water, sleep, activities, goalData, dietPlan, isTrackersLoaded, refreshTrackers, isSyncing,
+        energyForecast, refreshEnergyForecast,
+        submitVoiceScan, latestMentalState, isMentalSyncing, refreshMentalState,
+        clearAllData
+    ]);
 
     return (
         <DataContext.Provider value={value}>

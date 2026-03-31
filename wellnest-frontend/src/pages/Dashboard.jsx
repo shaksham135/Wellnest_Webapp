@@ -40,6 +40,8 @@ const Dashboard = () => {
     useEffect(() => {
         let isMounted = true;
         const syncData = async () => {
+            if (isSyncing) return; // Prevent local loop
+
             // If we have no data, show initial loading
             if (!isUserDataLoaded && !isTrackersLoaded) {
                 setLoading(true);
@@ -52,6 +54,7 @@ const Dashboard = () => {
                     return;
                 }
 
+                console.log("Dashboard: Initiating Parallel Neural Sync... 🧬");
                 // Fire requests in parallel
                 await Promise.all([
                     refreshUserData().catch(e => console.error("Sync User failed", e)),
@@ -71,7 +74,7 @@ const Dashboard = () => {
         syncData();
         return () => { isMounted = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [navigate, retryTrigger, refreshUserData, refreshTrackers]);
+    }, [navigate, retryTrigger, refreshUserData, refreshTrackers, user?.isPremium]);
 
     if (loading) {
     return (
