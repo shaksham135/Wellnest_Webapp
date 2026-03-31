@@ -1,3 +1,5 @@
+package com.wellnest.app.service;
+
 import com.wellnest.app.model.MentalState;
 import com.wellnest.app.model.User;
 import org.springframework.web.multipart.MultipartFile;

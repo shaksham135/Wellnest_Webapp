@@ -1,3 +1,11 @@
+package com.wellnest.app.controller;
+
+import com.wellnest.app.model.MentalState;
+import com.wellnest.app.model.User;
+import com.wellnest.app.repository.UserRepository;
+import com.wellnest.app.service.MentalFitnessService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
