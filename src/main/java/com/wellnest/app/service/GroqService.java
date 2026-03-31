@@ -12,9 +12,15 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 
 import javax.annotation.PostConstruct;
+import java.util.Collections;
 
 @Service
 @Slf4j
@@ -49,6 +55,47 @@ public class GroqService {
                 "NEVER be boring. NEVER use generic templates. " +
                 "CONTEXT: " + context + ". ";
         return getResponse(systemPrompt);
+    }
+
+    public String transcribeAudio(MultipartFile audio) {
+        log.info("Sending Voice Scan to Groq Whisper...");
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            
+            // Multi-part Form Headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            headers.set("Authorization", "Bearer " + groqApiKey);
+
+            // Multi-part Body
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("model", "whisper-large-v3");
+            
+            // Wrap MultipartFile for RestTemplate
+            Resource resource = new ByteArrayResource(audio.getBytes()) {
+                @Override
+                public String getFilename() { return audio.getOriginalFilename(); }
+            };
+            body.add("file", resource);
+
+            HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    "https://api.groq.com/openai/v1/audio/transcriptions",
+                    HttpMethod.POST,
+                    entity,
+                    String.class);
+
+            JsonNode jsonResponse = objectMapper.readTree(response.getBody());
+            String text = jsonResponse.path("text").asText();
+            
+            log.info("Whisper Transcription Successful: {}", text);
+            return text;
+
+        } catch (Exception e) {
+            log.error("Groq Whisper failed: {}", e.getMessage());
+            return "Unable to transcribe voice scan. (AI Sync error)";
+        }
     }
 
     public String getResponse(String prompt) {

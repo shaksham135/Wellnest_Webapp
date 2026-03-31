@@ -1,12 +1,5 @@
-package com.wellnest.app.controller;
-
-import com.wellnest.app.model.MentalState;
-import com.wellnest.app.model.User;
-import com.wellnest.app.repository.UserRepository;
-import com.wellnest.app.service.MentalFitnessService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -24,7 +17,7 @@ public class MentalFitnessController {
     }
 
     @PostMapping("/voice-scan")
-    public ResponseEntity<?> submitVoiceScan(@RequestBody Map<String, String> body, Authentication authentication) {
+    public ResponseEntity<?> submitVoiceScan(@RequestParam("audio") MultipartFile audio, Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email).orElse(null);
         
@@ -32,12 +25,11 @@ public class MentalFitnessController {
             return ResponseEntity.status(403).body(Map.of("error", "Mental Diagnostics is a premium-only feature."));
         }
 
-        String text = body.get("text");
-        if (text == null || text.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Transcription text is required."));
+        if (audio == null || audio.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Audio file is required."));
         }
 
-        MentalState state = mentalFitnessService.processVoiceScan(user, text);
+        MentalState state = mentalFitnessService.processVoiceScan(user, audio);
         return ResponseEntity.ok(state);
     }
 

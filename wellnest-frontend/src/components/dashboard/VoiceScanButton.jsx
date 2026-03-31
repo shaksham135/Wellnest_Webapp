@@ -10,27 +10,38 @@ const VoiceScanButton = ({ onScanComplete }) => {
         try {
             // 🎙️ Request Permission and Start Media Stream
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            setIsRecording(true);
-            
-            // Simulate a 10-second high-performance scan
-            setTimeout(() => {
-                // Stop the mic stream to save battery and privacy
-                stream.getTracks().forEach(track => track.stop());
-                
+            const mediaRecorder = new MediaRecorder(stream);
+            const audioChunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 setIsRecording(false);
                 setIsProcessing(true);
                 
-                // Simulate AI Analysis Delay
-                setTimeout(() => {
-                    setIsProcessing(false);
-                    // Mocking a successful scan for the demo/build
-                    onScanComplete({
-                        text: "Feeling focused but a bit drained from the morning session.",
-                        reserve: 65
-                    });
-                }, 2000);
+                // Pass the real audio file to the completion handler
+                onScanComplete(audioBlob);
+                
+                // Cleanup
+                stream.getTracks().forEach(track => track.stop());
+                
+                // Simulated "AI Processing" UI delay (actual request happens in parent)
+                setTimeout(() => setIsProcessing(false), 2000);
+            };
+
+            setIsRecording(true);
+            mediaRecorder.start();
+
+            // Record for exactly 10 seconds
+            setTimeout(() => {
+                if (mediaRecorder.state === "recording") {
+                    mediaRecorder.stop();
+                }
             }, 10000);
+
         } catch (err) {
             console.error("Microphone Access Denied:", err);
             alert("Microphone access is required for your Voice Clarity Scan. Please enable it in settings. 🛡️");

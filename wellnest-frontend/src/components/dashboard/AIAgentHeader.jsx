@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FiMessageSquare, FiZap, FiMoon, FiActivity } from 'react-icons/fi';
+import { FiZap, FiMoon, FiActivity } from 'react-icons/fi';
 import { getDailyBriefing } from '../../api/assistantApi';
-import EnergyCrystal from './EnergyCrystal';
 import CognitiveAura from './CognitiveAura';
 import VoiceScanButton from './VoiceScanButton';
 import { useData } from '../../context/DataContext';
@@ -82,43 +81,37 @@ const AIAgentHeader = ({ user, readinessScore }) => {
             position: 'relative',
             overflow: 'hidden'
         }}>
-        {/* Performance Hub: The Neural Suite Control Panel */}
-        <div style={{ 
+        {/* Performance Hub: The Neural Suite Control Panel (Dual-Node Refinement) */}
+        <div className="neural-performance-hub" style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            gap: '20px', 
-            background: 'rgba(255, 255, 255, 0.03)',
-            padding: '16px 24px',
+            gap: '40px', 
+            background: 'var(--card-bg)',
+            padding: '16px 32px',
             borderRadius: '24px',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            boxShadow: 'inset 0 0 20px rgba(255, 255, 255, 0.02)',
+            border: '1px solid var(--card-border)',
+            boxShadow: 'var(--card-shadow)',
             flexShrink: 0
         }}>
-            <VoiceScanButton onScanComplete={handleVoiceScanComplete} />
-
-            <div className="ai-avatar" style={{
-                width: '68px',
-                height: '68px',
-                borderRadius: '24px',
-                background: user?.isPremium ? 'transparent' : 'linear-gradient(135deg, var(--secondary), var(--primary))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '2rem',
-                color: 'white',
-                boxShadow: user?.isPremium ? 'none' : '0 8px 24px var(--primary-glow)',
-                flexShrink: 0,
-                cursor: 'pointer'
-            }}>
-                {user?.isPremium && energyForecast ? (
-                    <EnergyCrystal energy={energyForecast.currentEnergy} status={energyForecast.status} />
-                ) : (
-                    <FiMessageSquare />
-                )}
+            <div style={{ textAlign: 'center' }}>
+                <VoiceScanButton onScanComplete={handleVoiceScanComplete} />
+                <div style={{ fontSize: '10px', fontWeight: 800, marginTop: '8px', color: 'var(--text-muted)', letterSpacing: '1px' }}>CLARITY</div>
             </div>
 
             {user?.isPremium && (
-                <CognitiveAura reserve={energyForecast?.cognitiveReserve || 85} />
+                <div style={{ position: 'relative', width: '60px', height: '60px', textAlign: 'center' }}>
+                    <CognitiveAura reserve={energyForecast?.cognitiveReserve || 85} />
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '-22px',
+                        width: '100%',
+                        textAlign: 'center',
+                        fontSize: '11px',
+                        fontWeight: 900,
+                        color: 'var(--primary)',
+                        letterSpacing: '0.5px'
+                    }}>{energyForecast?.cognitiveReserve || 85}%</div>
+                </div>
             )}
         </div>
 

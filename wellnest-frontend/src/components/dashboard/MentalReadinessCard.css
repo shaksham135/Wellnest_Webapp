@@ -3,15 +3,16 @@
     display: flex;
     flex-direction: column;
     padding: 24px;
-    background: rgba(255, 255, 255, 0.02) !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    background: var(--card-bg) !important;
+    border: 1px solid var(--card-border) !important;
     backdrop-filter: blur(10px);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--card-shadow);
 }
 
 .cognitive-card.syncing {
     background: rgba(0, 243, 255, 0.05) !important;
-    border: 1px solid rgba(0, 243, 255, 0.1) !important;
+    border: 1px solid var(--primary) !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -45,7 +46,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
     line-height: 1.6;
 }
 
@@ -60,6 +61,10 @@
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.header-left h3 {
+    color: var(--text-main);
 }
 
 .sentiment-badge {
@@ -86,7 +91,7 @@
 
 .circular-chart .circle-bg {
     fill: none;
-    stroke: rgba(255, 255, 255, 0.05);
+    stroke: var(--card-border);
     stroke-width: 3.8;
 }
 
@@ -99,7 +104,7 @@
 }
 
 .circular-chart .percentage {
-    fill: white;
+    fill: var(--text-main);
     font-size: 0.5rem;
     text-anchor: middle;
     font-weight: 700;
@@ -121,12 +126,12 @@
     align-items: center;
     gap: 8px;
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-muted);
 }
 
 .metric-bar {
     height: 6px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--card-border);
     border-radius: 3px;
     overflow: hidden;
 }
@@ -144,12 +149,12 @@
 .ai-directive {
     margin-top: auto;
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--card-bg);
     border-radius: 16px;
     font-size: 0.85rem;
     line-height: 1.5;
-    color: rgba(255, 255, 255, 0.8);
-    border: 1px dashed rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+    border: 1px dashed var(--card-border);
 }
 
 .ai-directive strong {

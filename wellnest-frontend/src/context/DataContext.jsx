@@ -108,10 +108,18 @@ export const DataProvider = ({ children }) => {
         }
     }, [saveToCache]);
 
-    const submitVoiceScan = useCallback(async (text) => {
+    const submitVoiceScan = useCallback(async (audioBlob) => {
         try {
             setIsMentalSyncing(true);
-            const res = await apiClient.post('/mental/voice-scan', { text });
+            
+            // Industrial-Grade Binary Upload
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'scan.webm');
+
+            const res = await apiClient.post('/mental/voice-scan', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
             if (res.data) {
                 // Instantly update the forecast and latest state result
                 await Promise.all([

@@ -7,6 +7,7 @@ import com.wellnest.app.service.GroqService;
 import com.wellnest.app.service.MentalFitnessService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.List;
@@ -48,8 +49,14 @@ public class MentalFitnessServiceImpl implements MentalFitnessService {
     }
 
     @Override
-    public MentalState processVoiceScan(User user, String text) {
-        // AI Diagnostic Prompt
+    public MentalState processVoiceScan(User user, MultipartFile audio) {
+        log.info("Processing Real Voice Clarity Scan for user: {}", user.getEmail());
+        
+        // 1. Transcription (Acoustic Capture -> AI Text)
+        String text = groqService.transcribeAudio(audio);
+        log.info("Voice Scan Transcription Result: {}", text);
+
+        // 2. AI Diagnostic Analysis (Llama 3 Sentiment Engine)
         String prompt = String.format(
             "Analyze this mental health journal entry for Wellnest: \"%s\". " +
             "Provide scores for [FOCUS, STRESS, MOOD] on 1-10 scale and one word SENTIMENT. " +
