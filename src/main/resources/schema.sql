@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
     target_workouts_per_week INT,
     target_active_calories DOUBLE,
     target_distance_km DOUBLE,
+    is_suspended BOOLEAN NOT NULL DEFAULT FALSE,
     created_at DATETIME(6)
 ) ENGINE=InnoDB;
 
@@ -197,7 +198,8 @@ CREATE TABLE IF NOT EXISTS daily_activity (
     active_calories INT DEFAULT 0,
     distance_km DOUBLE DEFAULT 0.0,
     created_at DATETIME(6),
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE (user_id, date)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS mental_states (
@@ -210,4 +212,21 @@ CREATE TABLE IF NOT EXISTS mental_states (
     transcription TEXT,
     performed_at DATETIME(6),
     FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS system_settings (
+    id BIGINT PRIMARY KEY,
+    ai_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    total_tokens_used BIGINT NOT NULL DEFAULT 0
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS daily_briefings (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    content TEXT NOT NULL,
+    date DATE NOT NULL,
+    notes VARCHAR(255),
+    created_at DATETIME(6),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE (user_id, date)
 ) ENGINE=InnoDB;

@@ -14,6 +14,15 @@ export const ActivityProvider = ({ children }) => {
     const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
 
     // --- A. Helper Functions First ---
+    const getLocalDateString = (dateInput) => {
+        if (!dateInput) return new Date().toISOString().split('T')[0];
+        const date = new Date(dateInput);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const syncHealthData = useCallback(async (retryCount = 0) => {
         if (!isNative) return;
         
@@ -37,7 +46,7 @@ export const ActivityProvider = ({ children }) => {
             const processSamples = (samples, field) => {
                 if (!samples) return;
                 samples.forEach(s => {
-                    const dateKey = new Date(s.startDate).toISOString().split('T')[0];
+                    const dateKey = getLocalDateString(s.startDate);
                     if (!dailyDataMap[dateKey]) dailyDataMap[dateKey] = { steps: 0, activeCalories: 0, distanceKm: 0, date: dateKey };
                     
                     if (field === 'distanceKm') {
@@ -64,7 +73,7 @@ export const ActivityProvider = ({ children }) => {
                 // Process Sleep Sessions (Total hours per day)
                 if (sleepRes.samples) {
                     sleepRes.samples.forEach(s => {
-                        const dateKey = new Date(s.startDate).toISOString().split('T')[0];
+                        const dateKey = getLocalDateString(s.startDate);
                         if (!dailyDataMap[dateKey]) dailyDataMap[dateKey] = { steps: 0, activeCalories: 0, distanceKm: 0, date: dateKey, sleepHours: 0 };
                         
                         const durationHrs = (new Date(s.endDate) - new Date(s.startDate)) / (1000 * 60 * 60);
@@ -82,7 +91,7 @@ export const ActivityProvider = ({ children }) => {
                 let syncCount = 0;
                 for (const dateKey of Object.keys(dailyDataMap)) {
                     const phone = dailyDataMap[dateKey];
-                    const backend = backendActivities.find(a => (a.date === dateKey) || (new Date(a.date || a.createdAt).toISOString().split('T')[0] === dateKey));
+                    const backend = backendActivities.find(a => (a.date === dateKey) || (getLocalDateString(a.date || a.createdAt) === dateKey));
                     
                     const bSteps = backend?.steps || 0;
                     const bCals  = backend?.activeCalories || 0;
@@ -165,6 +174,7 @@ export const ActivityProvider = ({ children }) => {
 
                 if (isAuthorized) {
                     setIsHealthConnected(true);
+                    setIsTracking(false); // MUTUAL EXCLUSIVITY: Stop live tracking if Health is connected
                     await Preferences.set({ key: 'isHealthConnected', value: 'true' });
                     toast.success("Health Connect connected!");
                     
@@ -183,13 +193,19 @@ export const ActivityProvider = ({ children }) => {
         }
     };
 
-    const startTracking = () => setIsTracking(true);
+    const startTracking = () => {
+        if (isHealthConnected) {
+            toast.error("Live tracking is disabled when Health Connect is active to prevent duplicates.");
+            return;
+        }
+        setIsTracking(true);
+    };
     const stopTracking = () => {
         setIsTracking(false);
         if (liveSteps > 0) {
             const calories = Math.round(liveSteps * 0.04);
             const distance = Number((liveSteps * 0.0008).toFixed(2));
-            const localDate = new Date().toISOString().split('T')[0];
+            const localDate = getLocalDateString(new Date());
             createActivity({ steps: liveSteps, activeCalories: calories, distanceKm: distance, date: localDate })
                 .then(() => setLiveSteps(0))
                 .catch(console.error);
@@ -212,7 +228,7 @@ export const ActivityProvider = ({ children }) => {
                     const { createActivity: syncCall } = await import('../api/trackerApi');
                     const calories = Math.round(currentSteps * 0.04);
                     const distance = Number((currentSteps * 0.0008).toFixed(2));
-                    const localDate = new Date().toISOString().split('T')[0];
+                    const localDate = getLocalDateString(new Date());
                     await syncCall({ steps: currentSteps, activeCalories: calories, distanceKm: distance, date: localDate });
                     setLiveSteps(0);
                     liveStepsRef.current = 0;
@@ -294,7 +310,7 @@ export const ActivityProvider = ({ children }) => {
                 try {
                     const calories = Math.round(liveSteps * 0.04);
                     const distance = Number((liveSteps * 0.0008).toFixed(2));
-                    const localDate = new Date().toISOString().split('T')[0];
+                    const localDate = getLocalDateString(new Date());
                     await createActivity({ steps: liveSteps, activeCalories: calories, distanceKm: distance, date: localDate });
                     setLiveSteps(0);
                 } catch (err) {

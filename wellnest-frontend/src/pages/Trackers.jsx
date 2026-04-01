@@ -1,6 +1,6 @@
 // src/pages/Trackers.jsx
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   createWorkout,
   createMeal,
@@ -32,6 +32,7 @@ import "./Trackers.css";
 
 const Trackers = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [tab, setTab] = useState(location.state?.tab || "workout");
 
   useEffect(() => {
@@ -496,6 +497,22 @@ const Trackers = () => {
                         try {
                           toast.loading("Analyzing meal...", { id: "meal-ai" });
                           const { default: storageService } = await import("../api/storageService");
+                          
+                          // Freemium Check
+                          const { fetchCurrentUser } = await import("../api/userApi");
+                          const userRes = await fetchCurrentUser();
+                          const isPremium = userRes.data?.isPremium;
+                          if (!isPremium) {
+                              const hasUsedAI = await storageService.getItem("aiMealUsed");
+                              if (hasUsedAI === "true") {
+                                  toast.error("Free trial exhausted! Upgrade to Premium for unlimited AI tracking! 🚀", { duration: 4000 });
+                                  navigate('/premium');
+                                  return;
+                              } else {
+                                  await storageService.setItem("aiMealUsed", "true");
+                              }
+                          }
+
                           const cachedData = await storageService.getItem(cacheKey);
                           if (cachedData) {
                             const parsed = JSON.parse(cachedData);
@@ -670,10 +687,20 @@ const Trackers = () => {
                   </div>
                </div>
                
-               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', gap: '12px' }}>
-                 <button type="button" onClick={() => isTracking ? stopTracking() : startTracking()} className={isTracking ? "secondary-btn" : "primary-btn"}>
+               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
+                 <button 
+                   type="button" 
+                   onClick={() => isTracking ? stopTracking() : startTracking()} 
+                   className={isTracking ? "secondary-btn" : "primary-btn"}
+                   style={{ opacity: isHealthConnected ? 0.6 : 1, cursor: isHealthConnected ? 'not-allowed' : 'pointer' }}
+                 >
                    {isTracking ? "Stop Live Tracking" : "Start Live Tracking"}
                  </button>
+                 {isHealthConnected && (
+                   <span style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                     Live tracking disabled. Health Connect is providing your activity data. 🧬
+                   </span>
+                 )}
                </div>
                
                <div className="card" style={{ padding: '20px', marginBottom: '24px', border: isHealthConnected ? '1px solid #22c55e' : '1px solid var(--card-border)' }}>

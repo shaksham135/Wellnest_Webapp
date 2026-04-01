@@ -155,13 +155,21 @@ public class NotificationService {
     }
 
     @org.springframework.scheduling.annotation.Async
-    public void notifyAllUsers(String title, String message, String type) {
-        logger.info("Starting site-wide broadcast: " + title);
+    public void broadcastNotification(String title, String message, String type, String targetGroup) {
+        logger.info("Starting broadcast: " + title + " | Target: " + targetGroup);
         List<User> users = userRepository.findAll();
+        
+        List<User> targetUsers = users.stream().filter(u -> {
+            if ("PREMIUM".equalsIgnoreCase(targetGroup)) return u.isPremium();
+            if ("FREE".equalsIgnoreCase(targetGroup)) return !u.isPremium() && (u.getRole() == null || u.getRole().contains("USER"));
+            if ("TRAINERS".equalsIgnoreCase(targetGroup)) return u.getRole() != null && u.getRole().contains("TRAINER");
+            return true; // "ALL" or fallback
+        }).collect(Collectors.toList());
+
         int successCount = 0;
         int failCount = 0;
 
-        for (User user : users) {
+        for (User user : targetUsers) {
             try {
                 createNotification(user.getId(), title, message, type);
                 successCount++;
@@ -170,7 +178,7 @@ public class NotificationService {
                 logger.error("Broadcast failure for user " + user.getId() + ": " + e.getMessage());
             }
         }
-        logger.info("Broadcast complete. Success: " + successCount + ", Failed: " + failCount);
+        logger.info("Broadcast complete to " + targetGroup + ". Success: " + successCount + ", Failed: " + failCount);
     }
 
     // --- Automated AI Nudges (Industry Standard Proactive System) ---

@@ -31,7 +31,7 @@ const WellnessGradeCard = ({ score }) => {
             background: isPending ? 'var(--card-bg)' : `linear-gradient(135deg, ${color}1a, transparent)`,
             cursor: 'pointer',
             minHeight: '180px',
-            justifyContent: 'center',
+            justifyContent: 'space-between',
             opacity: isPending ? 0.8 : 1
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

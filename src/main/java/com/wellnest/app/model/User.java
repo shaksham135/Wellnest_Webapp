@@ -64,6 +64,9 @@ public class User {
     @Column(nullable = false)
     private boolean verificationRequested = false;
 
+    @Column(nullable = false)
+    private boolean isSuspended = false;
+
     private String fcmToken;
 
     @CreationTimestamp

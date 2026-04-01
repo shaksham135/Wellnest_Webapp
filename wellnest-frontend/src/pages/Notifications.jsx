@@ -2,7 +2,7 @@
 import React from "react";
 import { 
     FiBell, FiCheck, FiArrowLeft, FiDroplet, FiActivity, 
-    FiShield, FiAward, FiZap 
+    FiShield, FiAward, FiZap, FiUsers 
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { markAsRead, markAllAsRead } from "../api/notificationApi";
@@ -156,24 +156,37 @@ const Notifications = () => {
                             let icon = <FiBell />;
                             let boxStyles = { background: 'rgba(107, 114, 128, 0.1)', color: 'var(--text-muted)' };
 
-                            if (title.includes('hydration')) {
-                                icon = <FiDroplet />;
-                                boxStyles = { background: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6' };
-                            } else if (title.includes('activity') || title.includes('step')) {
-                                icon = <FiActivity />;
-                                boxStyles = { background: 'rgba(34, 197, 94, 0.12)', color: '#22c55e' };
-                            } else if (title.includes('workout')) {
-                                icon = <FiZap />;
-                                boxStyles = { background: 'rgba(234, 179, 8, 0.12)', color: '#ca8a04' };
-                            } else if (title.includes('tip')) {
-                                icon = <FiZap />;
-                                boxStyles = { background: 'rgba(234, 179, 8, 0.12)', color: '#ca8a04' };
-                            } else if (title.includes('verification') || title.includes('security')) {
-                                icon = <FiShield />;
-                                boxStyles = { background: 'rgba(168, 85, 247, 0.12)', color: '#a855f7' };
-                            } else if (title.includes('congratulations') || title.includes('approved')) {
+                            // Prioritize Explicit Broadcast Types first
+                            if (notif.type === 'SUCCESS') {
                                 icon = <FiAward />;
-                                boxStyles = { background: 'rgba(249, 115, 22, 0.12)', color: '#f97316' };
+                                boxStyles = { background: 'rgba(34, 197, 94, 0.12)', color: '#22c55e' };
+                            } else if (notif.type === 'ALERT') {
+                                icon = <FiShield />;
+                                boxStyles = { background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444' };
+                            } else if (notif.type === 'COMMUNITY') {
+                                icon = <FiUsers />;
+                                boxStyles = { background: 'rgba(168, 85, 247, 0.12)', color: '#a855f7' };
+                            } else if (notif.type === 'INFO') {
+                                icon = <FiBell />;
+                                boxStyles = { background: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6' };
+                            } else {
+                                // Fallback word-match logic for automated system updates
+                                if (title.includes('hydration')) {
+                                    icon = <FiDroplet />;
+                                    boxStyles = { background: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6' };
+                                } else if (title.includes('activity') || title.includes('step')) {
+                                    icon = <FiActivity />;
+                                    boxStyles = { background: 'rgba(34, 197, 94, 0.12)', color: '#22c55e' };
+                                } else if (title.includes('workout') || title.includes('tip')) {
+                                    icon = <FiZap />;
+                                    boxStyles = { background: 'rgba(234, 179, 8, 0.12)', color: '#ca8a04' };
+                                } else if (title.includes('verification') || title.includes('security')) {
+                                    icon = <FiShield />;
+                                    boxStyles = { background: 'rgba(168, 85, 247, 0.12)', color: '#a855f7' };
+                                } else if (title.includes('congratulations') || title.includes('approved')) {
+                                    icon = <FiAward />;
+                                    boxStyles = { background: 'rgba(249, 115, 22, 0.12)', color: '#f97316' };
+                                }
                             }
 
                             return (

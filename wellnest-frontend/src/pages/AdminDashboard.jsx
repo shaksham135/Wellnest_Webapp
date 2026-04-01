@@ -2,14 +2,19 @@ import React, { useEffect, useState, useCallback } from "react";
 import apiClient from "../api/apiClient";
 import {
     FiUsers, FiTrash2, FiActivity, FiUserCheck, FiLogOut, FiX,
-    FiGrid, FiList, FiFileText, FiShield, FiSearch, FiChevronRight, FiGlobe, FiCheckCircle, FiXCircle, FiBell
+    FiGrid, FiList, FiFileText, FiShield, FiSearch, FiChevronRight, FiGlobe, FiCheckCircle, FiXCircle, FiBell, FiAward
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { getClientAnalytics, getPendingVerifications, verifyTrainer, rejectTrainerVerification } from "../api/trainerApi";
+import { toggleUserPremium, toggleUserSuspension, getSystemMetrics, toggleGlobalAi } from "../api/adminApi";
 import ThemeToggle from "../components/ThemeToggle";
 import storageService from "../api/storageService";
 import logo from "../assets/logo.png";
 import "./AdminDashboard.css";
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
+import { Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
 const AdminDashboard = ({ onLogout }) => {
     const [activeTab, setActiveTab] = useState("all");
@@ -19,10 +24,24 @@ const AdminDashboard = ({ onLogout }) => {
     const [pendingTrainerVerifications, setPendingTrainerVerifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    
+    // Advanced Filters
+    const [filterStatus, setFilterStatus] = useState("ALL");
+    const [filterTier, setFilterTier] = useState("ALL");
+
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+    // Analytics Metrics
+    const [metrics, setMetrics] = useState({
+        totalUsers: 0,
+        premiumUsers: 0,
+        totalTrainers: 0,
+        aiEnabled: true,
+        totalTokens: 0
+    });
+
     // Broadcast State
-    const [broadcastData, setBroadcastData] = useState({ title: "", message: "", type: "INFO" });
+    const [broadcastData, setBroadcastData] = useState({ title: "", message: "", type: "INFO", target: "ALL" });
     const [isBroadcasting, setIsBroadcasting] = useState(false);
 
     // User Detail State
@@ -52,16 +71,20 @@ const AdminDashboard = ({ onLogout }) => {
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const [usersRes, trainersRes, postsRes, pendingVerRes] = await Promise.all([
+            const [usersRes, trainersRes, postsRes, pendingVerRes, metricsRes] = await Promise.all([
                 apiClient.get("/admin/users"),
                 apiClient.get("/admin/trainers"),
                 apiClient.get("/blog/posts?category=All"),
-                getPendingVerifications()
+                getPendingVerifications(),
+                getSystemMetrics()
             ]);
             setUsers(usersRes.data.filter(u => u.role !== 'ROLE_ADMIN'));
             setTrainers(trainersRes.data);
             setPosts(postsRes.data);
             setPendingTrainerVerifications(pendingVerRes.data || []);
+            if (metricsRes.data) {
+                setMetrics(metricsRes.data);
+            }
         } catch (error) {
             console.error("Error fetching admin data:", error);
             if (error.response && error.response.status === 403) {
@@ -139,6 +162,26 @@ const AdminDashboard = ({ onLogout }) => {
         }
     };
 
+    const handleTogglePremium = async (userId) => {
+        try {
+            const res = await toggleUserPremium(userId);
+            setUsers(users.map(u => u.id === userId ? { ...u, isPremium: res.data.isPremium } : u));
+        } catch (error) {
+            console.error("Error toggling premium:", error);
+            alert("Failed to update premium status.");
+        }
+    };
+
+    const handleToggleSuspension = async (userId) => {
+        try {
+            const res = await toggleUserSuspension(userId);
+            setUsers(users.map(u => u.id === userId ? { ...u, isSuspended: res.data.isSuspended } : u));
+        } catch (error) {
+            console.error("Error toggling suspension:", error);
+            alert("Failed to update suspension status.");
+        }
+    };
+
     const handleVerifyTrainer = async (trainerId) => {
         try {
             await verifyTrainer(trainerId);
@@ -172,8 +215,8 @@ const AdminDashboard = ({ onLogout }) => {
             
             // Handle both 200 and 202 Accepted
             if (response.status === 202 || response.status === 200) {
-                alert("Success! Your industry-ready broadcast has been queued and is pushing to all devices in the background. 📢🚀");
-                setBroadcastData({ title: "", message: "", type: "INFO" });
+                alert(`Success! Your industry-ready broadcast has been queued and is pushing to ${broadcastData.target === 'ALL' ? 'all devices' : broadcastData.target} in the background. 📢🚀`);
+                setBroadcastData({ title: "", message: "", type: "INFO", target: "ALL" });
             }
         } catch (error) {
             console.error("Error broadcasting:", error);
@@ -203,6 +246,16 @@ const AdminDashboard = ({ onLogout }) => {
         else if (activeTab === 'verification') data = users.filter(u => u.verificationRequested || u.verified);
         else if (activeTab === 'posts') data = posts;
         else if (activeTab === 'broadcast') data = []; // No list for broadcast tab
+
+        // Advanced Filters
+        if (activeTab === 'users' || activeTab === 'trainers') {
+            if (filterStatus !== 'ALL') {
+                data = data.filter(u => filterStatus === 'SUSPENDED' ? u.isSuspended : !u.isSuspended);
+            }
+            if (activeTab === 'users' && filterTier !== 'ALL') {
+                data = data.filter(u => filterTier === 'PREMIUM' ? u.isPremium : !u.isPremium);
+            }
+        }
 
         // Search Filter
         if (searchTerm) {
@@ -267,6 +320,7 @@ const AdminDashboard = ({ onLogout }) => {
 
                     <div className="nav-group">
                         <p className="nav-label">Management</p>
+                        <NavItem id="premium" icon={FiAward} label="Premium Control" />
                         <NavItem id="verification" icon={FiShield} label="User Verifications" />
                         <NavItem id="trainerVerification" icon={FiCheckCircle} label={`Cert Reviews ${pendingTrainerVerifications.length > 0 ? `(${pendingTrainerVerifications.length})` : ''}`} />
                         <NavItem id="posts" icon={FiFileText} label="Community Posts" />
@@ -306,7 +360,33 @@ const AdminDashboard = ({ onLogout }) => {
                             <p className="subtitle">Manage your application data and users</p>
                         </div>
 
-                        <div className="header-actions">
+                        <div className="header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            {(activeTab === 'users' || activeTab === 'trainers') && (
+                                <>
+                                    <select 
+                                        className="admin-input-modern"
+                                        style={{ padding: '10px 14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)' }}
+                                        value={filterStatus}
+                                        onChange={(e) => setFilterStatus(e.target.value)}
+                                    >
+                                        <option value="ALL">Status: All</option>
+                                        <option value="ACTIVE">Status: Active</option>
+                                        <option value="SUSPENDED">Status: Suspended</option>
+                                    </select>
+                                    {activeTab === 'users' && (
+                                    <select 
+                                        className="admin-input-modern"
+                                        style={{ padding: '10px 14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)' }}
+                                        value={filterTier}
+                                        onChange={(e) => setFilterTier(e.target.value)}
+                                    >
+                                        <option value="ALL">Tier: All</option>
+                                        <option value="PREMIUM">Tier: Premium</option>
+                                        <option value="FREE">Tier: Free</option>
+                                    </select>
+                                    )}
+                                </>
+                            )}
                             <div className="search-box">
                                 <FiSearch />
                                 <input
@@ -325,10 +405,10 @@ const AdminDashboard = ({ onLogout }) => {
                             <div className="data-card" style={{ padding: '32px' }}>
                                 <div style={{ marginBottom: '24px' }}>
                                     <h2 style={{ margin: '0 0 8px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                        <FiBell style={{ color: 'var(--primary)' }} /> Broadcast Announcement
+                                        <FiBell style={{ color: 'var(--primary)' }} /> Targeted Broadcast
                                     </h2>
                                     <p style={{ margin: 0, color: 'var(--text-muted)' }}>
-                                        Send a real-time notification to every user on the platform. Use this for important updates, maintenance, or community news.
+                                        Send real-time alerts to specific segments of your user base. Use this for VIP updates, community news, or system maintenance.
                                     </p>
                                 </div>
 
@@ -357,7 +437,7 @@ const AdminDashboard = ({ onLogout }) => {
                                         />
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) minmax(200px, 1fr) auto', gap: '20px' }}>
                                         <div className="form-group">
                                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: 'var(--text-main)' }}>Alert Type</label>
                                             <select 
@@ -372,24 +452,134 @@ const AdminDashboard = ({ onLogout }) => {
                                                 <option value="COMMUNITY">Community News (Purple)</option>
                                             </select>
                                         </div>
+                                        
+                                        <div className="form-group">
+                                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: 'var(--text-main)' }}>Target Audience</label>
+                                            <select 
+                                                value={broadcastData.target}
+                                                onChange={(e) => setBroadcastData({...broadcastData, target: e.target.value})}
+                                                className="admin-input-modern"
+                                                style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--input-border)', color: 'var(--text-main)' }}
+                                            >
+                                                <option value="ALL">🌎 All Users</option>
+                                                <option value="PREMIUM">👑 Premium VIPs</option>
+                                                <option value="FREE">🆓 Free Users</option>
+                                                <option value="TRAINERS">🏋️ Certified Trainers</option>
+                                            </select>
+                                        </div>
+
                                         <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                                             <button 
                                                 type="submit" 
                                                 className="primary-btn" 
                                                 disabled={isBroadcasting}
-                                                style={{ width: '100%', padding: '14px', borderRadius: '8px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+                                                style={{ width: '100%', padding: '14px 28px', borderRadius: '8px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
                                             >
                                                 {isBroadcasting ? (
                                                     <>Sending...</>
                                                 ) : (
                                                     <>
-                                                        <FiBell /> Push to All Users
+                                                        <FiBell /> Launch Broadcast
                                                     </>
                                                 )}
                                             </button>
                                         </div>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Premium Management Dedicated UI */}
+                    {activeTab === 'premium' && (
+                        <div className="premium-management-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div className="data-card" style={{ padding: '32px' }}>
+                                <div style={{ marginBottom: '24px' }}>
+                                    <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-main)', marginTop: 0, marginBottom: '8px' }}>
+                                        <FiAward color="#fbbf24" size={24} /> VIP Premium Control
+                                    </h2>
+                                    <p style={{ color: 'var(--text-muted)', margin: 0 }}>
+                                        Grant or revoke premium status for users. Premium features include advanced AI diagnostics and deep health tracking.
+                                    </p>
+                                </div>
+                                
+                                <div className="search-box" style={{ maxWidth: '400px', marginBottom: '32px', border: '1px solid var(--card-border)', padding: '12px 16px', borderRadius: '8px' }}>
+                                    <FiSearch style={{ color: 'var(--text-muted)' }} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name or email..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', color: 'var(--text-main)', marginLeft: '10px' }}
+                                    />
+                                </div>
+                                
+                                <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))' }}>
+                                    {users
+                                        .filter(u => (!searchTerm || u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.email?.toLowerCase().includes(searchTerm.toLowerCase())) && u.role !== 'ROLE_ADMIN')
+                                        .map(user => (
+                                        <div key={user.id} style={{ 
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', 
+                                            background: user.isPremium ? 'rgba(251, 191, 36, 0.06)' : 'rgba(255, 255, 255, 0.02)', 
+                                            borderRadius: '16px', 
+                                            border: user.isPremium ? '1px solid rgba(251, 191, 36, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)', 
+                                            boxShadow: user.isPremium ? '0 4px 20px rgba(251, 191, 36, 0.1)' : 'none',
+                                            transition: 'transform 0.2s, box-shadow 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                                <div className="avatar-circle" style={{ width: '48px', height: '48px', fontSize: '18px', fontWeight: 700, background: user.isPremium ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : 'rgba(255,255,255,0.1)', color: user.isPremium ? '#fff' : 'var(--text-main)' }}>
+                                                    {user.name?.charAt(0)}
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        {user.name} {user.isPremium && <span title="Active Premium User" style={{ fontSize: '16px', filter: 'drop-shadow(0px 0px 8px rgba(251,191,36,0.6))' }}>👑</span>}
+                                                    </span>
+                                                    <span style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>{user.email}</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <button
+                                                style={{ 
+                                                    padding: '8px 18px', fontSize: '13px', fontWeight: 600, borderRadius: '20px', cursor: 'pointer', transition: 'all 0.2s ease',
+                                                    background: user.isPremium ? 'transparent' : 'rgba(255, 255, 255, 0.05)', 
+                                                    border: user.isPremium ? '1px solid #f59e0b' : '1px solid rgba(255,255,255,0.1)', 
+                                                    color: user.isPremium ? '#f59e0b' : 'var(--text-main)' 
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    if(!user.isPremium) {
+                                                        e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                                                        e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                                                    } else {
+                                                        e.target.style.background = 'rgba(245, 158, 11, 0.1)';
+                                                    }
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    if(!user.isPremium) {
+                                                        e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+                                                        e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                                                    } else {
+                                                        e.target.style.background = 'transparent';
+                                                    }
+                                                }}
+                                                onClick={() => {
+                                                    if(user.isPremium && !window.confirm(`Revoke premium access for ${user.name}?`)) return;
+                                                    handleTogglePremium(user.id);
+                                                }}
+                                            >
+                                                {user.isPremium ? 'Revoke VIP' : 'Grant Premium'}
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {users.filter(u => (!searchTerm || u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.email?.toLowerCase().includes(searchTerm.toLowerCase())) && u.role !== 'ROLE_ADMIN').length === 0 && (
+                                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                                            <FiUsers size={32} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                                            <p>No users found matching your search.</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -569,8 +759,90 @@ const AdminDashboard = ({ onLogout }) => {
                         </div>
                     )}
 
+                    {/* Analytics Overview Dashboard */}
+                    {activeTab === 'all' && (
+                        <div className="analytics-overview-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                            {/* Top Stats Row */}
+                            <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                                <div className="stat-card modern" style={{ background: 'var(--card-bg)', padding: '24px', borderRadius: '16px', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)' }}>
+                                    <h3 style={{ margin: '0 0 8px', color: 'var(--text-muted)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Platform Users</h3>
+                                    <div style={{ fontSize: '36px', fontWeight: '800', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <FiUsers /> {metrics.totalUsers}
+                                    </div>
+                                </div>
+                                <div className="stat-card modern" style={{ background: 'var(--card-bg)', padding: '24px', borderRadius: '16px', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)' }}>
+                                    <h3 style={{ margin: '0 0 8px', color: 'var(--text-muted)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>Premium VIPs</h3>
+                                    <div style={{ fontSize: '36px', fontWeight: '800', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <FiAward /> {metrics.premiumUsers}
+                                    </div>
+                                </div>
+                                <div className="stat-card modern" style={{ background: 'var(--card-bg)', padding: '24px', borderRadius: '16px', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)' }}>
+                                    <h3 style={{ margin: '0 0 8px', color: 'var(--text-muted)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>AI Tokens Consumed</h3>
+                                    <div style={{ fontSize: '36px', fontWeight: '800', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <FiActivity /> {metrics.totalTokens.toLocaleString()}
+                                    </div>
+                                </div>
+                                <div className="stat-card modern" style={{ background: 'var(--card-bg)', padding: '24px', borderRadius: '16px', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-color)' }}>
+                                    <h3 style={{ margin: '0 0 8px', color: 'var(--text-muted)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>Certified Trainers</h3>
+                                    <div style={{ fontSize: '36px', fontWeight: '800', color: '#10b981', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <FiUserCheck /> {metrics.totalTrainers}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Global Config & Charts */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+                                {/* Global AI Kill-Switch */}
+                                <div className="data-card" style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px' }}>
+                                        <div>
+                                            <h2 style={{ margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <FiShield color={metrics.aiEnabled ? '#10b981' : '#ef4444'} /> Global AI System {metrics.aiEnabled ? "(ONLINE)" : "(HALTED)"}
+                                            </h2>
+                                            <p style={{ margin: '8px 0 0', color: 'var(--text-muted)' }}>
+                                                Emergency kill-switch. When toggled off, all outgoing API queries to groq/llama are halted system-wide. Features will fallback to predefined static templates instantly.
+                                            </p>
+                                        </div>
+                                        <label className="switch" style={{ flexShrink: 0 }}>
+                                            <input type="checkbox" checked={metrics.aiEnabled} onChange={async (e) => {
+                                                const newVal = e.target.checked;
+                                                setMetrics(prev => ({ ...prev, aiEnabled: newVal }));
+                                                try {
+                                                    await toggleGlobalAi(newVal);
+                                                } catch(err) {
+                                                    console.error(err);
+                                                    setMetrics(prev => ({ ...prev, aiEnabled: !newVal })); // Revert on failure
+                                                }
+                                            }} />
+                                            <span className="slider round"></span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Demographics Chart */}
+                                <div className="data-card" style={{ padding: '32px' }}>
+                                    <h2 style={{ margin: '0 0 20px', color: 'var(--text-main)' }}>Platform Demographics</h2>
+                                    <div style={{ height: '250px', display: 'flex', justifyContent: 'center' }}>
+                                        <Doughnut 
+                                            options={{ maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }}
+                                            data={{
+                                                labels: ['VIP Premium', 'Free Users', 'Trainers'],
+                                                datasets: [{
+                                                    data: [metrics.premiumUsers, Math.max(0, metrics.totalUsers - metrics.premiumUsers), metrics.totalTrainers],
+                                                    backgroundColor: ['#fbbf24', '#3b82f6', '#10b981'],
+                                                    borderColor: ['var(--card-bg)', 'var(--card-bg)', 'var(--card-bg)'],
+                                                    borderWidth: 2,
+                                                }]
+                                            }} 
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Data Table Card */}
-                    {activeTab !== 'trainerVerification' && (
+                    {activeTab !== 'all' && activeTab !== 'trainerVerification' && activeTab !== 'broadcast' && activeTab !== 'premium' && (
                     <div className="data-card">
                         {loading ? (
                             <div className="loading-state">
@@ -637,13 +909,20 @@ const AdminDashboard = ({ onLogout }) => {
                                                                 <div className="user-info-cell">
                                                                     <div className="avatar-circle">{item.name?.charAt(0)}</div>
                                                                     <div>
-                                                                        <span className="name-text">{item.name}</span>
+                                                                        <span className="name-text">
+                                                                            {item.name}
+                                                                            {item.isPremium && <span title="Premium User" style={{marginLeft: '6px', fontSize: '14px', filter: 'drop-shadow(0px 2px 4px rgba(255,215,0,0.4))'}}>👑</span>}
+                                                                        </span>
                                                                         <span className="email-text">{item.email}</span>
                                                                     </div>
                                                                 </div>
                                                             </td>
                                                             <td>
-                                                                {(item.verified || item.isVerified) ? (
+                                                                {item.isSuspended ? (
+                                                                    <span className="status-indicator pending" style={{background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444'}}>
+                                                                        <span className="dot" style={{backgroundColor: '#ef4444'}}></span> Suspended
+                                                                    </span>
+                                                                ) : (item.verified || item.isVerified) ? (
                                                                     <span className="status-indicator verified">
                                                                         <span className="dot"></span> Verified
                                                                     </span>
@@ -680,10 +959,18 @@ const AdminDashboard = ({ onLogout }) => {
                                                                         </button>
                                                                     )}
 
+                                                                    <button 
+                                                                        className={`icon-btn ${item.isSuspended ? 'success' : 'delete'}`} 
+                                                                        onClick={() => handleToggleSuspension(item.id)} 
+                                                                        title={item.isSuspended ? "Unsuspend User" : "Suspend User (Ban)"}
+                                                                    >
+                                                                        <FiShield />
+                                                                    </button>
+
                                                                     <button
                                                                         className="icon-btn delete"
                                                                         onClick={() => item.role === 'ROLE_TRAINER' ? handleDeleteTrainer(item.id, item.email) : handleDeleteUser(item.id)}
-                                                                        title="Delete"
+                                                                        title="Delete Permanently"
                                                                     >
                                                                         <FiTrash2 />
                                                                     </button>

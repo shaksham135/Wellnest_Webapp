@@ -38,6 +38,7 @@ import Support from "./pages/Support";
 import AdminDashboard from "./pages/AdminDashboard";
 import CommunityPage from "./pages/CommunityPage";
 import HealthReport from "./pages/HealthReport";
+import PremiumPage from "./pages/PremiumPage";
 
 // Analytics Detail Pages
 import WorkoutAnalyticsDetail from "./pages/detailed-analytics/WorkoutAnalyticsDetail";
@@ -180,6 +181,12 @@ const AppContent = ({
             <Route path="/profile" element={
               <ProtectedRoute isLoggedIn={isLoggedIn}>
                 <Profile onLogout={handleLogout} />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/premium" element={
+              <ProtectedRoute isLoggedIn={isLoggedIn}>
+                <PremiumPage />
               </ProtectedRoute>
             } />
 

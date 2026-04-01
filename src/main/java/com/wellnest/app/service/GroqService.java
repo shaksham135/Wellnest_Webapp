@@ -38,6 +38,11 @@ public class GroqService {
     private static final String GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final SystemSettingsService systemSettingsService;
+
+    public GroqService(SystemSettingsService systemSettingsService) {
+        this.systemSettingsService = systemSettingsService;
+    }
 
     @PostConstruct
     public void init() {
@@ -62,6 +67,11 @@ public class GroqService {
     }
 
     public String transcribeAudio(MultipartFile audio) {
+        if (!systemSettingsService.isAiEnabled()) {
+            log.warn("Global AI is DISABLED. Skipping Groq Whisper.");
+            return "AI Systems are currently resting. Please try again later.";
+        }
+
         log.info("Sending Voice Scan to Groq Whisper...");
         try {
             RestTemplate restTemplate = new RestTemplate();
@@ -107,6 +117,11 @@ public class GroqService {
     }
 
     public String getResponse(String prompt, String modelName) {
+        if (!systemSettingsService.isAiEnabled()) {
+            log.warn("Global AI is DISABLED. Skipping Groq Completions.");
+            return "I'm focusing on your stats, let's keep the momentum high today! (AI Server Maintenance)";
+        }
+
         log.info("Sending prompt to Groq API (Model: {})...", modelName);
         try {
             // Using SimpleClientHttpRequestFactory for modern timeout control
@@ -148,7 +163,13 @@ public class GroqService {
                     .path("content")
                     .asText();
             
-            log.info("Groq Generation Successful.");
+            // Track Tokens
+            long tokensUsed = jsonResponse.path("usage").path("total_tokens").asLong(0);
+            if (tokensUsed > 0) {
+                systemSettingsService.addTokens(tokensUsed);
+            }
+            
+            log.info("Groq Generation Successful. Tokens used: {}", tokensUsed);
             return out;
 
         } catch (Exception e) {

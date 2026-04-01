@@ -24,13 +24,15 @@ public class AdminController {
     private final com.wellnest.app.service.TrackerService trackerService;
     private final TrainerService trainerService;
     private final NotificationService notificationService;
+    private final com.wellnest.app.service.SystemSettingsService systemSettingsService;
 
     public AdminController(UserRepository userRepository, TrainerRepository trainerRepository,
             com.wellnest.app.service.UserService userService,
             com.wellnest.app.service.BlogService blogService,
             com.wellnest.app.service.TrackerService trackerService,
             TrainerService trainerService,
-            NotificationService notificationService) {
+            NotificationService notificationService,
+            com.wellnest.app.service.SystemSettingsService systemSettingsService) {
         this.userRepository = userRepository;
         this.trainerRepository = trainerRepository;
         this.userService = userService;
@@ -38,6 +40,29 @@ public class AdminController {
         this.trackerService = trackerService;
         this.trainerService = trainerService;
         this.notificationService = notificationService;
+        this.systemSettingsService = systemSettingsService;
+    }
+
+    @GetMapping("/metrics")
+    public ResponseEntity<?> getSystemMetrics() {
+        long totalUsers = userRepository.count();
+        long premiumUsers = userRepository.findAll().stream().filter(User::isPremium).count();
+        long totalTrainers = trainerRepository.count();
+        
+        java.util.Map<String, Object> metrics = new java.util.HashMap<>();
+        metrics.put("totalUsers", totalUsers);
+        metrics.put("premiumUsers", premiumUsers);
+        metrics.put("totalTrainers", totalTrainers);
+        metrics.put("aiEnabled", systemSettingsService.isAiEnabled());
+        metrics.put("totalTokens", systemSettingsService.getSettings().getTotalTokensUsed());
+        
+        return ResponseEntity.ok(metrics);
+    }
+
+    @PutMapping("/settings/ai")
+    public ResponseEntity<?> toggleAiStatus(@RequestParam boolean enabled) {
+        systemSettingsService.setAiEnabled(enabled);
+        return ResponseEntity.ok(java.util.Map.of("aiEnabled", enabled, "message", "System AI changed to " + enabled));
     }
 
     @GetMapping("/users")
@@ -197,12 +222,42 @@ public class AdminController {
         String title = payload.get("title");
         String message = payload.get("message");
         String type = payload.getOrDefault("type", "INFO");
+        String target = payload.getOrDefault("target", "ALL");
 
         if (title == null || message == null) {
             return ResponseEntity.badRequest().body("Title and Message are required");
         }
 
-        notificationService.notifyAllUsers(title, message, type);
-        return ResponseEntity.accepted().body("Notification broadcasted successfully to all users");
+        notificationService.broadcastNotification(title, message, type, target);
+        return ResponseEntity.accepted().body("Notification broadcasted successfully to target audience: " + target);
+    }
+
+    @PutMapping("/users/{id}/premium")
+    public ResponseEntity<?> togglePremium(@PathVariable Long id) {
+        return userRepository.findById(id).map(user -> {
+            boolean isPremium = !user.isPremium();
+            user.setPremium(isPremium);
+            userRepository.save(user);
+            
+            if (isPremium) {
+                notificationService.createNotification(user.getId(), "Welcome to Premium!", 
+                    "You have been upgraded to Wellnest Premium! Enjoy full access to AI diagnostics and advanced metrics.", "SUCCESS");
+            } else {
+                notificationService.createNotification(user.getId(), "Premium Revoked", 
+                    "Your Wellnest Premium subscription has ended. Contact support for any queries.", "ALERT");
+            }
+            
+            return ResponseEntity.ok(java.util.Map.of("message", "User premium status updated", "isPremium", isPremium));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/users/{id}/suspend")
+    public ResponseEntity<?> toggleSuspension(@PathVariable Long id) {
+        return userRepository.findById(id).map(user -> {
+            boolean isSuspended = !user.isSuspended();
+            user.setSuspended(isSuspended);
+            userRepository.save(user);
+            return ResponseEntity.ok(java.util.Map.of("message", "User suspension status updated", "isSuspended", isSuspended));
+        }).orElse(ResponseEntity.notFound().build());
     }
 }

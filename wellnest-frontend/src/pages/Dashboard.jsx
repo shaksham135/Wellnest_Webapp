@@ -1,10 +1,12 @@
 // src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiRefreshCw, FiArrowRight, FiFileText } from "react-icons/fi";
+import { FiRefreshCw, FiArrowRight, FiFileText, FiX } from "react-icons/fi";
 
 import storageService from "../api/storageService";
 import { useData } from "../context/DataContext";
+import { useNotifications } from "../context/NotificationContext";
+import { markAsRead } from "../api/notificationApi";
 import UserDashboard from "../components/dashboard/UserDashboard";
 import TrainerDashboard from "../components/dashboard/TrainerDashboard";
 import SkeletonUI from "../components/common/SkeletonUI";
@@ -27,6 +29,27 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(!isUserDataLoaded && !isTrackersLoaded);
     const [error, setError] = useState("");
     const [retryTrigger, setRetryTrigger] = useState(0);
+
+    const { notifications, refreshNotifications } = useNotifications();
+    const [premiumNotif, setPremiumNotif] = useState(null);
+
+    useEffect(() => {
+        const unreadPremium = notifications?.find(n => 
+            !n.read && 
+            n.type !== 'TIP' && 
+            (n.title.includes("Premium") || n.message.includes("Premium"))
+        );
+        if (unreadPremium && unreadPremium.id !== premiumNotif?.id) {
+            setPremiumNotif(unreadPremium);
+        }
+    }, [notifications, premiumNotif]);
+
+    const handleDismissPremiumNotif = async () => {
+        if (!premiumNotif) return;
+        await markAsRead(premiumNotif.id);
+        setPremiumNotif(null);
+        refreshNotifications();
+    };
 
     // Sync local user with context
     useEffect(() => {
@@ -152,6 +175,32 @@ const Dashboard = () => {
   return (
     <div className="dashboard-page container" style={{ paddingBottom: '100px', paddingTop: '24px' }}>
       <div className="dashboard-main-content" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+        {/* PREMIUM SUBSCRIPTION BANNER */}
+        {premiumNotif && (
+            <div className="premium-banner" style={{
+                 background: premiumNotif.title.includes("Welcome") || premiumNotif.title.includes("Premium!") ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.05))' : 'rgba(239, 68, 68, 0.1)',
+                 border: premiumNotif.title.includes("Welcome") || premiumNotif.title.includes("Premium!") ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(239, 68, 68, 0.3)',
+                 borderRadius: '16px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px',
+                 boxShadow: premiumNotif.title.includes("Welcome") || premiumNotif.title.includes("Premium!") ? '0 4px 20px rgba(251, 191, 36, 0.1)' : 'none',
+                 animation: 'slideDown 0.5s ease-out'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                     <div style={{ fontSize: '24px' }}>
+                         {(premiumNotif.title.includes("Welcome") || premiumNotif.title.includes("Premium!")) ? '👑' : '⚠️'}
+                     </div>
+                     <div>
+                         <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: (premiumNotif.title.includes("Welcome") || premiumNotif.title.includes("Premium!")) ? '#f59e0b' : '#ef4444' }}>
+                             {premiumNotif.title}
+                         </h3>
+                         <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>{premiumNotif.message}</p>
+                     </div>
+                </div>
+                <button onClick={handleDismissPremiumNotif} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px', display: 'flex', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-main)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}>
+                    <FiX size={20} />
+                </button>
+            </div>
+        )}
 
         {/* 1. COMPANION HEADER */}
         <div style={{ position: 'relative' }}>

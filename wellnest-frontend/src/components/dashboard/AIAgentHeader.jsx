@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { FiZap, FiMoon, FiActivity } from 'react-icons/fi';
+import { FiZap, FiMoon, FiActivity, FiArrowRight } from 'react-icons/fi';
 import { getDailyBriefing } from '../../api/assistantApi';
 import CognitiveAura from './CognitiveAura';
 import VoiceScanButton from './VoiceScanButton';
 import { useData } from '../../context/DataContext';
+import { useNavigate } from 'react-router-dom';
 
 const AIAgentHeader = ({ user, readinessScore }) => {
+    const navigate = useNavigate();
     const { energyForecast, submitVoiceScan } = useData();
     const [briefing, setBriefing] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -157,7 +159,9 @@ const AIAgentHeader = ({ user, readinessScore }) => {
                 </p>
             </div>
             
-            <div style={{
+            <div 
+                onClick={() => { if (!user?.isPremium) navigate('/premium'); }}
+                style={{
                 padding: '6px 14px',
                 background: user?.isPremium ? 'rgba(94, 234, 212, 0.1)' : 'rgba(251, 191, 36, 0.1)',
                 border: user?.isPremium ? '1px solid var(--primary-border)' : '1px solid #fbbf24',
@@ -170,9 +174,10 @@ const AIAgentHeader = ({ user, readinessScore }) => {
                 boxShadow: user?.isPremium ? '0 4px 12px rgba(94, 234, 212, 0.1)' : 'none',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '6px',
+                cursor: user?.isPremium ? 'default' : 'pointer'
             }}>
-                {user?.isPremium ? <><FiZap /> AI Active</> : <><FiZap /> Get Premium</>}
+                {user?.isPremium ? <><FiZap /> AI Active</> : <><FiZap /> Get Premium <FiArrowRight /></>}
             </div>
         </div>
     );

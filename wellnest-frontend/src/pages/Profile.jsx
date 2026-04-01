@@ -1,7 +1,8 @@
 // src/pages/Profile.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiX, FiTarget, FiCheck, FiStar, FiBell } from "react-icons/fi";
+import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiTarget, FiCheck, FiStar, FiBell, FiShield, FiActivity, FiArrowLeft, FiCalendar } from "react-icons/fi";
+import "./Profile.css";
 import { updateUserProfile, togglePremium } from "../api/userApi";
 import apiClient from "../api/apiClient";
 import storageService from "../api/storageService";
@@ -124,314 +125,221 @@ const Profile = ({ onLogout }) => {
   if (error) return <div className="dashboard-page"><div className="dashboard-card">{error}</div></div>;
 
   return (
-    <div className="dashboard-page">
-      {/* Header */}
-      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1 style={{ margin: 0 }}>My Profile</h1>
-          <p className="dashboard-subtitle" style={{ marginTop: '5px' }}>Manage your account settings</p>
-        </div>
-        <button className="ghost-btn icon-btn" onClick={() => navigate('/dashboard')}>
-          <FiX style={{ fontSize: '1.5rem' }} />
+    <div className="profile-container">
+      {/* Hero Header component */}
+      <div className="profile-cover">
+        <button className="profile-close-btn" onClick={() => navigate('/dashboard')} title="Back to Dashboard">
+          <FiArrowLeft size={18} />
         </button>
       </div>
 
-      <div className="profile-grid">
-
-        {/* LEFT COLUMN: Identity Card */}
-        <div className="dashboard-card" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{
-            width: '100px', height: '100px', borderRadius: '50%', background: 'var(--primary)', color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 'bold',
-            margin: '0 auto 16px'
-          }}>
+      <div className="profile-header-card">
+        <div className="profile-avatar-wrapper">
+          <div className="profile-avatar">
             {user.name ? user.name.charAt(0).toUpperCase() : <FiUser />}
           </div>
-          <h2 style={{ margin: '0 0 8px' }}>{user.name}</h2>
-          <p style={{ color: 'var(--text-muted)', margin: 0 }}>{user.email}</p>
-
-          <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
-              <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>Role</strong>
-              {user.role?.replace('ROLE_', '')}
-            </div>
-
-            {/* Premium Status */}
-            <div style={{ padding: '12px', background: user.isPremium ? 'rgba(234, 179, 8, 0.1)' : 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', border: user.isPremium ? '1px solid rgba(234, 179, 8, 0.3)' : '1px solid rgba(59, 130, 246, 0.1)' }}>
-              <strong style={{ display: 'block', fontSize: '0.8rem', color: user.isPremium ? '#ca8a04' : 'var(--primary)', textTransform: 'uppercase' }}>Subscription</strong>
-              <div style={{ marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {user.isPremium ? (
-                  <span style={{ color: '#ca8a04', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                    <FiStar /> Wellnest Premium
-                  </span>
-                ) : (
-                  <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Standard Plan</span>
-                )}
-                
-                <button
-                  onClick={handleTogglePremium}
-                  className="ghost-btn"
-                  style={{ 
-                    fontSize: '11px', 
-                    width: '100%', 
-                    padding: '8px', 
-                    borderRadius: '12px',
-                    border: '1px solid ' + (user.isPremium ? '#ca8a04' : 'var(--primary)'), 
-                    background: user.isPremium ? 'rgba(202, 138, 4, 0.05)' : 'transparent',
-                    color: user.isPremium ? '#ca8a04' : 'var(--primary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    fontWeight: '700',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {user.isPremium ? <><FiX /> Cancel Subscription</> : <><FiStar /> Unlock Wellnest Premium</>}
-                </button>
-              </div>
-            </div>
-
-            {/* Notification Permission Status */}
-            <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
-              <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>Push Notifications</strong>
-              <div style={{ marginTop: '5px' }}>
-                {permissionStatus === 'granted' ? (
-                  <span style={{ color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '14px' }}>
-                    Enabled <FiCheck />
-                  </span>
-                ) : (
-                  <button
-                    onClick={requestPermission}
-                    className="ghost-btn"
-                    style={{ 
-                      fontSize: '11px', 
-                      width: '100%', 
-                      padding: '6px', 
-                      border: '1px solid var(--primary)', 
-                      color: 'var(--primary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <FiBell /> Enable Notifications
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Verification Status */}
-            {user.role === 'ROLE_USER' && (
-              <div style={{ padding: '12px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
-                <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase' }}>Verification</strong>
-                <div style={{ marginTop: '5px' }}>
-                  {user.isVerified ? (
-                    <span style={{ color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '14px' }}>Verified <FiCheck /></span>
-                  ) : user.verificationRequested ? (
-                    <span style={{ color: '#ea580c', fontWeight: 'bold', fontSize: '14px' }}>Pending Approval</span>
-                  ) : (
-                    <button
-                      onClick={handleRequestVerification}
-                      className="ghost-btn"
-                      style={{ fontSize: '11px', width: '100%', padding: '6px', border: '1px solid var(--primary)', color: 'var(--primary)' }}
-                    >
-                      Request Verification
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button className="secondary-btn" onClick={handleLogout} style={{ marginTop: 'auto', width: '100%', borderColor: '#ef4444', color: '#ef4444' }}>
-            <FiLogOut style={{ marginRight: '8px' }} />
-            Logout
-          </button>
         </div>
-
-        {/* RIGHT COLUMN: Editable Details */}
-        <div className="dashboard-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <h3 style={{ margin: 0 }}>Personal Details</h3>
+        
+        <div className="profile-identity">
+          <h1>{user.name || "User"}</h1>
+          <p>{user.email}</p>
+          
+          <div className="profile-action-ribbon">
             {!isEditing ? (
-              <button className="ghost-btn" onClick={() => setIsEditing(true)}>
-                <FiEdit2 style={{ marginRight: '6px' }} /> Edit
+              <button className="profile-pill-btn ghost" onClick={() => setIsEditing(true)}>
+                <FiEdit2 size={14} /> Edit Profile
               </button>
             ) : (
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="ghost-btn" onClick={handleCancel} style={{ color: 'var(--text-muted)' }}>
+              <>
+                <button className="profile-pill-btn ghost" onClick={handleCancel}>
                   Cancel
                 </button>
-                <button className="primary-btn" onClick={handleSave} disabled={saveLoading}>
-                  {saveLoading ? 'Saving...' : <><FiSave style={{ marginRight: '6px' }} /> Save</>}
+                <button className="profile-pill-btn primary" onClick={handleSave} disabled={saveLoading}>
+                  {saveLoading ? 'Saving...' : <><FiSave size={14} /> Save</>}
                 </button>
-              </div>
+              </>
             )}
-          </div>
 
-          <div className="profile-form-grid" style={{ display: 'grid', gap: '20px' }}>
+            <button 
+              className={`profile-pill-btn ${user.isPremium ? 'premium' : 'ghost'}`} 
+              onClick={handleTogglePremium}
+            >
+              {user.isPremium ? <><FiStar size={14} /> Premium Active</> : <><FiStar size={14} /> Upgrade to VIP</>}
+            </button>
 
-            {/* Phone */}
-            <div className="input-group">
-              <label className="input-label"><FiPhone /> Phone</label>
-              {isEditing ? (
-                <input
-                  type="text" name="phone" value={formData.phone || ''} onChange={handleChange}
-                  className="auth-input" placeholder="+1 234..."
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
-                />
-              ) : (
-                <div className="read-only-field">{user.phone || 'Not set'}</div>
-              )}
-            </div>
-
-            {/* Gender */}
-            <div className="input-group">
-              <label className="input-label"><FiUser /> Gender</label>
-              {isEditing ? (
-                <select
-                  name="gender" value={formData.gender || ''} onChange={handleChange}
-                  className="auth-input"
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
-                >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              ) : (
-                <div className="read-only-field">{user.gender || 'Not set'}</div>
-              )}
-            </div>
-
-            <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid var(--card-border)' }} />
-            <h4 style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', textTransform: 'uppercase' }}>Physical Metrics</h4>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
-              {/* Age */}
-              <div className="input-group">
-                <label className="input-label">Age</label>
-                {isEditing ? (
-                  <input
-                    type="number" name="age" value={formData.age || ''} onChange={handleChange}
-                    className="auth-input"
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
-                  />
-                ) : (
-                  <div className="read-only-field">{user.age ?? '—'} <span className="unit">yrs</span></div>
-                )}
-              </div>
-
-              {/* Height */}
-              <div className="input-group">
-                <label className="input-label">Height</label>
-                {isEditing ? (
-                  <input
-                    type="number" name="heightCm" value={formData.heightCm || ''} onChange={handleChange}
-                    className="auth-input"
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
-                  />
-                ) : (
-                  <div className="read-only-field">{user.heightCm ?? '—'} <span className="unit">cm</span></div>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
-              {/* Weight */}
-              <div className="input-group">
-                <label className="input-label">Weight</label>
-                {isEditing ? (
-                  <input
-                    type="number" name="weightKg" value={formData.weightKg || ''} onChange={handleChange}
-                    className="auth-input"
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
-                  />
-                ) : (
-                  <div className="read-only-field">{user.weightKg ?? '—'} <span className="unit">kg</span></div>
-                )}
-              </div>
-
-              {/* Fitness Goal */}
-              <div className="input-group">
-                <label className="input-label"><FiTarget /> Goal</label>
-                {isEditing ? (
-                  <select
-                    name="fitnessGoal" value={formData.fitnessGoal || ''} onChange={handleChange}
-                    className="auth-input"
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
-                  >
-                    <option value="">Select Goal</option>
-                    <option value="WEIGHT_LOSS">Weight Loss</option>
-                    <option value="MUSCLE_GAIN">Muscle Gain</option>
-                    <option value="FITNESS">General Fitness</option>
-                    <option value="WORKOUT_FREQUENCY">Workout Consistency</option>
-                  </select>
-                ) : (
-                  <div className="read-only-field">{user.fitnessGoal?.replace('_', ' ') || 'Not set'}</div>
-                )}
-              </div>
-            </div>
-
+            {!user.isPremium && (
+              <button 
+                className="profile-pill-btn ghost" 
+                onClick={() => navigate('/premium')}
+                title="View Premium Features"
+              >
+                <FiStar size={14} /> VIP Features
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Trainer Verification Section */}
-      {user.role === 'ROLE_TRAINER' && (
-        <div style={{ maxWidth: '1200px', marginTop: '24px' }}>
-          <div style={{ marginBottom: '12px' }}>
-            <h3 style={{ margin: '0 0 4px', color: 'var(--text-main)' }}>🛡️ Trainer Verification</h3>
-            <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>Upload your certifications to get a verified badge on your profile.</p>
-          </div>
-          <VerificationUpload />
+      <h2 className="profile-section-title">Health Biometrics</h2>
+      <div className={`profile-card ${isEditing ? 'edit-mode' : ''}`}>
+        <div className="profile-card-header">
+          <h3><FiActivity /> Physical Details</h3>
         </div>
+        
+        {isEditing ? (
+          <div className="profile-form-grid">
+            <div>
+              <label style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>Age (Years)</label>
+              <input type="number" name="age" value={formData.age || ''} onChange={handleChange} className="profile-input-modern" placeholder="Age" />
+            </div>
+            <div>
+              <label style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>Height (cm)</label>
+              <input type="number" name="heightCm" value={formData.heightCm || ''} onChange={handleChange} className="profile-input-modern" placeholder="175" />
+            </div>
+            <div>
+              <label style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>Weight (kg)</label>
+              <input type="number" name="weightKg" value={formData.weightKg || ''} onChange={handleChange} className="profile-input-modern" placeholder="70.5" />
+            </div>
+            <div>
+              <label style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>Fitness Goal</label>
+              <select name="fitnessGoal" value={formData.fitnessGoal || ''} onChange={handleChange} className="profile-input-modern">
+                <option value="">Select Goal</option>
+                <option value="WEIGHT_LOSS">Weight Loss</option>
+                <option value="MUSCLE_GAIN">Muscle Gain</option>
+                <option value="FITNESS">General Fitness</option>
+                <option value="WORKOUT_FREQUENCY">Workout Consistency</option>
+              </select>
+            </div>
+          </div>
+        ) : (
+          <div className="profile-grid-metrics">
+            <div className="metric-item interactive">
+              <FiCalendar className="metric-icon" />
+              <div className="metric-label">Age</div>
+              <div className="metric-value">{user.age || '—'}<span className="metric-unit">yrs</span></div>
+            </div>
+            <div className="metric-item interactive">
+              <span className="metric-icon" style={{ display: 'inline-block', transform: 'rotate(90deg)', fontSize: '1.4rem' }}>📏</span>
+              <div className="metric-label">Height</div>
+              <div className="metric-value">{user.heightCm || '—'}<span className="metric-unit">cm</span></div>
+            </div>
+            <div className="metric-item interactive">
+              <span className="metric-icon" style={{ fontSize: '1.4rem' }}>kg</span>
+              <div className="metric-label">Weight</div>
+              <div className="metric-value">{user.weightKg || '—'}<span className="metric-unit">kg</span></div>
+            </div>
+            <div className="metric-item interactive">
+              <FiTarget className="metric-icon" />
+              <div className="metric-label">Goal</div>
+              <div className="metric-value" style={{ fontSize: '0.9rem', lineHeight: '1.2rem', marginTop: '4px' }}>
+                {user.fitnessGoal?.replace('_', ' ') || 'Not Set'}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <h2 className="profile-section-title">Account Settings</h2>
+      <div className="profile-card" style={{ padding: '0 24px' }}>
+        <div className="profile-list">
+          
+          {/* Phone Field */}
+          <div className="profile-list-item">
+            <div className="item-left">
+              <div className="item-icon"><FiPhone /></div>
+              <div className="item-details">
+                <h4>Phone Number</h4>
+                {isEditing ? (
+                  <input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="profile-input-modern" placeholder="+1 234..." style={{ marginTop: '8px', padding: '8px 12px' }} />
+                ) : (
+                  <p>{user.phone || 'Tap Edit to add phone'}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Gender Field */}
+          <div className="profile-list-item">
+            <div className="item-left">
+              <div className="item-icon"><FiUser /></div>
+              <div className="item-details">
+                <h4>Gender</h4>
+                {isEditing ? (
+                  <select name="gender" value={formData.gender || ''} onChange={handleChange} className="profile-input-modern" style={{ marginTop: '8px', padding: '8px 12px' }}>
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                ) : (
+                  <p>{user.gender || 'Not specified'}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Notification System Toggle */}
+          <div className="profile-list-item">
+            <div className="item-left">
+              <div className="item-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><FiBell /></div>
+              <div className="item-details">
+                <h4>Push Notifications</h4>
+                <p>Allow Smart Reminders</p>
+              </div>
+            </div>
+            <div className="item-right">
+              {permissionStatus === 'granted' ? (
+                <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>On <FiCheck /></span>
+              ) : (
+                <button onClick={requestPermission} className="profile-pill-btn ghost" style={{ padding: '6px 12px', fontSize: '11px' }}>Enable</button>
+              )}
+            </div>
+          </div>
+
+          {/* Account Role */}
+          <div className="profile-list-item">
+            <div className="item-left">
+              <div className="item-icon" style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}><FiShield /></div>
+              <div className="item-details">
+                <h4>Account Role</h4>
+                <p>System Privileges</p>
+              </div>
+            </div>
+            <div className="item-right">
+              {user.role?.replace('ROLE_', '')}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {user.role === 'ROLE_TRAINER' && (
+        <>
+          <h2 className="profile-section-title">Trainer Portal</h2>
+          <div className="profile-card">
+            <div className="profile-card-header">
+              <h3><FiShield /> Identity Verification</h3>
+              {user.isVerified ? (
+                <span style={{ color: '#10b981', fontWeight: 600, fontSize: '13px', border: '1px solid #10b981', padding: '4px 8px', borderRadius: '6px' }}>Verified</span>
+              ) : user.verificationRequested ? (
+                <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '13px', border: '1px solid #f59e0b', padding: '4px 8px', borderRadius: '6px' }}>Pending</span>
+              ) : (
+                <button onClick={handleRequestVerification} className="profile-pill-btn primary" style={{ padding: '6px 12px', fontSize: '11px' }}>Request Badge</button>
+              )}
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '20px' }}>Upload your certifications to receive the verified trainer badge on your profile. This increases trust with potential clients.</p>
+            <VerificationUpload />
+          </div>
+        </>
       )}
 
-      <style>{`
-            .profile-grid {
-                display: grid;
-                gap: 24px;
-                max-width: 1200px; /* Wider */
-                grid-template-columns: 1fr;
-            }
-            @media (min-width: 768px) {
-                .profile-grid {
-                    grid-template-columns: 320px 1fr;
-                    align-items: stretch; /* Ensure equal height */
-                }
-            }
-            .input-label {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                font-weight: 600;
-                margin-bottom: 8px; /* Increased from 6px */
-                color: var(--text-muted);
-                font-size: 0.85rem;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            .read-only-field {
-                font-size: 1.2rem; /* Increased from 1.1rem */
-                font-weight: 500;
-                padding: 4px 0;
-                color: var(--text-main);
-                margin-top: 4px; /* Added margin */
-            }
-            .unit {
-                font-size: 0.9rem;
-                color: var(--text-muted);
-                font-weight: normal;
-                margin-left: 4px;
-            }
-            .input-group {
-                display: flex;
-                flex-direction: column;
-            }
-        `}</style>
+      {/* Dangerous Action */}
+      <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'center' }}>
+        <button className="profile-pill-btn danger" onClick={handleLogout} style={{ padding: '12px 32px' }}>
+          <FiLogOut /> Sign Out Successfully
+        </button>
+      </div>
+
     </div>
   );
 };
