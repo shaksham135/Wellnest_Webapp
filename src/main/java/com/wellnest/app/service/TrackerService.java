@@ -103,15 +103,15 @@ public class TrackerService {
         Assert.notNull(userId, "userId is required");
         Assert.notNull(dto, "meal dto is required");
 
-        // Enforce Limit: Max 1 entry per Meal Type per day
+        // Enforce Limit: Max 1 entry per Meal Type per day (Exempt: SNACK)
         Instant startOfDay = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant();
         boolean alreadyLoggedType = mealRepository.findByUserIdOrderByLoggedAtDesc(userId).stream()
                 .filter(m -> m.getLoggedAt().isAfter(startOfDay))
                 .anyMatch(m -> m.getMealType().equalsIgnoreCase(dto.getMealType()));
 
-        if (alreadyLoggedType) {
+        if (alreadyLoggedType && !dto.getMealType().equalsIgnoreCase("SNACK")) {
             throw new IllegalArgumentException(
-                    "Daily Limit Reached: You have already logged " + dto.getMealType() + " today.");
+                    "Daily Limit Reached: You have already logged " + dto.getMealType() + " today. Use 'Snack' for any extra small meals!");
         }
 
         if (dto.getCalories() != null && dto.getCalories() > 3000) {
