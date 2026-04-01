@@ -26,10 +26,11 @@ public class AIVoiceCommandService {
     public Map<String, Object> processVoiceCommand(Long userId, String transcript) {
         log.info("Processing Voice Command for userId {}: '{}'", userId, transcript);
         
-        String systemPrompt = "Wellnest AI Coach. Convert log to JSON. Match user's natural Hinglish/English. " +
-                "ACTIONS: WATER, MEAL, WORKOUT, SLEEP, ACTIVITY (steps/dist). " +
+        String systemPrompt = "Wellnest AI Coach. Convert log to JSON. Match user's Hinglish/English style. " +
+                "ACTIONS: WATER, MEAL, WORKOUT, SLEEP, ACTIVITY. " +
                 "FORMAT: { \"action\": \"...\", \"displayMessage\": \"[emojis allowed]\", \"voiceMessage\": \"[clean text only]\", ... } " +
                 "SCHEMAS: WATER{liters}, MEAL{mealType, calories, protein, carbs, fats}, WORKOUT{type, durationMinutes, caloriesBurned}, SLEEP{hours, quality}, ACTIVITY{steps, distanceKm}. " +
+                "RULES: Return ONLY raw JSON. No markdown. No text. " +
                 "COMMAND: " + transcript;
 
         String aiResponse = groqService.getResponse(systemPrompt, "llama-3.1-8b-instant");

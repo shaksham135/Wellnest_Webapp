@@ -40,7 +40,8 @@ public class VoiceCommandController {
         if (transcript == null || transcript.contains("Unable to transcribe") || transcript.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of(
                 "status", "ERROR", 
-                "message", "Voice Scan Sync failed. Please try again."
+                "displayMessage", "I couldn't hear you clearly. Please try again! 🎙️",
+                "voiceMessage", "I couldn't hear you clearly. Please try again."
             ));
         }
 
