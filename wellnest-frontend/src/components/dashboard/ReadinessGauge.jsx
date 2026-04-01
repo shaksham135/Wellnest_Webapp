@@ -65,10 +65,10 @@ const ReadinessGauge = ({ score }) => {
 
             <div style={{ marginTop: '20px', position: 'relative', zIndex: 2 }}>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--text-main)' }}>
-                    Ready to Go
+                    Physical Readiness
                 </h3>
                 <p style={{ margin: '8px 0 0', fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>
-                    {score > 80 ? 'Peak Physical State' : 'Balanced Recovery'}
+                    {score > 80 ? 'Peak Physical State' : 'Balanced Recovery'} • Based on sleep & rest data
                 </p>
             </div>
 

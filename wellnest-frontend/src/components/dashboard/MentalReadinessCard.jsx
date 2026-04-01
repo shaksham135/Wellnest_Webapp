@@ -19,12 +19,12 @@ const MentalReadinessCard = () => {
         );
     }
 
-    if (!latestMentalState || !latestMentalState.focusScore) {
+    if (!latestMentalState || !latestMentalState.state || !latestMentalState.state.focusScore) {
         return (
             <div className="stats-box cognitive-card empty" style={{ minHeight: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '20px' }}>
-                <div className="card-header" style={{ position: 'absolute', top: '24px', left: '24px' }}>
-                    <FiCpu className="icon" />
-                    <h3>Mental Readiness</h3>
+                <div className="card-header" style={{ padding: '24px', width: '100%', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <FiCpu className="icon" style={{ fontSize: '20px', color: 'var(--primary)' }} />
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Mental Readiness</h3>
                 </div>
                 
                 <VoiceScanButton onScanComplete={submitVoiceScan} mode="scan" />
@@ -71,35 +71,51 @@ const MentalReadinessCard = () => {
                 </div>
             </div>
 
-            <div className="metrics-grid">
-                <div className="metric-item">
-                    <div className="metric-label">
-                        <FiZap /> Focus
+            <div className="metrics-grid" style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', 
+                gap: '16px',
+                marginTop: '24px'
+            }}>
+                {[
+                    { label: 'Focus', icon: <FiZap />, val: state.focusScore, color: 'var(--primary)', class: 'focus' },
+                    { label: 'Stress', icon: <FiActivity />, val: state.stressScore, color: '#f43f5e', class: 'stress' },
+                    { label: 'Mood', icon: <FiTrendingUp />, val: state.moodScore, color: '#a78bfa', class: 'mood' }
+                ].map((m, i) => (
+                    <div key={i} className="metric-glass-item" style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        padding: '12px',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
+                            {m.icon} {m.label}
+                        </div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-main)' }}>
+                            {m.val}/10
+                        </div>
+                        <div className="metric-bar" style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div className={`bar-fill ${m.class}`} style={{ width: `${m.val * 10}%`, height: '100%', background: m.color, borderRadius: '2px' }}></div>
+                        </div>
                     </div>
-                    <div className="metric-bar">
-                        <div className="bar-fill focus" style={{ width: `${state.focusScore * 10}%` }}></div>
-                    </div>
-                </div>
-                <div className="metric-item">
-                    <div className="metric-label">
-                        <FiActivity /> Stress
-                    </div>
-                    <div className="metric-bar">
-                        <div className="bar-fill stress" style={{ width: `${state.stressScore * 10}%` }}></div>
-                    </div>
-                </div>
-                <div className="metric-item">
-                    <div className="metric-label">
-                        <FiTrendingUp /> Mood
-                    </div>
-                    <div className="metric-bar">
-                        <div className="bar-fill mood" style={{ width: `${state.moodScore * 10}%` }}></div>
-                    </div>
-                </div>
+                ))}
             </div>
 
-            <div className="ai-directive">
-                <strong>AI COMMAND:</strong> {state.note || 'Neural patterns are optimal. Proceed with your high-intensity block.'}
+            <div className="ai-directive" style={{
+                marginTop: '24px',
+                padding: '16px',
+                background: 'rgba(94, 234, 212, 0.05)',
+                borderRadius: '16px',
+                border: '1px solid rgba(94, 234, 212, 0.1)',
+                fontSize: '13px',
+                lineHeight: '1.6',
+                color: 'var(--text-main)'
+            }}>
+                <span style={{ fontWeight: 900, color: 'var(--primary)', marginRight: '8px' }}>AI DIRECTIVE:</span> 
+                {state.note || 'Neural patterns are optimal. Proceed with your high-intensity block.'}
             </div>
 
             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', borderTop: '1px solid var(--card-border)', paddingTop: '16px' }}>

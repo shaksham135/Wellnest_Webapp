@@ -56,7 +56,7 @@ const WellnessGradeCard = ({ score }) => {
                         letterSpacing: '1px',
                         textTransform: 'uppercase'
                     }}>
-                        Wellness Grade
+                        Daily Progress
                     </span>
                     <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>
                         {isPending ? 'Syncing...' : `${score}%`}
@@ -69,7 +69,10 @@ const WellnessGradeCard = ({ score }) => {
                     {isPending ? 'Sync status' : 'Current Standing'}
                 </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {isPending ? '💤 Sync data to unlock' : (score >= 80 ? '🏆 Elite Recovery' : score >= 60 ? '⚡ Balanced state' : '💤 Needs Focus')}
+                    {isPending ? '💤 Sync data to unlock' : (score >= 80 ? '🏆 Goal Master' : score >= 60 ? '⚡ On Track' : '💤 Needs Focus')}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 500 }}>
+                    Tracks your water, steps, & calorie logs
                 </div>
             </div>
         </div>
