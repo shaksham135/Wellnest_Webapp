@@ -87,35 +87,44 @@ public class AssistantService {
         }
 
         if (existing.isPresent()) {
-            String oldContent = existing.get().getContent();
-            boolean isStale = (oldContent.contains("steps") && !oldContent.contains(String.valueOf(currentSteps))) ||
-                             (existing.get().getNotes() != null && !existing.get().getNotes().equals(timeWindow));
+            DailyBriefing b = existing.get();
+            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+            
+            // 🛡️ Token Guard: 30-minute cooldown for the same time window
+            boolean isCooldownActive = b.getCreatedAt() != null && b.getCreatedAt().isAfter(now.minusMinutes(30));
+            
+            // Extract last known steps (regex helper below)
+            int oldSteps = extractSteps(b.getContent());
+            boolean massiveProgress = Math.abs(currentSteps - oldSteps) > 500;
+            
+            // Time window change (Morning -> Noon) always triggers refresh
+            boolean windowChanged = b.getNotes() != null && !b.getNotes().equals(timeWindow);
 
-            if (!isStale) {
-                return existing.get();
-            } else {
-                briefingRepository.delete(existing.get());
+            if (isCooldownActive && !windowChanged && !massiveProgress) {
+                return b;
             }
+            briefingRepository.delete(b);
         }
 
-        // 4. Generate Premium AI Content with Predicted Energy context
+        // 4. Generate Compressed AI Content (Saves ~60% tokens)
         String context = gatherUserContext(user, today);
-        String energyContext = (energy != null) ? 
-            String.format("Current Energy: %d%% Status: %s. Insight: %s.", energy.getCurrentEnergy(), energy.getStatus(), energy.getMessage()) : "";
+        String prompt = String.format("Coach Role. User:%s (%s). Data:%s. Task: 2-sentence motivator. Mention stats. Max 200 chars.", 
+                user.getName(), timeWindow, context);
 
-        String prompt = "You are an elite, high-energy Pro-Athlete Coach for the Wellnest app. " +
-                "It is currently " + timeWindow.replace("_", " ").toLowerCase() + ". " +
-                "Based on the following data for " + user.getName() + " and their predicted energy, generate a 2-sentence " + timeWindow.toLowerCase() + " coaching briefing. " +
-                "Tone: Hyper-motivating. Reference specific stats. " +
-                "Current State: " + context + ". " +
-                "Energy Insight: " + energyContext + ". " +
-                "Limit to 220 characters.";
-
-        String aiMessage = groqService.getResponse(prompt);
+        // Switch to FAST model (8B) to save tokens/cost
+        String aiMessage = groqService.getResponse(prompt, "llama-3.1-8b-instant");
         
         DailyBriefing briefing = new DailyBriefing(user, aiMessage, today);
-        briefing.setNotes(timeWindow); // Store timeWindow in notes to detect period changes
+        briefing.setNotes(timeWindow);
         return briefingRepository.save(briefing);
+    }
+
+    private int extractSteps(String content) {
+        try {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+)").matcher(content);
+            if (m.find()) return Integer.parseInt(m.group(1));
+        } catch (Exception e) {}
+        return 0;
     }
 
     private DailyBriefing getFreeDailyTip(User user, LocalDate date) {

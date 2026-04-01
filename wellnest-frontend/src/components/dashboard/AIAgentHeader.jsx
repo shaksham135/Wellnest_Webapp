@@ -23,11 +23,12 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore }) => {
         try {
             setLoading(true);
             const res = await submitVoiceCommand(audioBlob);
-            setBriefing(res.message);
             
-            // 🎙️ Enable Coach's Voice (TTS)
-            if ('speechSynthesis' in window && res.message) {
-                const utterance = new SpeechSynthesisUtterance(res.message);
+            setBriefing(res.displayMessage);
+            
+            // 🎙️ Enable Coach's Voice (TTS) - Using the clean voiceMessage
+            if ('speechSynthesis' in window && res.voiceMessage) {
+                const utterance = new SpeechSynthesisUtterance(res.voiceMessage);
                 utterance.rate = 1.05; // Natural, energetic pace
                 window.speechSynthesis.speak(utterance);
             }
@@ -36,6 +37,10 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore }) => {
         } catch (err) {
             console.error("AIAgentHeader: Voice Command failed.", err);
             setBriefing(err.message || "I couldn't quite catch that. Try saying 'Log 500ml water'.");
+            
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance("I couldn't quite catch that."));
+            }
         } finally {
             setLoading(false);
         }
