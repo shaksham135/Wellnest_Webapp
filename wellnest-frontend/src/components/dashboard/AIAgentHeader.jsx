@@ -10,7 +10,7 @@ const AIAgentHeader = ({ user, readinessScore }) => {
     const navigate = useNavigate();
     const { energyForecast, submitVoiceScan } = useData();
     const [briefing, setBriefing] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
     useEffect(() => {
@@ -35,17 +35,21 @@ const AIAgentHeader = ({ user, readinessScore }) => {
         let isMounted = true;
         
         const fetchBriefing = async () => {
-            // If we already have a briefing, don't re-fetch on every user prop update
-            if (briefing && !loading) return;
+            // Safety Check: If id is missing, we can't fetch.
+            if (!user?.id) return;
 
-            // Safety: snappier 7-second timeout for premium speed
-            const timeoutPromise = new Promise((resolve) => 
-                setTimeout(() => resolve({ timeout: true }), 7000)
-            );
+            // If we already have a briefing, don't re-fetch unnecessarily
+            if (briefing) return;
 
             try {
                 setLoading(true);
                 const localDate = new Date().toISOString().split('T')[0];
+                
+                // 7-second timeout for premium speed
+                const timeoutPromise = new Promise((resolve) => 
+                    setTimeout(() => resolve({ timeout: true }), 7000)
+                );
+                
                 const res = await Promise.race([getDailyBriefing(localDate), timeoutPromise]);
                 
                 if (!isMounted) return;
@@ -54,6 +58,8 @@ const AIAgentHeader = ({ user, readinessScore }) => {
                     setBriefing("Focus on your goal today! Every small step brings you closer to peak vitality.");
                 } else if (res && res.data && res.data.content) {
                     setBriefing(res.data.content);
+                } else {
+                    setBriefing("Dashboard synchronized. Performance data is mission-ready.");
                 }
             } catch (err) {
                 console.error("AI Header fetch error:", err);
@@ -65,10 +71,10 @@ const AIAgentHeader = ({ user, readinessScore }) => {
             }
         };
 
-        if (user?.id) fetchBriefing();
+        fetchBriefing();
         return () => { isMounted = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id]); // Only re-run if ID changes, not on every user object mutation
+    }, [user?.id, user?.isPremium]); // Added isPremium to re-fetch if they upgrade
 
     const getGreeting = () => {
         if (hour < 12) return "Good morning";
