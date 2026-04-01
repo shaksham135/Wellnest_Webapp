@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { FiMic, FiLoader } from 'react-icons/fi';
+import { FiMic, FiZap, FiLoader } from 'react-icons/fi';
 import './VoiceScanButton.css';
 
-const VoiceScanButton = ({ onScanComplete }) => {
+const VoiceScanButton = ({ onScanComplete, mode = "scan" }) => {
     const [isRecording, setIsRecording] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
     const startScan = async () => {
         try {
-            // 🎙️ Request Permission and Start Media Stream
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
             const mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : '' });
@@ -25,52 +24,67 @@ const VoiceScanButton = ({ onScanComplete }) => {
                 setIsRecording(false);
                 setIsProcessing(true);
                 
-                // Pass the real audio file to the completion handler
                 onScanComplete(audioBlob);
                 
-                // Cleanup
                 stream.getTracks().forEach(track => track.stop());
                 
-                // Simulated "AI Processing" UI delay (actual request happens in parent)
+                // Processing UI delay
                 setTimeout(() => setIsProcessing(false), 2000);
             };
 
             setIsRecording(true);
-            // Request data every 1 second (1000ms) to prevent 0-byte blobs on buggy Mobile Safari versions
             mediaRecorder.start(1000);
 
-            // Record for exactly 10 seconds
+            // Record for 7s (Command) or 10s (Scan)
+            const duration = mode === "command" ? 7000 : 10000;
             setTimeout(() => {
                 if (mediaRecorder.state === "recording") {
                     mediaRecorder.stop();
                 }
-            }, 10000);
+            }, duration);
 
         } catch (err) {
             console.error("Microphone Access Denied:", err);
-            alert("Microphone access is required for your Voice Clarity Scan. Please enable it in settings. 🛡️");
+            alert("Microphone access is required for your AI Assistant. Please enable it in settings. 🎙️");
         }
     };
 
+    const labels = {
+        scan: {
+            idle: "CLARITY SCAN",
+            recording: "ANALYZING TONE...",
+            processing: "SYNCING...",
+            icon: <FiMic />
+        },
+        command: {
+            idle: "AI COMMAND",
+            recording: "LISTENING...",
+            processing: "EXECUTING...",
+            icon: <FiZap style={{ color: 'var(--primary)' }} />
+        }
+    };
+
+    const currentLabels = labels[mode] || labels.scan;
+
     return (
-        <div className={`voice-scan-wrapper ${isRecording ? 'recording' : ''} ${isProcessing ? 'processing' : ''}`}>
+        <div className={`voice-scan-wrapper ${isRecording ? 'recording' : ''} ${isProcessing ? 'processing' : ''} mode-${mode}`}>
             <button 
                 className="voice-scan-btn" 
                 onClick={startScan}
                 disabled={isProcessing}
-                title="Clarity Scan"
+                title={currentLabels.idle}
             >
                 {isProcessing ? (
                     <FiLoader className="spin-slow" />
                 ) : (
-                    <FiMic />
+                    currentLabels.icon
                 )}
             </button>
             
             {isRecording && <div className="neural-ripple" />}
             
             <div className="status-label">
-                {isRecording ? "ANALYZING TONE..." : isProcessing ? "SYNCING..." : "CLARITY SCAN"}
+                {isRecording ? currentLabels.recording : isProcessing ? currentLabels.processing : currentLabels.idle}
             </div>
         </div>
     );

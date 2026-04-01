@@ -6,9 +6,9 @@ import VoiceScanButton from './VoiceScanButton';
 import { useData } from '../../context/DataContext';
 import { useNavigate } from 'react-router-dom';
 
-const AIAgentHeader = ({ user, readinessScore }) => {
+const AIAgentHeader = ({ user, activities, sleep, readinessScore }) => {
     const navigate = useNavigate();
-    const { energyForecast, submitVoiceScan } = useData();
+    const { energyForecast, submitVoiceCommand } = useData();
     const [briefing, setBriefing] = useState(null);
     const [loading, setLoading] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -21,10 +21,23 @@ const AIAgentHeader = ({ user, readinessScore }) => {
     
     const handleVoiceScanComplete = async (audioBlob) => {
         try {
-            await submitVoiceScan(audioBlob);
-            console.log("AIAgentHeader: Voice Clarity Scan Synchronized. 🛡️🧬");
+            setLoading(true);
+            const res = await submitVoiceCommand(audioBlob);
+            setBriefing(res.message);
+            
+            // 🎙️ Enable Coach's Voice (TTS)
+            if ('speechSynthesis' in window && res.message) {
+                const utterance = new SpeechSynthesisUtterance(res.message);
+                utterance.rate = 1.05; // Natural, energetic pace
+                window.speechSynthesis.speak(utterance);
+            }
+
+            console.log("AIAgentHeader: AI Command Executed. ⚡", res);
         } catch (err) {
-            console.error("AIAgentHeader: Voice Scan Sync failed.", err);
+            console.error("AIAgentHeader: Voice Command failed.", err);
+            setBriefing(err.message || "I couldn't quite catch that. Try saying 'Log 500ml water'.");
+        } finally {
+            setLoading(false);
         }
     };
     
@@ -117,15 +130,36 @@ const AIAgentHeader = ({ user, readinessScore }) => {
             width: isMobile ? '100%' : 'auto',
             order: 2
         }}>
-            <VoiceScanButton onScanComplete={handleVoiceScanComplete} />
+            <VoiceScanButton onScanComplete={handleVoiceScanComplete} mode="command" />
 
             {user?.isPremium && (
                 <CognitiveAura reserve={energyForecast?.cognitiveReserve || 85} />
             )}
+
+            <div 
+                onClick={() => { if (!user?.isPremium) navigate('/premium'); }}
+                style={{
+                    padding: '6px 14px',
+                    background: user?.isPremium ? 'rgba(94, 234, 212, 0.1)' : 'rgba(251, 191, 36, 0.1)',
+                    border: user?.isPremium ? '1px solid var(--primary-border)' : '1px solid #fbbf24',
+                    borderRadius: '14px',
+                    fontSize: '10px',
+                    fontWeight: 900,
+                    color: user?.isPremium ? 'var(--primary)' : '#fbbf24',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1.2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: user?.isPremium ? 'default' : 'pointer',
+                    whiteSpace: 'nowrap'
+                }}>
+                {user?.isPremium ? <><FiZap /> AI ACTIVE</> : <><FiZap /> GO PREMIUM <FiArrowRight /></>}
+            </div>
         </div>
 
             <div style={{ 
-                flex: isMobile ? '0 1 auto' : '1 1 250px', 
+                flex: isMobile ? '0 1 auto' : '1 1 auto', 
                 zIndex: 2, 
                 order: 1,
                 textAlign: isMobile ? 'center' : 'left'
@@ -163,27 +197,6 @@ const AIAgentHeader = ({ user, readinessScore }) => {
                         ) : (briefing || "Ready for your daily performance check-in? Sync your data to begin. 🚀")
                     )}
                 </p>
-            </div>
-            
-            <div 
-                onClick={() => { if (!user?.isPremium) navigate('/premium'); }}
-                style={{
-                padding: '6px 14px',
-                background: user?.isPremium ? 'rgba(94, 234, 212, 0.1)' : 'rgba(251, 191, 36, 0.1)',
-                border: user?.isPremium ? '1px solid var(--primary-border)' : '1px solid #fbbf24',
-                borderRadius: '14px',
-                fontSize: '11px',
-                fontWeight: 900,
-                color: user?.isPremium ? 'var(--primary)' : '#fbbf24',
-                textTransform: 'uppercase',
-                letterSpacing: '1.2px',
-                boxShadow: user?.isPremium ? '0 4px 12px rgba(94, 234, 212, 0.1)' : 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: user?.isPremium ? 'default' : 'pointer'
-            }}>
-                {user?.isPremium ? <><FiZap /> AI Active</> : <><FiZap /> Get Premium <FiArrowRight /></>}
             </div>
         </div>
     );

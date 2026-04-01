@@ -185,6 +185,29 @@ export const DataProvider = ({ children }) => {
         }
     }, [saveToCache, refreshMentalState]);
 
+    const submitVoiceCommand = useCallback(async (audioBlob) => {
+        try {
+            setIsSyncing(true);
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'command.webm');
+
+            const res = await apiClient.post('/ai/voice-command', formData);
+            
+            if (res.data && res.data.status === 'SUCCESS') {
+                // Refresh all trackers to show the newly logged data
+                await refreshTrackers();
+                return res.data;
+            } else {
+                throw new Error(res.data?.message || "AI Command Sync failed");
+            }
+        } catch (error) {
+            console.error("DataContext: Voice Command failed", error);
+            throw error;
+        } finally {
+            setIsSyncing(false);
+        }
+    }, [refreshTrackers]);
+
     const clearAllData = useCallback(() => {
         setUserData(null);
         setWorkouts([]);
@@ -220,6 +243,7 @@ export const DataProvider = ({ children }) => {
         refreshEnergyForecast,
         
         submitVoiceScan,
+        submitVoiceCommand,
         latestMentalState,
         isMentalSyncing,
         refreshMentalState,
@@ -229,7 +253,7 @@ export const DataProvider = ({ children }) => {
         userData, isUserDataLoaded, refreshUserData,
         workouts, meals, water, sleep, activities, goalData, dietPlan, isTrackersLoaded, refreshTrackers, isSyncing,
         energyForecast, refreshEnergyForecast,
-        submitVoiceScan, latestMentalState, isMentalSyncing, refreshMentalState,
+        submitVoiceScan, submitVoiceCommand, latestMentalState, isMentalSyncing, refreshMentalState,
         clearAllData
     ]);
 

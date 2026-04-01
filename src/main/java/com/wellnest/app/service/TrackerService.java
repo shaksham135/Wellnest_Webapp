@@ -63,6 +63,13 @@ public class TrackerService {
             throw new IllegalArgumentException("Daily Limit Reached: You can only log 2 workouts per day.");
         }
 
+        if (dto.getDurationMinutes() != null && dto.getDurationMinutes() > 300) {
+            throw new IllegalArgumentException("Invalid Duration: Max workout length is 5 hours (300 min).");
+        }
+        if (dto.getCaloriesBurned() != null && dto.getCaloriesBurned() > 5000) {
+            throw new IllegalArgumentException("Invalid Calories: Max calories per workout is 5000 kcal.");
+        }
+
         Workout workout = new Workout();
         workout.setUserId(userId);
         workout.setType(dto.getType());
@@ -105,6 +112,10 @@ public class TrackerService {
         if (alreadyLoggedType) {
             throw new IllegalArgumentException(
                     "Daily Limit Reached: You have already logged " + dto.getMealType() + " today.");
+        }
+
+        if (dto.getCalories() != null && dto.getCalories() > 3000) {
+            throw new IllegalArgumentException("Invalid Calories: Max calories per meal is 3000 kcal.");
         }
 
         Meal meal = new Meal();
@@ -165,6 +176,10 @@ public class TrackerService {
             }
         }
 
+        if (dto.getLiters() > 2.0) {
+            throw new IllegalArgumentException("Invalid Quantity: You cannot log more than 2L at once.");
+        }
+
         WaterIntake water = new WaterIntake();
         water.setUserId(userId);
         water.setLiters(dto.getLiters());
@@ -203,6 +218,10 @@ public class TrackerService {
 
         if (alreadyLoggedSleep) {
             throw new IllegalArgumentException("Daily Limit Reached: You can only log sleep once per day.");
+        }
+
+        if (dto.getHours() != null && (dto.getHours() > 20.0 || dto.getHours() < 0.5)) {
+            throw new IllegalArgumentException("Invalid Hours: Please log duration between 0.5 and 20 hours.");
         }
 
         com.wellnest.app.model.User user = new com.wellnest.app.model.User();
