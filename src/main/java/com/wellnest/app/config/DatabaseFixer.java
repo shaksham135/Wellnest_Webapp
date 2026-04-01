@@ -118,6 +118,38 @@ public class DatabaseFixer implements CommandLineRunner {
                 }
             }
 
+            // --- ADMINISTRATION: Add is_suspended column to users ---
+            Integer suspendedCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'is_suspended' AND table_schema = DATABASE()",
+                Integer.class);
+            if (suspendedCount != null && suspendedCount == 0) {
+                try {
+                    jdbcTemplate.execute("ALTER TABLE users ADD COLUMN is_suspended BOOLEAN NOT NULL DEFAULT FALSE");
+                    System.out.println("Added is_suspended column to users table");
+                } catch (Exception e) {
+                    System.out.println("Failed to add is_suspended: " + e.getMessage());
+                }
+            }
+
+            // --- SYSTEM SETTINGS: Ensure table exists ---
+            Integer settingsTableCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.tables WHERE table_name = 'system_settings' AND table_schema = DATABASE()",
+                Integer.class);
+            if (settingsTableCount != null && settingsTableCount == 0) {
+                try {
+                    System.out.println("Missing system_settings table. Initializing...");
+                    jdbcTemplate.execute("CREATE TABLE system_settings (" +
+                        "id BIGINT PRIMARY KEY," +
+                        "ai_enabled BOOLEAN NOT NULL DEFAULT TRUE," +
+                        "total_tokens_used BIGINT NOT NULL DEFAULT 0" +
+                        ") ENGINE=InnoDB;");
+                    jdbcTemplate.execute("INSERT IGNORE INTO system_settings (id, ai_enabled, total_tokens_used) VALUES (1, true, 0)");
+                    System.out.println("System Settings table created and seeded.");
+                } catch (Exception e) {
+                    System.out.println("Failed to create system_settings: " + e.getMessage());
+                }
+            }
+
         } catch (Exception e) {
             // Ignore errors (e.g., if table doesn't exist yet, though ddl-auto runs before
             // this)
