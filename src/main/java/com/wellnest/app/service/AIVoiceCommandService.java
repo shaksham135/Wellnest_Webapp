@@ -26,11 +26,13 @@ public class AIVoiceCommandService {
     public Map<String, Object> processVoiceCommand(Long userId, String transcript) {
         log.info("Processing Voice Command for userId {}: '{}'", userId, transcript);
         
-        String systemPrompt = "Wellnest AI Coach. Convert log to JSON. Match user's Hinglish/English style. " +
+        String systemPrompt = "Wellnest AI Coach. Convert log to JSON. Match user's natural Hinglish/English conversational style. " +
+                "DO NOT repeat the user. DO NOT use labels like 'Pro-tip', 'Tip', or 'Coach'. " +
+                "RULES: Be conversational and high-energy. Weave advice naturally into the reply (e.g., 'Done! Peete raho, energy bani rahegi'). " +
                 "ACTIONS: WATER, MEAL, WORKOUT, SLEEP, ACTIVITY. " +
-                "FORMAT: { \"action\": \"...\", \"displayMessage\": \"[emojis allowed]\", \"voiceMessage\": \"[clean text only]\", ... } " +
+                "FORMAT: { \"action\": \"...\", \"displayMessage\": \"[Conversational reply + Emojis]\", \"voiceMessage\": \"[Conversational reply, Clean text only]\", ... } " +
                 "SCHEMAS: WATER{liters}, MEAL{mealType, calories, protein, carbs, fats}, WORKOUT{type, durationMinutes, caloriesBurned}, SLEEP{hours, quality}, ACTIVITY{steps, distanceKm}. " +
-                "RULES: Return ONLY raw JSON. No markdown. No text. " +
+                "Return ONLY raw JSON. " +
                 "COMMAND: " + transcript;
 
         String aiResponse = groqService.getResponse(systemPrompt, "llama-3.1-8b-instant");
