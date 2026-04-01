@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -21,6 +22,7 @@ public class AssistantService {
     private final DailyActivityRepository dailyActivityRepository;
     private final SleepLogRepository sleepLogRepository;
     private final WaterIntakeRepository waterIntakeRepository;
+    private final WorkoutRepository workoutRepository;
     private final EnergyService energyService;
 
     public AssistantService(DailyBriefingRepository briefingRepository,
@@ -29,6 +31,7 @@ public class AssistantService {
                             DailyActivityRepository dailyActivityRepository,
                             SleepLogRepository sleepLogRepository,
                             WaterIntakeRepository waterIntakeRepository,
+                            WorkoutRepository workoutRepository,
                             EnergyService energyService) {
         this.briefingRepository = briefingRepository;
         this.groqService = groqService;
@@ -36,6 +39,7 @@ public class AssistantService {
         this.dailyActivityRepository = dailyActivityRepository;
         this.sleepLogRepository = sleepLogRepository;
         this.waterIntakeRepository = waterIntakeRepository;
+        this.workoutRepository = workoutRepository;
         this.energyService = energyService;
     }
 
@@ -53,13 +57,13 @@ public class AssistantService {
             today = LocalDate.now();
         }
 
-        // 1. Determine Time Window (Early Morning, Peak, Midday, Evening, Late Night)
+        // 1. Determine Time Window (Morning, Noon, Evening, Night)
         int hour = java.time.LocalDateTime.now().getHour();
-        String timeWindow = "MIDDAY";
-        if (hour >= 23 || hour < 5) timeWindow = "LATE_NIGHT";
-        else if (hour < 9) timeWindow = "EARLY_MORNING";
-        else if (hour < 12) timeWindow = "PEAK_PERFORMANCE";
-        else if (hour >= 17) timeWindow = "EVENING";
+        String timeWindow = "NOON";
+        if (hour >= 22 || hour < 5) timeWindow = "NIGHT";
+        else if (hour < 12) timeWindow = "MORNING";
+        else if (hour < 17) timeWindow = "NOON";
+        else timeWindow = "EVENING";
 
         // 2. MONETIZATION LOGIC: Free Users get a static daily tip
         if (!user.isPremium()) {
@@ -116,45 +120,53 @@ public class AssistantService {
 
     private DailyBriefing getFreeDailyTip(User user, LocalDate date) {
         String[] tips = {
-            "Hydration is key! Aim to drink 3L of water today to keep your energy high.",
-            "Consistency beats intensity. Even a 10-minute walk counts toward your fitness journey.",
-            "Prioritize protein! Your muscles need fuel to recover and grow stronger.",
-            "Sleep is your superpower. Aim for 7-8 hours of quality rest tonight.",
-            "Stretching for 5 minutes after a workout reduces soreness and improves flexibility.",
-            "Start your day with a glass of water to kickstart your metabolism.",
-            "Active recovery is real! Use today for a light walk or yoga session."
+            "💡 Hydration is your superpower! One glass of water now can prevent fatigue later. 💧",
+            "💡 Consistency beats intensity. Every step you take today counts toward your 30-day goal! 🚶‍♂️",
+            "💡 Fuel your peak: A protein-rich snack can help muscle recovery and curb afternoon sugar cravings. 🥦",
+            "💡 Sleep is non-negotiable. Aim for 7-8 hours tonight to recharge your 'Vitality Battery'. 🔋",
+            "💡 Active recovery! Try a light 10-minute stretch to improve flexibility and mental focus. 🧘‍♀️",
+            "💡 Metabolism kickstart: Drink 500ml of water right after waking up to wake up your body. 🌊",
+            "💡 Small wins! Did you know active people are 20% more productive? Keep moving! ⚡"
         };
-        // Use user ID and date to pick a stable tip for the same user on the same day
-        int tipIndex = (int) ((user.getId() + date.getDayOfYear()) % tips.length);
-        String tip = "💡 Daily Pro-Tip: " + tips[tipIndex];
-        return new DailyBriefing(user, tip, date);
+        // True random pick for variety on refresh
+        int tipIndex = (int) (Math.random() * tips.length);
+        return new DailyBriefing(user, tips[tipIndex], date);
     }
 
     private String gatherUserContext(User user, LocalDate today) {
         StringBuilder sb = new StringBuilder();
 
-        // Steps
+        // 1. Steps & Distance
         Optional<DailyActivity> activity = dailyActivityRepository.findByUserIdAndDate(user.getId(), today);
         int steps = activity.map(DailyActivity::getSteps).orElse(0);
-        sb.append("Steps today: ").append(steps).append(". ");
+        double dist = activity.map(DailyActivity::getDistanceKm).orElse(0.0);
+        sb.append(String.format("Activity: %d steps, %.2f km traveled. ", steps, dist));
 
-        // Sleep (Last 24h)
+        // 2. Sleep Data
         Instant last24h = Instant.now().minusSeconds(86400);
         Optional<SleepLog> sleep = sleepLogRepository.findByUserIdOrderBySleepDateDesc(user.getId())
                 .stream().filter(s -> s.getSleepDate().isAfter(last24h)).findFirst();
         double sleepHours = sleep.map(SleepLog::getHours).orElse(0.0);
-        sb.append("Sleep last night: ").append(sleepHours).append(" hours. ");
+        sb.append(String.format("Latest Sleep: %.1f hours. ", sleepHours));
 
-        // Water
+        // 3. Hydration
         Instant startOfDay = today.atStartOfDay(ZoneOffset.UTC).toInstant();
         double water = waterIntakeRepository.findByUserIdOrderByLoggedAtDesc(user.getId())
                 .stream().filter(w -> w.getLoggedAt().isAfter(startOfDay))
                 .mapToDouble(WaterIntake::getLiters).sum();
-        sb.append("Water today: ").append(water).append("L. ");
+        sb.append(String.format("Hydration: %.2fL water consumed today. ", water));
 
-        // Fitness Goal
+        // 4. Workouts (Added for AI context)
+        List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(user.getId(), startOfDay, Instant.now());
+        int workoutCount = workouts.size();
+        int workoutCals = workouts.stream().mapToInt(w -> w.getCaloriesBurned() != null ? w.getCaloriesBurned() : 0).sum();
+        if (workoutCount > 0) {
+            sb.append(String.format("Workouts: %d session(s) completed today (burned approx %d kcal). ", workoutCount, workoutCals));
+        }
+
+        // 5. Goal Context
         if (user.getFitnessGoal() != null) {
-            sb.append("Overall Goal: ").append(user.getFitnessGoal()).append(". ");
+            sb.append("Fitness Objective: ").append(user.getFitnessGoal().replace("_", " ")).append(". ");
         }
 
         return sb.toString();

@@ -74,7 +74,7 @@ const AIAgentHeader = ({ user, readinessScore }) => {
         fetchBriefing();
         return () => { isMounted = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id, user?.isPremium]); // Added isPremium to re-fetch if they upgrade
+    }, [user?.id, user?.isPremium, (activities?.length || 0), (sleep?.length || 0)]); 
 
     const getGreeting = () => {
         if (hour < 12) return "Good morning";
@@ -160,7 +160,7 @@ const AIAgentHeader = ({ user, readinessScore }) => {
                             <span style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
                                 <FiZap /> Upgrade to Premium to unlock AI daily briefing!
                             </span>
-                        ) : (briefing || "Sync health data to unlock analysis!")
+                        ) : (briefing || "Ready for your daily performance check-in? Sync your data to begin. 🚀")
                     )}
                 </p>
             </div>
