@@ -1,7 +1,8 @@
 // src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiRefreshCw, FiX } from "react-icons/fi";
+import { FiRefreshCw, FiX, FiStar, FiZap } from "react-icons/fi";
+import apiClient from "../api/apiClient";
 
 import storageService from "../api/storageService";
 import { useData } from "../context/DataContext";
@@ -30,20 +31,34 @@ const Dashboard = ({ onLogout, onOpenChat }) => {
     const [error, setError] = useState("");
     const [retryTrigger, setRetryTrigger] = useState(0);
     const [showOnboarding, setShowOnboarding] = useState(false);
+    const [betaStatus, setBetaStatus] = useState(null);
 
     const { notifications, refreshNotifications } = useNotifications();
     const [premiumNotif, setPremiumNotif] = useState(null);
 
     useEffect(() => {
-        const unreadPremium = notifications?.find(n => 
-            !n.read && 
-            n.type !== 'TIP' && 
+        const unreadPremium = notifications?.find(n =>
+            !n.read &&
+            n.type !== 'TIP' &&
             (n.title.includes("Premium") || n.message.includes("Premium"))
         );
         if (unreadPremium && unreadPremium.id !== premiumNotif?.id) {
             setPremiumNotif(unreadPremium);
         }
     }, [notifications, premiumNotif]);
+
+    // Fetch beta status
+    useEffect(() => {
+        const fetchBetaStatus = async () => {
+            try {
+                const res = await apiClient.get('/subscription/beta-status');
+                setBetaStatus(res.data);
+            } catch (err) {
+                console.error('Failed to fetch beta status', err);
+            }
+        };
+        fetchBetaStatus();
+    }, []);
 
     const handleDismissPremiumNotif = async () => {
         if (!premiumNotif) return;
@@ -197,6 +212,59 @@ const Dashboard = ({ onLogout, onOpenChat }) => {
                 <button onClick={handleDismissPremiumNotif} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '8px', display: 'flex', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-main)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}>
                     <FiX size={20} />
                 </button>
+            </div>
+        )}
+
+        {/* BETA ACCESS BANNER - Prominent in mobile view */}
+        {betaStatus && !user?.isPremium && !betaStatus.hasRequest && (
+            <div className="beta-access-banner" style={{
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05))',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '16px',
+                padding: '16px 20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px',
+                boxShadow: '0 4px 20px rgba(16, 185, 129, 0.1)',
+                animation: 'slideDown 0.5s ease-out',
+                cursor: 'pointer',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+            }}
+            onClick={() => navigate('/premium')}
+            onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 24px rgba(16, 185, 129, 0.15)';
+            }}
+            onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.1)';
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ fontSize: '28px' }}>⚡</div>
+                    <div>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#10b981', fontWeight: 800 }}>
+                            Beta Premium Access
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
+                            Get unlimited voice logs & AI insights — 100% free
+                        </p>
+                    </div>
+                </div>
+                <div style={{
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    color: '#10b981',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    border: '1px solid rgba(16, 185, 129, 0.3)'
+                }}>
+                    <FiStar size={14} /> Apply Now
+                </div>
             </div>
         )}
 

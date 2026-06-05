@@ -40,9 +40,9 @@ public class SubscriptionController {
         String email = auth.getName();
         User user = userService.findByEmail(email).orElseThrow();
 
-        // Check if already has premium access
+        // Check if already has premium access (excluding FREE)
         String currentType = user.getPremiumAccessType();
-        if (currentType != null && !currentType.equals("FREE")) {
+        if (currentType != null && (currentType.equals("BETA_PREMIUM") || currentType.equals("PAID_PREMIUM") || currentType.equals("ADMIN_GRANTED") || currentType.equals("LIFETIME"))) {
             return ResponseEntity.badRequest().body(Map.of("error", "You already have premium access: " + currentType));
         }
 
@@ -51,10 +51,8 @@ public class SubscriptionController {
             return ResponseEntity.badRequest().body(Map.of("error", "You already have a pending beta access request. Our team will review it shortly."));
         }
 
-        String message = payload.getOrDefault("message", "I would like to apply for beta access.");
-        if (message.trim().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Please include a message with your request."));
-        }
+        // Message is optional - use default if not provided
+        String message = payload.getOrDefault("message", "User requested beta access");
 
         BetaRequest request = new BetaRequest(user, message.trim());
         betaRequestRepository.save(request);

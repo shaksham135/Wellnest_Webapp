@@ -59,17 +59,9 @@ const PremiumPage = () => {
     const handleSubmitRequest = async (e) => {
         e.preventDefault();
         const trimmedMessage = message.trim();
-        if (!trimmedMessage) {
-            toast.error('Please write a message explaining why you want beta access.');
-            return;
-        }
-        if (trimmedMessage.length < 20) {
-            toast.error('Please write a more detailed message (at least 20 characters).');
-            return;
-        }
         setSubmitting(true);
         try {
-            await apiClient.post('/subscription/request-beta', { message: trimmedMessage });
+            await apiClient.post('/subscription/request-beta', { message: trimmedMessage || 'User requested beta access' });
             toast.success('Beta access request submitted! We\'ll review it within 24-48 hours.');
             setSubmitted(true);
             setBetaStatus({ hasRequest: true, status: 'PENDING' });
@@ -246,7 +238,7 @@ const PremiumPage = () => {
                                     />
                                 </div>
                                 <div className="beta-form-group">
-                                    <label>Why do you want beta access? <span className="required">*</span></label>
+                                    <label>Why do you want beta access? <span className="optional">(optional)</span></label>
                                     <textarea
                                         className="beta-textarea"
                                         placeholder="E.g. I'm a fitness enthusiast who wants to track my health holistically. I've been using apps like XYZ but they don't have voice logging..."
@@ -254,7 +246,6 @@ const PremiumPage = () => {
                                         onChange={e => setMessage(e.target.value)}
                                         rows={5}
                                         maxLength={1000}
-                                        required
                                     />
                                     <div className="beta-char-count">{message.length}/1000</div>
                                 </div>
