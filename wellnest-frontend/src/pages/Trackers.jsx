@@ -612,7 +612,8 @@ const Trackers = () => {
     }
   };
 
-  const onDeleteActivity = async (id) => {
+  // eslint-disable-next-line no-unused-vars
+  const _onDeleteActivity = async (id) => {
     if (!window.confirm("Are you sure you want to delete this activity?")) return;
     try {
       await deleteActivity(id);

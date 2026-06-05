@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getWeeklyLeaderboard } from "../api/leaderboardApi";
-import { FiAward, FiInfo } from "react-icons/fi";
+import { FiAward } from "react-icons/fi";
 import cacheService from "../api/cacheService";
 import "./LeaderboardPage.css";
 

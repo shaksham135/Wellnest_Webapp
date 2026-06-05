@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiCalendar, FiStar } from 'react-icons/fi';
+import { FiCalendar } from 'react-icons/fi';
 import PremiumGate from '../shared/PremiumGate';
 import { toLocalDateString } from '../../utils/streakUtils';
 import './ConsistencyHeatmap.css';

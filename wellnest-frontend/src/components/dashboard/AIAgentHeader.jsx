@@ -15,7 +15,7 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore, onUserRefresh 
     const isTrainer = user?.role === 'ROLE_TRAINER' || user?.role === 'TRAINER';
     const [shopOpen, setShopOpen] = useState(false);
     const navigate = useNavigate();
-    const { energyForecast, submitVoiceCommand, workouts, meals, water, sleep: contextSleep, activities: contextActivities } = useData();
+    const { submitVoiceCommand, workouts, meals, water, sleep: contextSleep, activities: contextActivities } = useData();
     
     const currentWorkouts = workouts || [];
     const currentMeals = meals || [];
