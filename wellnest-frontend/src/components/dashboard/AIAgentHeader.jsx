@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CoinShopModal from './CoinShopModal';
 import { FiVolume2, FiVolumeX } from 'react-icons/fi';
-import PremiumGate from '../shared/PremiumGate';
 import { getDailyBriefing } from '../../api/assistantApi';
 import VoiceScanButton from './VoiceScanButton';
 import { useData } from '../../context/DataContext';
@@ -230,12 +229,7 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore, onUserRefresh 
                     </div>
                 )}
 
-                <PremiumGate
-                    isPremium={user?.isPremium}
-                    featureName="AI Daily Briefings"
-                    featureDesc="Get time-aware personalized daily coaching insights based on your habit logs."
-                    compact={true}
-                >
+                {user?.isPremium && (
                     <p style={{ marginTop: '16px' }}>
                         {loading ? (
                             <span style={{ opacity: 0.6, fontStyle: 'italic' }}>AI is analyzing your stats for today...</span>
@@ -243,7 +237,7 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore, onUserRefresh 
                             briefing || "Ready to log today?"
                         )}
                     </p>
-                </PremiumGate>
+                )}
             </div>
 
             {/* Performance Hub: Bottom Mic talk center */}
