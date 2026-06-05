@@ -106,13 +106,18 @@ public class AssistantService {
             briefingRepository.delete(b);
         }
 
-        // 4. Generate Compressed AI Content (Saves ~60% tokens)
+        // 4. Generate Compressed AI Content (Deep Analytics Logic)
         String context = gatherUserContext(user, today);
-        String prompt = String.format("Coach Role. User:%s (%s). Data:%s. Task: 2-sentence motivator. Mention stats. Max 200 chars.", 
-                user.getName(), timeWindow, context);
+        String prompt = String.format(
+            "You are an ELITE AI Health Analyst (Personality: High-Performance, Action-Oriented). " +
+            "Analyze the User's Data: %s. " +
+            "TASK: Provide 1 DEEP INSIGHT comparing today to their norms and 1 MANDATORY ACTION. " +
+            "Format: [Insight] | [Action]. Max 250 chars. " +
+            "Example: Your hydration is 20%% below peak today. | Action: Drink 500ml water immediately.",
+            context);
 
         // Switch to FAST model (8B) to save tokens/cost
-        String aiMessage = groqService.getResponse(prompt, "llama-3.1-8b-instant");
+        String aiMessage = groqService.getResponse(prompt, "llama-3.1-8b-instant", 80);
         
         DailyBriefing briefing = new DailyBriefing(user, aiMessage, today);
         briefing.setNotes(timeWindow);
@@ -179,5 +184,148 @@ public class AssistantService {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * NEURAL RESONANCE ENGINE
+     * Generates an instant score and insight when a user logs data.
+     */
+    public com.wellnest.app.dto.LogResponse<?> generateInstantInsight(Object logData, User user) {
+        // --- MONETIZATION GATE: Free Users get dynamic, local (cost-free) feedback ---
+        if (user == null || !user.isPremium()) {
+            String logType = logData.getClass().getSimpleName();
+            String insight = "Activity synced with cloud. ⚡";
+            String category = "Standard";
+            int score = 60;
+
+            if (logData instanceof WaterIntake) {
+                WaterIntake water = (WaterIntake) logData;
+                double liters = water.getLiters() != null ? water.getLiters() : 0.0;
+                category = "Hydration";
+                if (liters < 0.25) {
+                    insight = "A small sip is a start. Aim for a full glass (0.25L+) next time! 💧";
+                    score = 50;
+                } else if (liters < 0.75) {
+                    insight = String.format("Nice hydration! %.2fL registered. Keep drinking consistently to maintain energy. 🌊", liters);
+                    score = 75;
+                } else if (liters <= 1.5) {
+                    insight = String.format("Excellent hydration! %.2fL is premium fuel for your body. 🚀", liters);
+                    score = 95;
+                } else {
+                    insight = String.format("Huge water intake: %.2fL! Balance it out over the day. 🌊", liters);
+                    score = 90;
+                }
+            } else if (logData instanceof Workout) {
+                Workout workout = (Workout) logData;
+                int duration = workout.getDurationMinutes() != null ? workout.getDurationMinutes() : 0;
+                String type = workout.getType() != null ? workout.getType() : "workout";
+                category = "Fitness";
+                if (duration < 15) {
+                    insight = String.format("A quick %d-min %s is better than zero. Keep moving! 👟", duration, type);
+                    score = 55;
+                } else if (duration < 45) {
+                    insight = String.format("Solid %d-min %s! Great pace and consistency. 🔥", duration, type);
+                    score = 80;
+                } else {
+                    insight = String.format("Powerhouse session! %d minutes of %s. Pure dedication! 🏆", duration, type);
+                    score = 95;
+                }
+            } else if (logData instanceof Meal) {
+                Meal meal = (Meal) logData;
+                int calories = meal.getCalories() != null ? meal.getCalories() : 0;
+                int protein = meal.getProtein() != null ? meal.getProtein() : 0;
+                String mType = meal.getMealType() != null ? meal.getMealType() : "meal";
+                category = "Nutrition";
+                if (calories < 200) {
+                    insight = String.format("Light %s bite logged (%d kcal). Get enough fuel for recovery! 🥦", mType, calories);
+                    score = 60;
+                } else if (calories <= 800) {
+                    if (protein >= 20) {
+                        insight = String.format("Balanced %s! High protein (%dg) will speed muscle repair. 🍗", mType, protein);
+                        score = 92;
+                    } else {
+                        insight = String.format("Healthy %s logged (%d kcal)! Keep tracking your macros. 🥗", mType, calories);
+                        score = 78;
+                    }
+                } else {
+                    insight = String.format("Hearty %s logged (%d kcal). Fueling up big! ⚡", mType, calories);
+                    score = 70;
+                }
+            } else if (logData instanceof SleepLog) {
+                SleepLog sleep = (SleepLog) logData;
+                double hours = sleep.getHours() != null ? sleep.getHours() : 0.0;
+                String quality = sleep.getQuality() != null ? sleep.getQuality() : "normal";
+                category = "Recovery";
+                if (hours < 6) {
+                    insight = String.format("Short sleep session (%.1fh). Aim for 7-8 hours to recharge! 😴", hours);
+                    score = 45;
+                } else if (hours <= 9) {
+                    if ("excellent".equalsIgnoreCase(quality) || "good".equalsIgnoreCase(quality)) {
+                        insight = String.format("Excellent rest! %.1fh of %s sleep is perfect. 🔋", hours, quality);
+                        score = 95;
+                    } else {
+                        insight = String.format("Sleep logged: %.1fh. Focus on bedtime relaxation tonight. 🌙", hours);
+                        score = 78;
+                    }
+                } else {
+                    insight = String.format("Long rest session (%.1fh). Aim to balance sleep consistency. 🛌", hours);
+                    score = 80;
+                }
+            } else if (logData instanceof DailyActivity) {
+                DailyActivity act = (DailyActivity) logData;
+                int steps = act.getSteps() != null ? act.getSteps() : 0;
+                category = "Movement";
+                if (steps < 3000) {
+                    insight = String.format("Activity sync: %d steps. Try to take a short walking break! 🚶‍♂️", steps);
+                    score = 50;
+                } else if (steps < 8000) {
+                    insight = String.format("Good stepping! %d steps registered. Keep pacing! ⚡", steps);
+                    score = 75;
+                } else {
+                    insight = String.format("Outstanding walk! %d steps logged. You are flying! 🚀", steps);
+                    score = 95;
+                }
+            }
+
+            return new com.wellnest.app.dto.LogResponse<>(logData, score, insight, category);
+        }
+
+        String logType = logData.getClass().getSimpleName();
+        String dataContext = "";
+        try {
+            dataContext = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(logData);
+        } catch (Exception e) {
+            dataContext = logData.toString();
+        }
+
+        String goal = user.getFitnessGoal() != null ? user.getFitnessGoal() : "General Fitness";
+        
+        String prompt = String.format(
+            "AI HEALTH ANALYST: Analyze this %s log. Goal: %s. Data: %s. " +
+            "1. Calculate Resonance Score (0-100) based on effort/alignment. " +
+            "2. Category: Peak (>85), Optimal (70-85), Neutral (40-69), Low (<40). " +
+            "3. Insight: Action-oriented micro-insight (MAX 6 WORDS). " +
+            "RETURN ONLY RAW JSON: {\"score\": 88, \"category\": \"Peak\", \"insight\": \"Text\"}",
+            logType, goal, dataContext
+        );
+
+        String response = groqService.getResponse(prompt, "llama-3.1-8b-instant", 40);
+        
+        int score = 75;
+        String category = "Optimal";
+        String insight = "Action logged successfully.";
+
+        try {
+            // Clean AI response to find JSON
+            String jsonPart = response.substring(response.indexOf("{"), response.lastIndexOf("}") + 1);
+            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(jsonPart);
+            score = node.get("score").asInt();
+            category = node.get("category").asText();
+            insight = node.get("insight").asText();
+        } catch (Exception e) {
+            log.error("Failed to parse neural resonance JSON. Response: {}", response, e);
+        }
+
+        return new com.wellnest.app.dto.LogResponse<>(logData, score, insight, category);
     }
 }

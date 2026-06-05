@@ -11,7 +11,6 @@ import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/analytics")
-@CrossOrigin
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
@@ -61,7 +60,7 @@ public class AnalyticsController {
         String email = authentication.getName();
         com.wellnest.app.model.User user = userRepository.findByEmail(email).orElse(null);
         if (user == null || !user.isPremium()) {
-            return ResponseEntity.status(403).body(java.util.Map.of("error", "Energy Forecast is a premium feature."));
+            return ResponseEntity.noContent().build();
         }
         
         return ResponseEntity.ok(energyService.getEnergyForecast(authentication));

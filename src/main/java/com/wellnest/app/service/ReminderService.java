@@ -12,6 +12,9 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Random;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class ReminderService {
@@ -57,57 +60,67 @@ public class ReminderService {
         "Healthy eating: Aim for a variety of colorful vegetables in your next meal. 🥦"
     };
 
-    // Every 12 hours (Sync Economy)
-    @Scheduled(fixedRate = 43200000) 
+    // Every day at 10:00 AM and 6:00 PM (prevents startup spam)
+    @Scheduled(cron = "0 0 10,18 * * *") 
     public void sendWaterReminders() {
         Instant startOfDay = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant();
         Instant endOfDay = LocalDate.now().atTime(java.time.LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant();
         
-        List<User> users = userRepository.findAll();
-        for (User user : users) {
-            // Smart Check: Only remind if they haven't logged water today
-            boolean hasLoggedWater = !waterIntakeRepository.findByUserIdAndLoggedAtBetween(user.getId(), startOfDay, endOfDay).isEmpty();
-            
-            if (!hasLoggedWater) {
-                String name = user.getName() != null ? user.getName() : "Hero";
-                String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
-                String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "stay healthy";
+        Pageable pageable = PageRequest.of(0, 100);
+        Page<User> page;
+        do {
+            page = userRepository.findAll(pageable);
+            for (User user : page.getContent()) {
+                // Smart Check: Only remind if they haven't logged water today
+                boolean hasLoggedWater = !waterIntakeRepository.findByUserIdAndLoggedAtBetween(user.getId(), startOfDay, endOfDay).isEmpty();
                 
-                String message = groqService.generateNotification(role, name, "Goal: " + goal + ". Needs a hydration reminder.");
-                
-                // Fallback if AI message is error or too long
-                if (message.contains("Error") || message.length() > 150) {
-                    message = waterReminders[random.nextInt(waterReminders.length)];
+                if (!hasLoggedWater) {
+                    String name = user.getName() != null ? user.getName() : "Hero";
+                    String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
+                    String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "stay healthy";
+                    
+                    String message = groqService.generateNotification(role, name, "Goal: " + goal + ". Needs a hydration reminder.");
+                    
+                    // Fallback if AI message is error or too long
+                    if (message.contains("Error") || message.length() > 150) {
+                        message = waterReminders[random.nextInt(waterReminders.length)];
+                    }
+                    
+                    notificationService.createNotification(user.getId(), "Hydration Reminder", message, "INFO");
                 }
-                
-                notificationService.createNotification(user.getId(), "Hydration Reminder", message, "INFO");
             }
-        }
+            pageable = pageable.next();
+        } while (page.hasNext());
     }
 
-    // Every 24 hours (Daily Motivation Recap)
-    @Scheduled(fixedRate = 86400000)
+    // Every day at 4:00 PM (prevents startup spam)
+    @Scheduled(cron = "0 0 16 * * *")
     public void sendWorkoutReminders() {
         LocalDate today = LocalDate.now();
-        List<User> users = userRepository.findAll();
-        for (User user : users) {
-            // Smart Check: Only remind if they haven't logged activity today
-            boolean hasLoggedActivity = dailyActivityRepository.findByUserIdAndDate(user.getId(), today).isPresent();
-            
-            if (!hasLoggedActivity) {
-                String name = user.getName() != null ? user.getName() : "Hero";
-                String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
-                String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "fitness progress";
+        Pageable pageable = PageRequest.of(0, 100);
+        Page<User> page;
+        do {
+            page = userRepository.findAll(pageable);
+            for (User user : page.getContent()) {
+                // Smart Check: Only remind if they haven't logged activity today
+                boolean hasLoggedActivity = dailyActivityRepository.findByUserIdAndDate(user.getId(), today).isPresent();
+                
+                if (!hasLoggedActivity) {
+                    String name = user.getName() != null ? user.getName() : "Hero";
+                    String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
+                    String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "fitness progress";
 
-                String message = groqService.generateNotification(role, name, "Goal: " + goal + ". Needs a motivation push to log a workout.");
+                    String message = groqService.generateNotification(role, name, "Goal: " + goal + ". Needs a motivation push to log a workout.");
 
-                // Fallback
-                if (message.contains("Error") || message.length() > 150) {
-                    message = workoutReminders[random.nextInt(workoutReminders.length)];
+                    // Fallback
+                    if (message.contains("Error") || message.length() > 150) {
+                        message = workoutReminders[random.nextInt(workoutReminders.length)];
+                    }
+
+                    notificationService.createNotification(user.getId(), "Activity Check", message, "SUCCESS");
                 }
-
-                notificationService.createNotification(user.getId(), "Activity Check", message, "SUCCESS");
             }
-        }
+            pageable = pageable.next();
+        } while (page.hasNext());
     }
 }

@@ -17,11 +17,13 @@ export const useData = () => {
 
 export const DataProvider = ({ children }) => {
     const [userData, setUserData] = useState(null);
+    const [lastLoggedAction, setLastLoggedAction] = useState(null);
     const [workouts, setWorkouts] = useState([]);
     const [meals, setMeals] = useState([]);
     const [water, setWater] = useState([]);
     const [sleep, setSleep] = useState([]);
     const [activities, setActivities] = useState([]);
+    const [mentalStates, setMentalStates] = useState([]);
     const [goalData, setGoalData] = useState(null);
     const [dietPlan, setDietPlan] = useState(null);
     
@@ -34,7 +36,7 @@ export const DataProvider = ({ children }) => {
     
     // Sync Guard Ref
     const syncInProgress = useRef(false);
-
+ 
     // --- INDUSTRY-READY OFFLINE CACHING ---
     useEffect(() => {
         const loadFromCache = async () => {
@@ -48,6 +50,7 @@ export const DataProvider = ({ children }) => {
                     setWater(manifest.water || []);
                     setSleep(manifest.sleep || []);
                     setActivities(manifest.activities || []);
+                    setMentalStates(manifest.mentalStates || []);
                     setGoalData(manifest.goalData || null);
                     setDietPlan(manifest.dietPlan || null);
                     setEnergyForecast(manifest.energyForecast || null);
@@ -75,6 +78,14 @@ export const DataProvider = ({ children }) => {
         const updatedManifest = { ...currentManifest, ...data };
         await storageService.setItem('dashboard_manifest', JSON.stringify(updatedManifest));
     }, []);
+
+    useEffect(() => {
+        if (userData?.activeTheme) {
+            document.documentElement.setAttribute("data-user-theme", userData.activeTheme);
+        } else {
+            document.documentElement.removeAttribute("data-user-theme");
+        }
+    }, [userData?.activeTheme]);
 
     const refreshUserData = useCallback(async () => {
         try {
@@ -131,6 +142,9 @@ export const DataProvider = ({ children }) => {
             }
         } catch (error) {
             console.error("DataContext: Voice Scan failed", error);
+            if (error.response?.data?.error) {
+                throw new Error(error.response.data.error);
+            }
             throw error;
         } finally {
             setIsMentalSyncing(false);
@@ -146,7 +160,7 @@ export const DataProvider = ({ children }) => {
         try {
             syncInProgress.current = true;
             setIsSyncing(true);
-            const [w, m, wa, s, a, g, p] = await Promise.all([
+            const [w, m, wa, s, a, g, p, ms] = await Promise.all([
                 getWorkouts().catch(() => ({ data: [] })),
                 getMeals().catch(() => ({ data: [] })),
                 getWater().catch(() => ({ data: [] })),
@@ -154,6 +168,7 @@ export const DataProvider = ({ children }) => {
                 apiClient.get('/trackers/activity').catch(() => ({ data: [] })),
                 apiClient.get('/analytics/summary').catch(() => ({ data: {} })),
                 getMyDietPlan().catch(() => ({ data: null })),
+                apiClient.get('/mental').catch(() => ({ data: [] })),
                 refreshMentalState().catch(() => null)
             ]);
 
@@ -163,6 +178,7 @@ export const DataProvider = ({ children }) => {
                 water: wa.data || [],
                 sleep: s.data || [],
                 activities: a.data || [],
+                mentalStates: ms.data || [],
                 goalData: g.data?.goalProgress || null,
                 dietPlan: p.data || null
             };
@@ -172,6 +188,7 @@ export const DataProvider = ({ children }) => {
             setWater(freshData.water);
             setSleep(freshData.sleep);
             setActivities(freshData.activities);
+            setMentalStates(freshData.mentalStates);
             setGoalData(freshData.goalData);
             setDietPlan(freshData.dietPlan);
             
@@ -185,28 +202,80 @@ export const DataProvider = ({ children }) => {
         }
     }, [saveToCache, refreshMentalState]);
 
-    const submitVoiceCommand = useCallback(async (audioBlob) => {
+    const submitVoiceCommand = useCallback(async (input) => {
         try {
             setIsSyncing(true);
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'command.webm');
-
-            const res = await apiClient.post('/ai/voice-command', formData);
+            let res;
+            
+            if (typeof input === 'string') {
+                res = await apiClient.post('/ai/voice-command', null, {
+                    params: { text: input }
+                });
+            } else {
+                const formData = new FormData();
+                formData.append('audio', input, 'command.webm');
+                res = await apiClient.post('/ai/voice-command', formData);
+            }
             
             if (res.data && res.data.status === 'SUCCESS') {
-                // Refresh all trackers to show the newly logged data
-                await refreshTrackers();
+                // Refresh all trackers and user profile to update daily limit counts
+                await Promise.all([
+                    refreshTrackers(),
+                    refreshUserData()
+                ]);
+                
+                if (res.data.createdId && res.data.createdType) {
+                    setLastLoggedAction({
+                        id: res.data.createdId,
+                        type: res.data.createdType,
+                        message: res.data.displayMessage
+                    });
+                }
+                
                 return res.data;
             } else {
-                throw new Error(res.data?.message || "AI Command Sync failed");
+                throw new Error(res.data?.displayMessage || res.data?.message || "AI Command Sync failed");
             }
         } catch (error) {
             console.error("DataContext: Voice Command failed", error);
+            if (error.response?.data) {
+                const serverErr = new Error(error.response.data.displayMessage || error.response.data.error || "AI Command Sync failed");
+                serverErr.voiceMessage = error.response.data.voiceMessage;
+                throw serverErr;
+            }
             throw error;
         } finally {
             setIsSyncing(false);
         }
-    }, [refreshTrackers]);
+    }, [refreshTrackers, refreshUserData]);
+
+    const undoVoiceCommand = useCallback(async (type, id) => {
+        try {
+            setIsSyncing(true);
+            await apiClient.post('/trackers/undo', null, {
+                params: { type, id }
+            });
+            await Promise.all([
+                refreshTrackers(),
+                refreshUserData()
+            ]);
+        } catch (error) {
+            console.error("DataContext: Undo Voice Command failed", error);
+            throw error;
+        } finally {
+            setIsSyncing(false);
+        }
+    }, [refreshTrackers, refreshUserData]);
+
+    const undoLastAction = useCallback(async () => {
+        if (!lastLoggedAction) return;
+        try {
+            await undoVoiceCommand(lastLoggedAction.type, lastLoggedAction.id);
+            setLastLoggedAction(null);
+        } catch (e) {
+            console.error("Failed to undo last action", e);
+        }
+    }, [lastLoggedAction, undoVoiceCommand]);
 
     const clearAllData = useCallback(() => {
         setUserData(null);
@@ -218,6 +287,7 @@ export const DataProvider = ({ children }) => {
         setGoalData(null);
         setDietPlan(null);
         setLatestMentalState(null);
+        setLastLoggedAction(null);
         setIsUserDataLoaded(false);
         setIsTrackersLoaded(false);
     }, []);
@@ -229,11 +299,19 @@ export const DataProvider = ({ children }) => {
         refreshUserData,
         
         workouts,
+        setWorkouts,
         meals,
+        setMeals,
         water,
+        setWater,
         sleep,
+        setSleep,
         activities,
+        setActivities,
+        mentalStates,
+        setMentalStates,
         goalData,
+        setGoalData,
         dietPlan,
         isTrackersLoaded,
         refreshTrackers,
@@ -244,6 +322,10 @@ export const DataProvider = ({ children }) => {
         
         submitVoiceScan,
         submitVoiceCommand,
+        undoVoiceCommand,
+        lastLoggedAction,
+        setLastLoggedAction,
+        undoLastAction,
         latestMentalState,
         isMentalSyncing,
         refreshMentalState,
@@ -251,9 +333,9 @@ export const DataProvider = ({ children }) => {
         clearAllData
     }), [
         userData, isUserDataLoaded, refreshUserData,
-        workouts, meals, water, sleep, activities, goalData, dietPlan, isTrackersLoaded, refreshTrackers, isSyncing,
+        workouts, meals, water, sleep, activities, mentalStates, goalData, dietPlan, isTrackersLoaded, refreshTrackers, isSyncing,
         energyForecast, refreshEnergyForecast,
-        submitVoiceScan, submitVoiceCommand, latestMentalState, isMentalSyncing, refreshMentalState,
+        submitVoiceScan, submitVoiceCommand, undoVoiceCommand, lastLoggedAction, undoLastAction, latestMentalState, isMentalSyncing, refreshMentalState,
         clearAllData
     ]);
 

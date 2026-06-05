@@ -53,15 +53,11 @@ public class LeaderboardService {
 
         // 3. Initialize Scores (Identified Admins for exclusion)
         Map<Long, Double> userScores = new HashMap<>();
-        List<User> allUsers = userRepository.findAll();
-        Set<Long> excludedUserIds = new HashSet<>();
+        List<Long> nonAdminIds = userRepository.findNonAdminIds();
+        Set<Long> excludedUserIds = new HashSet<>(userRepository.findAdminIds());
 
-        for (User user : allUsers) {
-            if ("ROLE_ADMIN".equals(user.getRole())) {
-                excludedUserIds.add(user.getId());
-                continue;
-            }
-            userScores.put(user.getId(), 0.0);
+        for (Long id : nonAdminIds) {
+            userScores.put(id, 0.0);
         }
 
         // 4. Aggregate Scores per User (Addition to base 0.0)
@@ -135,6 +131,9 @@ public class LeaderboardService {
                 String name = (user != null) ? user.getName() : "Unknown User";
                 LeaderboardEntry dto = new LeaderboardEntry(name, score);
                 dto.setRank(rank);
+                dto.setLevel(user != null ? user.getLevel() : 1);
+                dto.setLeague(user != null ? user.getLeague() : "Bronze");
+                dto.setHasPremiumBadge(user != null && user.isHasPremiumBadge());
 
                 if (isTop10) {
                     top10.add(dto);

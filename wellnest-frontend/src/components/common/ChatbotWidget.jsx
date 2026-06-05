@@ -4,8 +4,23 @@ import apiClient from '../../api/apiClient';
 import { Link } from 'react-router-dom';
 import './ChatbotWidget.css';
 
-const ChatbotWidget = ({ isLoggedIn }) => {
+const ChatbotWidget = ({ isLoggedIn, forceOpen, setForceOpen, hideFloatingButton }) => {
     const [isOpen, setIsOpen] = useState(false);
+    
+    // Sync with external control
+    useEffect(() => {
+        if (forceOpen) {
+            setIsOpen(true);
+        }
+    }, [forceOpen]);
+
+    // Notify parent when closed
+    useEffect(() => {
+        if (!isOpen && forceOpen && setForceOpen) {
+            setForceOpen(false);
+        }
+    }, [isOpen, forceOpen, setForceOpen]);
+
     const [messages, setMessages] = useState([
         { text: "Hi! I'm Wellnest AI. How can I help you regarding your health today?", sender: 'bot' }
     ]);
@@ -188,7 +203,7 @@ const ChatbotWidget = ({ isLoggedIn }) => {
             }}
         >
             {/* Toggle Button */}
-            {!isOpen && (
+            {!isOpen && !hideFloatingButton && (
                 <button 
                     className="chatbot-toggle" 
                     onClick={handleToggleClick}

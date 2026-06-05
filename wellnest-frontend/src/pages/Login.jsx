@@ -6,10 +6,10 @@ import {
   FiLock,
   FiEye,
   FiEyeOff,
-  FiActivity,
   FiTrendingUp,
-  FiShield,
-  FiUsers,
+  FiMic,
+  FiZap,
+  FiCalendar,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import apiClient from "../api/apiClient";
@@ -254,15 +254,15 @@ const Login = ({ onLoginSuccess }) => {
       <section className="login-hero">
         <div className="login-hero-inner">
           <div className="login-text-content">
-            <h1>Unlock Your Best Self with <span>Wellnest</span></h1>
+            <h1>Track Your Health. <span>Just By Speaking.</span></h1>
             <p className="hero-subtitle">
-              The all-in-one platform to track fitness, nutrition, and health goals.
-              Join thousands of users building better habits today.
+              Log water, workouts, sleep and daily habits using natural voice commands.
+              No forms. No manual tracking.
             </p>
             <div className="hero-features-preview">
-              <div className="preview-item"><FiActivity /> <span>Track Habits</span></div>
-              <div className="preview-item"><FiTrendingUp /> <span>View Analytics</span></div>
-              <div className="preview-item"><FiUsers /> <span>Hire Trainers</span></div>
+              <div className="preview-item"><FiMic /> <span>Log by Voice</span></div>
+              <div className="preview-item"><FiZap /> <span>Daily Readiness</span></div>
+              <div className="preview-item"><FiTrendingUp /> <span>Weekly Progress</span></div>
             </div>
           </div>
 
@@ -273,7 +273,8 @@ const Login = ({ onLoginSuccess }) => {
       <section className="info-section">
         <h2>Why Choose Wellnest?</h2>
         <p>
-          Achieving your health goals shouldn't be complicated. Wellnest brings everything you need—activity tracking, professional guidance, and deep insights—into one seamless experience. Whether you want to lose weight, build muscle, or simply live healthier, we have the tools to help you succeed.
+          Most wellness apps make tracking feel like work. Wellnest is different.
+          Just speak naturally and let the app handle the logging, tracking and insights for you.
         </p>
       </section>
 
@@ -282,34 +283,34 @@ const Login = ({ onLoginSuccess }) => {
 
         <div className="features-grid">
           <div className="feature-card">
-            <FiActivity />
-            <h3>Complete Tracking</h3>
+            <FiMic />
+            <h3>Voice Logging</h3>
             <p>
-              Log workouts, meals, water intake, and sleep patterns all in one intuitive dashboard.
+              Track water, workouts, sleep and daily activities simply by speaking.
+            </p>
+          </div>
+
+          <div className="feature-card">
+            <FiZap />
+            <h3>Daily Readiness</h3>
+            <p>
+              See how your habits impact your energy, focus and recovery.
             </p>
           </div>
 
           <div className="feature-card">
             <FiTrendingUp />
-            <h3>Advanced Analytics</h3>
+            <h3>Weekly Insights</h3>
             <p>
-              Visualize your journey with detailed charts, streak tracking, and weekly progress reports.
+              Get simple summaries and trends based on your wellness activity.
             </p>
           </div>
 
           <div className="feature-card">
-            <FiUsers />
-            <h3>Expert Guidance</h3>
+            <FiCalendar />
+            <h3>Consistency Tracking</h3>
             <p>
-              Connect with certified trainers, get personalized diet plans, and reach your goals faster.
-            </p>
-          </div>
-
-          <div className="feature-card">
-            <FiShield />
-            <h3>Secure & Private</h3>
-            <p>
-              Your health data is encrypted and secure. We prioritize your privacy above all else.
+              Build streaks, stay accountable and make healthy habits stick.
             </p>
           </div>
         </div>

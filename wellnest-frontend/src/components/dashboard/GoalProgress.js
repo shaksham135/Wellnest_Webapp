@@ -98,12 +98,19 @@ const GoalProgress = ({ data, onGoalSet }) => {
                         >
                             <option value="WEIGHT_LOSS">Lose Weight</option>
                             <option value="MUSCLE_GAIN">Gain Muscle</option>
+                            <option value="BUILD_ENDURANCE">Build Endurance</option>
+                            <option value="FLEXIBILITY">Improve Flexibility</option>
+                            <option value="STAY_HEALTHY">Maintain Health</option>
                         </select>
                         <input
                             type="number"
                             value={targetWeight}
                             onChange={(e) => setTargetWeight(e.target.value)}
-                            placeholder="Target (kg)"
+                            placeholder={
+                                targetGoalType === 'BUILD_ENDURANCE' ? "Target (min/week)" :
+                                targetGoalType === 'FLEXIBILITY' ? "Target (sessions/week)" :
+                                "Target (kg)"
+                            }
                             className="goal-setup-input"
                             style={{ flex: 1, background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--card-border)' }}
                         />
@@ -216,7 +223,7 @@ const GoalProgress = ({ data, onGoalSet }) => {
             </div>
 
             {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '24px', marginBottom: '24px' }}>
+            <div className="goal-stats-grid">
                 {/* Current Weight */}
                 <div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Current Weight</div>

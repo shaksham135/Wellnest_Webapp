@@ -18,7 +18,12 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import java.util.HashMap;
+import java.util.Map;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -29,6 +34,11 @@ import java.util.UUID;
 @RequestMapping("/api/auth")
 @CrossOrigin
 public class AuthController {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthController.class);
+
+    @org.springframework.beans.factory.annotation.Value("${google.client.id}")
+    private String googleClientId;
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
@@ -51,47 +61,44 @@ public class AuthController {
         this.trainerRepository = trainerRepository;
     }
 
-    // ---------- EXCEPTION HANDLER ----------
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleException(Exception e) {
-        System.err.println("AUTH CONTROLLER EXCEPTION: " + e.getMessage());
-        e.printStackTrace();
-        return ResponseEntity.status(500).body("Global Auth Error: " + e.getMessage());
+    // Exception handling is delegated to GlobalExceptionHandler
+
+    // ---------- VALIDATION ERROR HANDLER ----------
+    @org.springframework.web.bind.annotation.ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationErrors(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach(err -> {
+            String field = err instanceof FieldError ? ((FieldError) err).getField() : err.getObjectName();
+            errors.put(field, err.getDefaultMessage());
+        });
+        // Return first error as a simple message string for frontend compatibility
+        String firstMsg = errors.values().stream().findFirst().orElse("Validation failed");
+        return ResponseEntity.badRequest().body(firstMsg);
     }
 
     // ---------- REGISTER ----------
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
-        System.out.println(
-                "DEBUG REGISTER: " + req.getEmail() + " Role: " + req.getRole() + " Goal: " + req.getFitnessGoal());
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
+        // Sanitise — normalise email to lowercase, trim name
+        String email = req.getEmail().trim().toLowerCase();
+        String name  = req.getName().trim();
+        String phone = (req.getPhone() != null) ? req.getPhone().trim() : null;
 
-        if (userService.emailExists(req.getEmail())) {
-            System.out.println("DEBUG REGISTER: Email already exists: " + req.getEmail());
-            return ResponseEntity.badRequest().body("Email already in use");
+        if (userService.emailExists(email)) {
+            return ResponseEntity.badRequest().body("This email is already registered. Please log in instead.");
         }
 
         String hashedPassword = passwordEncoder.encode(req.getPassword());
 
-        String inputRole = req.getRole();
-        String finalRole;
-
-        if (inputRole == null || inputRole.isBlank()) {
-            finalRole = "ROLE_USER";
-        } else {
-            String normalized = inputRole.trim().toUpperCase();
-            switch (normalized) {
-                case "TRAINER" -> finalRole = "ROLE_TRAINER";
-                case "USER" -> finalRole = "ROLE_USER";
-                default -> finalRole = "ROLE_USER";
-            }
-        }
+        // Always USER from public registration — trainer/admin added only via admin panel
+        String finalRole = "ROLE_USER";
 
         User user = new User();
-        user.setName(req.getName());
-        user.setEmail(req.getEmail());
+        user.setName(name);
+        user.setEmail(email);
         user.setPassword(hashedPassword);
         user.setRole(finalRole);
-        user.setPhone(req.getPhone());
+        user.setPhone(phone);
         user.setFitnessGoal(req.getFitnessGoal());
 
         if ("ROLE_TRAINER".equals(finalRole)) {
@@ -169,7 +176,7 @@ public class AuthController {
             String name = null;
 
             try {
-                String clientId = "824393698796-2a2k17e527hbnd9irvhjv72pnngc5jc7.apps.googleusercontent.com";
+                String clientId = googleClientId;
                 GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                         .setAudience(Collections.singletonList(clientId))
                         .build();
@@ -269,7 +276,8 @@ public class AuthController {
                         profileComplete,
                         user.getId(),
                         user.isVerified(),
-                        user.isPremium()));
+                        user.isPremium(),
+                        user.getPremiumAccessType() != null ? user.getPremiumAccessType() : (user.isPremium() ? "PAID_PREMIUM" : "FREE")));
 
             } else {
                 return ResponseEntity.status(401).body("Invalid Google token.");
@@ -358,7 +366,8 @@ public class AuthController {
                     profileComplete,
                     user.getId(),
                     user.isVerified(),
-                    user.isPremium()));
+                    user.isPremium(),
+                    user.getPremiumAccessType() != null ? user.getPremiumAccessType() : (user.isPremium() ? "PAID_PREMIUM" : "FREE")));
 
         } catch (BadCredentialsException ex) {
             System.out.println("LOGIN FAILED: Bad credentials for database user.");
@@ -391,6 +400,8 @@ public class AuthController {
 
         // send email with the OTP
         emailService.sendPasswordResetEmail(user.getEmail(), otp);
+        
+        log.debug("PASSWORD RESET OTP FOR {} IS: {}", user.getEmail(), otp);
 
         return ResponseEntity.ok("If this email exists, an OTP has been sent.");
     }

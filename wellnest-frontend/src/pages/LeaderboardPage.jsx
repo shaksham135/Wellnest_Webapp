@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { getWeeklyLeaderboard } from "../api/leaderboardApi";
 import { FiAward, FiInfo } from "react-icons/fi";
 import cacheService from "../api/cacheService";
-import "../index.css";
+import "./LeaderboardPage.css";
 
 const LeaderboardPage = () => {
     const cacheKey = '/leaderboard/weekly';
@@ -17,7 +17,6 @@ const LeaderboardPage = () => {
         const fetchLeaderboard = async () => {
             try {
                 const response = await getWeeklyLeaderboard();
-                // Response structure: { topUsers: [...], currentUserEntry: {...} }
                 setTopUsers(response.data.topUsers || []);
                 setCurrentUser(response.data.currentUserEntry);
                 cacheService.set(cacheKey, response.data);
@@ -31,6 +30,15 @@ const LeaderboardPage = () => {
         fetchLeaderboard();
     }, []);
 
+    const getInitials = (name) => {
+        if (!name) return "?";
+        const parts = name.trim().split(/\s+/);
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    };
+
     if (loading) {
         return <div className="dashboard-page"><div className="dashboard-card">Loading leaderboard...</div></div>;
     }
@@ -39,137 +47,195 @@ const LeaderboardPage = () => {
         return <div className="dashboard-page"><div className="dashboard-card">{error}</div></div>;
     }
 
-    const renderRow = (entry, isCurrentUser) => (
-        <div key={entry.rank} className="leaderboard-item"
-            style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '16px',
-                background: isCurrentUser ? 'rgba(79, 70, 229, 0.1)' : (entry.rank === 1 ? 'rgba(251, 191, 36, 0.1)' : 'transparent'),
-                borderRadius: isCurrentUser ? '12px' : '0',
-                border: isCurrentUser ? '1px solid var(--primary)' : 'none',
-                borderBottom: isCurrentUser ? '1px solid var(--primary)' : '1px solid var(--card-border)',
-                marginBottom: isCurrentUser ? '0' : '0'
-            }}>
-            <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                marginRight: '16px',
-                flexShrink: 0,
-                color: entry.rank <= 3 ? '#fff' : 'var(--text-muted)',
-                background: entry.rank === 1 ? '#fbbf24' : entry.rank === 2 ? '#94a3b8' : entry.rank === 3 ? '#b45309' : 'rgba(255,255,255,0.05)'
-            }}>
+    // Split users for podium vs list
+    const hasThreeOrMore = topUsers.length >= 3;
+    const podiumUsers = hasThreeOrMore ? topUsers.slice(0, 3) : [];
+    const listUsers = hasThreeOrMore ? topUsers.slice(3) : topUsers;
+
+    const firstPlaceUser = podiumUsers[0];
+    const secondPlaceUser = podiumUsers[1];
+    const thirdPlaceUser = podiumUsers[2];
+
+    const renderListRow = (entry, isCurrentUser) => (
+        <div key={entry.rank} className={`leaderboard-list-row ${isCurrentUser ? 'is-current-user' : ''}`}>
+            <div className="row-rank-num">
                 {entry.rank}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                    fontWeight: '600',
-                    fontSize: '16px',
-                    color: isCurrentUser ? 'var(--primary)' : 'var(--text-main)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                }}>
-                    {isCurrentUser ? 'You' : entry.userName}
+            <div className="row-user-details">
+                <div className="row-user-left">
+                    <div className="row-username-line">
+                        <span className="row-name">
+                            {isCurrentUser ? 'You' : entry.userName}
+                        </span>
+                        {entry.hasPremiumBadge && (
+                            <span style={{ color: '#fbbf24', textShadow: '0 0 6px rgba(251, 191, 36, 0.5)' }} title="Elite Member">👑</span>
+                        )}
+                        <span className="leaderboard-badge level-badge">Lvl {entry.level || 1}</span>
+                        <span className={`leaderboard-badge league-badge league-${(entry.league || 'Bronze').toLowerCase()}`}>
+                            {entry.league || 'Bronze'}
+                        </span>
+                    </div>
+                    <div className="row-status-text">
+                        {entry.rank === 1 ? '🥇 Current Champion' : (isCurrentUser ? 'Keep Climbing!' : 'Weekly Wellbeing')}
+                    </div>
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {entry.rank === 1 ? '🥇 Current Champion' : (isCurrentUser ? 'Keep Climbing!' : 'Weekly Wellbeing')}
+                <div className="row-user-right">
+                    <div className="row-score-wrapper">
+                        <div className="row-score-val">
+                            {entry.score.toFixed(0)} <span className="row-score-label">pts</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div style={{ textAlign: 'right', marginLeft: '12px' }}>
-                <div style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '18px' }}>
-                    {entry.score.toFixed(0)} <span style={{ fontSize: '14px' }}>pts</span>
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Score</div>
             </div>
         </div>
     );
 
-    const isUserInTop10 = currentUser && topUsers.some(u => u.rank === currentUser.rank);
+    const isUserInTopList = currentUser && topUsers.some(u => u.rank === currentUser.rank);
 
     return (
-        <div className="dashboard-page">
-            <div className="dashboard-card" style={{ maxWidth: '800px', paddingBottom: '0' }}>
-                <div className="dashboard-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <FiAward size={28} style={{ color: '#fbbf24' }} />
-                        <div>
-                            <h1>Weekly Leaderboard</h1>
-                            <p className="dashboard-subtitle">Top movers and shakers this week</p>
-                        </div>
-                    </div>
+        <div className="leaderboard-page-container">
+            {/* Header Section */}
+            <div className="leaderboard-title-section">
+                <div className="leaderboard-icon-wrapper">
+                    <FiAward size={32} />
                 </div>
+                <div>
+                    <h1>Weekly Leaderboard</h1>
+                    <p>Top movers and shakers in the Wellnest community this week</p>
+                </div>
+            </div>
 
-                <div className="leaderboard-list" style={{ paddingBottom: '24px' }}>
-                    {topUsers.length === 0 ? (
-                        <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                            No activity logged this week yet. Be the first!
+            {/* Podium (Top 3 Users) */}
+            {hasThreeOrMore && (
+                <div className="leaderboard-podium">
+                    {/* 2nd Place */}
+                    {secondPlaceUser && (
+                        <div className="podium-card second-place">
+                            <div className="podium-avatar-wrapper">
+                                <div className="podium-avatar">
+                                    {getInitials(secondPlaceUser.userName)}
+                                </div>
+                                <span className="podium-rank-badge">2nd</span>
+                            </div>
+                            <div className="podium-username" title={secondPlaceUser.userName}>
+                                {secondPlaceUser.hasPremiumBadge && <span>👑</span>}
+                                <span className="name-text">{secondPlaceUser.userName}</span>
+                            </div>
+                            <div className="podium-score">
+                                {secondPlaceUser.score.toFixed(0)} <span>pts</span>
+                            </div>
+                            <div className="podium-badges">
+                                <span className="leaderboard-badge level-badge">Lvl {secondPlaceUser.level || 1}</span>
+                                <span className={`leaderboard-badge league-badge league-${(secondPlaceUser.league || 'Bronze').toLowerCase()}`}>
+                                    {secondPlaceUser.league || 'Bronze'}
+                                </span>
+                            </div>
                         </div>
-                    ) : (
-                        <>
-                            {topUsers.map((entry) => renderRow(entry, currentUser && entry.rank === currentUser.rank))}
+                    )}
 
-                            {/* If User is NOT in Top 10, show separator and user row */}
-                            {!isUserInTop10 && currentUser && (
-                                <>
-                                    <div style={{
-                                        padding: '12px',
-                                        textAlign: 'center',
-                                        color: 'var(--text-muted)',
-                                        fontSize: '20px',
-                                        letterSpacing: '4px'
-                                    }}>
-                                        •••
-                                    </div>
-                                    {renderRow(currentUser, true)}
-                                </>
-                            )}
-                        </>
+                    {/* 1st Place */}
+                    {firstPlaceUser && (
+                        <div className="podium-card first-place">
+                            <span className="podium-crown">👑</span>
+                            <div className="podium-avatar-wrapper">
+                                <div className="podium-avatar">
+                                    {getInitials(firstPlaceUser.userName)}
+                                </div>
+                                <span className="podium-rank-badge">1st</span>
+                            </div>
+                            <div className="podium-username" title={firstPlaceUser.userName}>
+                                {firstPlaceUser.hasPremiumBadge && <span>👑</span>}
+                                <span className="name-text">{firstPlaceUser.userName}</span>
+                            </div>
+                            <div className="podium-score">
+                                {firstPlaceUser.score.toFixed(0)} <span>pts</span>
+                            </div>
+                            <div className="podium-badges">
+                                <span className="leaderboard-badge level-badge">Lvl {firstPlaceUser.level || 1}</span>
+                                <span className={`leaderboard-badge league-badge league-${(firstPlaceUser.league || 'Bronze').toLowerCase()}`}>
+                                    {firstPlaceUser.league || 'Bronze'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 3rd Place */}
+                    {thirdPlaceUser && (
+                        <div className="podium-card third-place">
+                            <div className="podium-avatar-wrapper">
+                                <div className="podium-avatar">
+                                    {getInitials(thirdPlaceUser.userName)}
+                                </div>
+                                <span className="podium-rank-badge">3rd</span>
+                            </div>
+                            <div className="podium-username" title={thirdPlaceUser.userName}>
+                                {thirdPlaceUser.hasPremiumBadge && <span>👑</span>}
+                                <span className="name-text">{thirdPlaceUser.userName}</span>
+                            </div>
+                            <div className="podium-score">
+                                {thirdPlaceUser.score.toFixed(0)} <span>pts</span>
+                            </div>
+                            <div className="podium-badges">
+                                <span className="leaderboard-badge level-badge">Lvl {thirdPlaceUser.level || 1}</span>
+                                <span className={`leaderboard-badge league-badge league-${(thirdPlaceUser.league || 'Bronze').toLowerCase()}`}>
+                                    {thirdPlaceUser.league || 'Bronze'}
+                                </span>
+                            </div>
+                        </div>
                     )}
                 </div>
+            )}
 
-                {/* Score Calculation Info */}
-                <div style={{
-                    marginTop: '0',
-                    padding: '20px',
-                    background: 'rgba(255,255,255,0.03)',
-                    borderTop: '1px solid var(--card-border)',
-                    borderBottomLeftRadius: '24px',
-                    borderBottomRightRadius: '24px',
-                    margin: '0 -28px' // Negative margin to stretch full width of card padding
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--text-muted)' }}>
-                        <FiInfo /> <span style={{ fontWeight: '600', fontSize: '14px' }}>How is this calculated?</span>
+            {/* List Section (Ranks 4-10) */}
+            <div className="leaderboard-list-container">
+                {topUsers.length === 0 ? (
+                    <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        No activity logged this week yet. Be the first to start climbing! 🚀
                     </div>
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                        gap: '12px',
-                        fontSize: '13px',
-                        color: 'var(--text-muted)'
-                    }}>
-                        <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px' }}>
-                            <span style={{ display: 'block', color: 'var(--text-main)', fontWeight: '600' }}>🏋️ Workouts</span>
-                            1 pt / min
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px' }}>
-                            <span style={{ display: 'block', color: 'var(--text-main)', fontWeight: '600' }}>💧 Water</span>
-                            20 pts / Liter
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px' }}>
-                            <span style={{ display: 'block', color: 'var(--text-main)', fontWeight: '600' }}>😴 Sleep</span>
-                            10 pts / Hour
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.05)', padding: '8px 12px', borderRadius: '8px' }}>
-                            <span style={{ display: 'block', color: 'var(--text-main)', fontWeight: '600' }}>🥗 Meals</span>
-                            10 pts / Log
-                        </div>
+                ) : (
+                    <>
+                        {listUsers.map((entry) => renderListRow(entry, currentUser && entry.rank === currentUser.rank))}
+
+                        {/* Current User Fallback Row if not in top list */}
+                        {!isUserInTopList && currentUser && (
+                            <>
+                                <div style={{
+                                    padding: '8px',
+                                    textAlign: 'center',
+                                    color: 'var(--text-muted)',
+                                    fontSize: '18px',
+                                    letterSpacing: '6px'
+                                }}>
+                                    •••
+                                </div>
+                                {renderListRow(currentUser, true)}
+                            </>
+                        )}
+                    </>
+                )}
+            </div>
+
+            {/* Rules panel at the bottom */}
+            <div className="leaderboard-rules-panel">
+                <div className="rules-panel-header">
+                    <FiInfo size={16} /> <span>Score Calculation Rules</span>
+                </div>
+                <div className="rules-grid">
+                    <div className="rule-metric-card">
+                        <span className="rule-metric-title">🏋️ Workouts</span>
+                        <span className="rule-metric-rate">1 pt per minute active</span>
+                    </div>
+                    <div className="rule-metric-card">
+                        <span className="rule-metric-title">💧 Water Intake</span>
+                        <span className="rule-metric-rate">20 pts per Liter logged</span>
+                    </div>
+                    <div className="rule-metric-card">
+                        <span className="rule-metric-title">😴 Sleep Recovery</span>
+                        <span className="rule-metric-rate">10 pts per Hour logged</span>
+                    </div>
+                    <div className="rule-metric-card">
+                        <span className="rule-metric-title">🥗 Meal Logs</span>
+                        <span className="rule-metric-rate">10 pts per logged meal</span>
                     </div>
                 </div>
             </div>

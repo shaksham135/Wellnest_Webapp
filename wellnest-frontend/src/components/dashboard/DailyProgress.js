@@ -1,7 +1,7 @@
 import React from 'react';
-import { FiZap, FiDroplet, FiPieChart } from 'react-icons/fi';
+import { FiZap, FiDroplet, FiPieChart, FiActivity } from 'react-icons/fi';
 
-const DailyProgress = ({ workouts, meals, water }) => {
+const DailyProgress = ({ workouts, meals, water, activities }) => {
     // Filter for TODAY
     const isToday = (dateString) => {
         const d = new Date(dateString);
@@ -35,6 +35,13 @@ const DailyProgress = ({ workouts, meals, water }) => {
     const targetWater = 2.5; // L
     const waterPercent = Math.min((todayWater / targetWater) * 100, 100);
 
+    // --- STEPS ---
+    const todayActivity = activities?.find(a => isToday(a.date || a.createdAt)) || { steps: 0, activeCalories: 0, distanceKm: 0 };
+    const stepsVal = todayActivity.steps || 0;
+    const distanceVal = todayActivity.distanceKm || 0.0;
+    const targetSteps = 10000;
+    const stepsPercent = Math.min((stepsVal / targetSteps) * 100, 100);
+
     // --- MACROS ---
     const todayMacros = meals
         .filter(m => isToday(m.loggedAt))
@@ -59,7 +66,13 @@ const DailyProgress = ({ workouts, meals, water }) => {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span className="muted">Consumed</span>
-                    <span style={{ fontWeight: 'bold' }}>{todayConsumed} / {targetCalories}</span>
+                    <span style={{ 
+                        fontWeight: 'bold', 
+                        color: todayConsumed === 0 ? 'var(--text-muted)' : 'var(--text-main)',
+                        opacity: todayConsumed === 0 ? 0.6 : 1
+                    }}>
+                        {todayConsumed} / {targetCalories}
+                    </span>
                 </div>
                 {/* Progress Bar */}
                 <div style={{ width: '100%', height: '8px', background: 'var(--card-border)', borderRadius: '4px', overflow: 'hidden', marginBottom: '16px' }}>
@@ -100,6 +113,29 @@ const DailyProgress = ({ workouts, meals, water }) => {
                 </div>
                 <p className="muted" style={{ fontSize: '0.85rem' }}>
                     {todayWater >= targetWater ? '🎉 Daily goal reached!' : 'Keep drinking water!'}
+                </p>
+            </div>
+
+            {/* Movement Card */}
+            <div className="analytics-box" style={{ margin: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                    <div style={{ padding: '8px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1' }}>
+                        <FiActivity />
+                    </div>
+                    <h4 style={{ margin: 0 }}>Movement</h4>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '2rem', fontWeight: 'bold', color: '#6366f1', lineHeight: 1 }}>{stepsVal}</span>
+                    <span className="muted" style={{ marginBottom: '6px' }}>/ {targetSteps} steps</span>
+                </div>
+
+                {/* Progress Bar */}
+                <div style={{ width: '100%', height: '8px', background: 'var(--card-border)', borderRadius: '4px', overflow: 'hidden', marginBottom: '16px' }}>
+                    <div style={{ width: `${stepsPercent}%`, height: '100%', background: '#6366f1', borderRadius: '4px' }}></div>
+                </div>
+                <p className="muted" style={{ fontSize: '0.85rem' }}>
+                    {distanceVal > 0 ? `🏃‍♂️ ${distanceVal.toFixed(2)} km covered today` : 'Start walking to reach your goal!'}
                 </p>
             </div>
 

@@ -1,265 +1,236 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import {
-    FiActivity,
-    FiClock,
-    FiSun,
-    FiAward,
-    FiDroplet,
-    FiMoon,
-} from "react-icons/fi";
-
+import React from "react";
 import { useData } from "../../context/DataContext";
-import apiClient from "../../api/apiClient";
-import GoalProgress from "./GoalProgress";
-import QuickActions from "./QuickActions";
 import DailyProgress from "./DailyProgress";
-import RecentActivity from "./RecentActivity";
-import AssignedPlan from "./AssignedPlan"; // Import
+import FocusAura from "./FocusAura";
+import { calculateStreak, calculateOverallStreak } from "../../utils/streakUtils";
 
 const UserDashboard = ({ user }) => {
     const { 
-        workouts: cachedWorkouts, 
-        meals: cachedMeals, 
-        water: cachedWater, 
-        sleep: cachedSleep, 
-        goalData: cachedGoal,
-        dietPlan: cachedDiet,
-        isTrackersLoaded, 
-        refreshTrackers 
+        workouts, 
+        meals, 
+        water, 
+        sleep, 
+        activities,
+        energyForecast,
+        isTrackersLoaded,
+        isSyncing
     } = useData();
 
-    const [loading, setLoading] = useState(!isTrackersLoaded);
-    const [workouts, setWorkouts] = useState(cachedWorkouts);
-    const [meals, setMeals] = useState(cachedMeals);
-    const [water, setWater] = useState(cachedWater);
-    const [sleep, setSleep] = useState(cachedSleep);
-    const [goalData, setGoalData] = useState(cachedGoal);
-    const [dietPlan, setDietPlan] = useState(cachedDiet);
+    // Use global loading state to prevent flickering
+    if (!isTrackersLoaded && isSyncing) {
+        return <div className="dashboard-card" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Syncing Neural Core...</div>;
+    }
 
-    const [healthTip, setHealthTip] = useState("");
-    const [tipLoading, setTipLoading] = useState(true);
-
-    // Sync with context
-    useEffect(() => {
-        if (isTrackersLoaded) {
-            setWorkouts(cachedWorkouts);
-            setMeals(cachedMeals);
-            setWater(cachedWater);
-            setSleep(cachedSleep);
-            setGoalData(cachedGoal);
-            setDietPlan(cachedDiet);
-            setLoading(false);
-        }
-    }, [isTrackersLoaded, cachedWorkouts, cachedMeals, cachedWater, cachedSleep, cachedGoal, cachedDiet]);
-
-    /* ---------------- LOAD TRACKERS ---------------- */
-    useEffect(() => {
-        const loadTrackers = async () => {
-            // Background refresh
-            try {
-                await refreshTrackers();
-            } catch { } finally {
-                setLoading(false);
-            }
-        };
-
-        loadTrackers();
-    }, [refreshTrackers]);
-
-    /* ---------------- DAILY HEALTH TIP ---------------- */
-    /* ---------------- DAILY HEALTH TIP ---------------- */
-    useEffect(() => {
-        const fetchTip = async () => {
-            try {
-                const res = await apiClient.get('/health-tips/daily');
-                if (res.data) {
-                    setHealthTip(res.data);
-                }
-            } catch (error) {
-                console.error("Failed to fetch health tip", error);
-                setHealthTip({ tip: "Stay hydrated and keep moving!" }); // Fallback
-            } finally {
-                setTipLoading(false);
-            }
-        };
-        fetchTip();
-    }, []);
-
-    /* ---------------- CALCULATIONS ---------------- */
-    const totalCaloriesBurned = workouts.reduce(
-        (s, w) => s + (Number(w.caloriesBurned) || 0),
-        0
+    const workoutStreak = calculateStreak(workouts || [], 'performedAt');
+    const waterStreak = calculateStreak(water || [], 'loggedAt');
+    const sleepStreak = calculateStreak(sleep || [], 'sleepDate');
+    
+    const overallStreak = calculateOverallStreak(
+        workouts || [],
+        meals || [],
+        water || [],
+        sleep || [],
+        activities || [],
+        user?.streakShieldCount || 0
     );
 
-    const workoutStreak = workouts.length;
-    const waterStreak = water.length;
-    const sleepStreak = sleep.length;
+    const readiness = energyForecast?.dailyReadiness !== undefined ? energyForecast.dailyReadiness : (energyForecast?.cognitiveReserve || 70);
+    const quality = energyForecast?.dataQuality || 'LOW';
+    const factors = energyForecast?.factors || { sleep: false, hydration: false, workout: false, mental: false };
 
-    if (loading) {
-        return <div className="dashboard-card">Loading stats...</div>;
-    }
+    const getQualityStyle = (q) => {
+        if (q === 'HIGH') return { color: '#10b981', bg: 'rgba(16,185,129,0.08)', label: 'High Confidence' };
+        if (q === 'MEDIUM') return { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', label: 'Medium Confidence' };
+        return { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', label: 'Low Confidence' };
+    };
+    const qualityInfo = getQualityStyle(quality);
 
-    // BMI Logic
-    let bmi = "N/A";
-    let bmiCategory = "Add Details";
-    if (user && user.weightKg && user.heightCm) {
-        const val = user.weightKg / Math.pow(user.heightCm / 100, 2);
-        bmi = val.toFixed(1);
-        if (val < 18.5) bmiCategory = "Underweight";
-        else if (val < 25) bmiCategory = "Normal";
-        else if (val < 30) bmiCategory = "Overweight";
-        else bmiCategory = "Obese";
-    }
+    const factorList = [
+        { name: 'Sleep', active: factors.sleep, icon: '💤' },
+        { name: 'Hydrate', active: factors.hydration, icon: '💧' },
+        { name: 'Workout', active: factors.workout, icon: '🏃‍♂️' },
+        { name: 'Mood', active: factors.mental, icon: '🧠' }
+    ];
+
+    const userOnboardKey = `userFocusGoal_${user?.id || user?.email || 'default'}`;
+    const userFocusGoal = localStorage.getItem(userOnboardKey) || "Stay Hydrated 💧";
+    
+    const getFocusState = (r, goal) => {
+        const isHydration = goal.includes("Hydrated");
+        const isMuscle = goal.includes("Muscle");
+        const isClean = goal.includes("Clean");
+        const isSleep = goal.includes("Sleep");
+        
+        if (r >= 80) {
+            if (isHydration) return { label: 'Peak Hydration Flow', desc: 'Your daily readiness is fully charged and hydrated. Keep sipping water to sustain this peak state.', color: '#14b8a6' };
+            if (isMuscle) return { label: 'Peak Physical Readiness', desc: 'Energy levels are maxed out. Your body is fully primed for high-performance training.', color: '#14b8a6' };
+            if (isClean) return { label: 'Clean Metabolism Flow', desc: 'Nutritional resonance is clear. Your brain is running on high-quality fuel.', color: '#14b8a6' };
+            if (isSleep) return { label: 'Peak Sleep Recovery', desc: 'Your sleep readiness is perfect. A clean recovery cycle is guaranteed tonight.', color: '#14b8a6' };
+            return { label: 'Peak Focus Flow', desc: 'Your daily readiness is fully charged. Perfect time for deep sleep and recovery.', color: '#14b8a6' };
+        }
+        if (r >= 50) {
+            if (isHydration) return { label: 'Stable Hydration State', desc: 'Mind is steady. Remember to drink water to keep your hydration levels optimal.', color: '#6366f1' };
+            if (isMuscle) return { label: 'Stable Recovery State', desc: 'Physical energy is steady. Maintain healthy meals to keep muscles fueled.', color: '#6366f1' };
+            if (isClean) return { label: 'Balanced Nutrition Aura', desc: 'Metabolic energy is stable. Keep eating clean meals to nourish your mind.', color: '#6366f1' };
+            if (isSleep) return { label: 'Balanced Rest Aura', desc: 'Mind and body are in equilibrium. Keep maintaining proper wind-down routine.', color: '#6366f1' };
+            return { label: 'Stable Focus State', desc: 'Your mind is stable and calm. Maintain your hydration and sleep.', color: '#6366f1' };
+        }
+        
+        if (isHydration) return { label: 'Dehydrated Aura', desc: 'Daily readiness is taxed. Drink a glass of water immediately to restore focus.', color: '#f59e0b' };
+        if (isMuscle) return { label: 'Low Energy Aura', desc: 'Muscles need fuel and rest. Log a nutritious meal or schedule recovery time.', color: '#f59e0b' };
+        if (isClean) return { label: 'Unstable Nutrition State', desc: 'Metabolic reserve is depleted. Eat a nutritious snack or meal to recharge.', color: '#f59e0b' };
+        if (isSleep) return { label: 'Deprived Sleep Aura', desc: 'Sleep reserve is running low. Prioritize winding down early and limit blue light.', color: '#f59e0b' };
+        return { label: 'Taxed Daily Readiness', desc: 'Your focus is lower today. Try logging a short break or hydrating.', color: '#f59e0b' };
+    };
+
+    const focusInfo = getFocusState(readiness, userFocusGoal);
 
     return (
-        <>
-            {/* 1. Dashboard Grid (Tracker, Streaks, BMI) */}
-            <div className="dashboard-grid" style={{ marginBottom: '24px', maxWidth: '100%' }}>
-                {/* Box 1: Tracker Summary */}
-                <div className="dash-box">
-                    <div className="dash-box-icon"><FiActivity /></div>
-                    <h3>Tracker Summary</h3>
-                    <ul>
-                        <li>Workouts: <strong>{workouts.length}</strong></li>
-                        <li>Calories Burned: <strong>{totalCaloriesBurned}</strong></li>
-                        <li>Water Logs: <strong>{water.length}</strong></li>
-                        <li>Sleep Logs: <strong>{sleep.length}</strong></li>
-                    </ul>
-                    <Link to="/trackers" className="link-btn">Open Trackers</Link>
-                </div>
-
-                {/* Box 2: Streaks & Goals */}
-                <div className="dash-box">
-                    <div className="dash-box-icon"><FiAward /></div>
-                    <h3>Streaks & Goals</h3>
-                    <div className="streaks-row">
-                        <div className="streak">
-                            <div className="streak-title"><FiActivity /> Active</div>
-                            <div className="streak-value">{workoutStreak}d</div>
-                        </div>
-                        <div className="streak">
-                            <div className="streak-title"><FiDroplet /> Hydration</div>
-                            <div className="streak-value">{waterStreak}d</div>
-                        </div>
-                        <div className="streak">
-                            <div className="streak-title"><FiMoon /> Sleep</div>
-                            <div className="streak-value">{sleepStreak}d</div>
-                        </div>
-                    </div>
-                    <Link to="/analytics" className="link-btn">View Analytics</Link>
-                </div>
-
-                {/* Box 3: BMI */}
-                <div className="dash-box">
-                    <div className="dash-box-icon" style={{ borderColor: 'var(--primary)' }}><FiClock /></div>
-                    <h3>BMI</h3>
-                    <div className="bmi-box-content">
-                        <div className="bmi-value">{bmi}</div>
-                        <div className="bmi-meta">
-                            <div className="bmi-category">{bmiCategory}</div>
-                            <div>Based on height/weight</div>
-                        </div>
-                    </div>
-                    <Link to="/bmi-calculator" className="link-btn">Calculator</Link>
-                </div>
-
-            </div>
-
-            {/* --- DIVIDER --- */}
-            <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid var(--card-border)' }} />
-
-            {/* Assigned Plan from Trainer */}
-            <AssignedPlan plan={dietPlan} />
-
-            {/* 2. Daily Progress */}
-            <DailyProgress workouts={workouts} meals={meals} water={water} />
-
-            {/* --- DIVIDER --- */}
-            <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid var(--card-border)' }} />
-
-            {/* 3. Quick Actions */}
-            <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                    <FiSun style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }} />
-                    <h3 style={{ margin: 0 }}>Quick Actions</h3>
-                </div>
-                <QuickActions />
-            </div>
-
-            {/* ================= BOTTOM SECTION: Goal & Activity (Stacked Full Width) ================= */}
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
-
-                {/* Row 1: Goal Progress (Full Width) */}
-                <div className="dashboard-card" style={{ padding: '0', overflow: 'hidden', maxWidth: '100%' }}>
-                    <GoalProgress
-                        data={goalData}
-                        onGoalSet={() => {
-                            apiClient.get('/analytics/summary').then(res => setGoalData(res.data.goalProgress));
-                        }}
-                    />
-                </div>
-
-                {/* Row 2: Recent Activity (Full Width) */}
-                <div className="dashboard-card" style={{ maxWidth: '100%' }}>
-                    <RecentActivity workouts={workouts} meals={meals} water={water} sleep={sleep} />
-                </div>
-            </div>
-
-            {/* ================= DAILY HEALTH TIP ================= */}
-            {/* ================= DAILY HEALTH TIP ================= */}
-            <div className="dashboard-card" style={{
-                maxWidth: '100%',
-                marginTop: '24px',
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                color: 'white',
-                border: 'none',
-                position: 'relative',
-                overflow: 'hidden'
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+            
+            {/* HERO FOCUS AURA */}
+            <div className="dash-box focus-aura-card" style={{
+                background: 'linear-gradient(135deg, var(--card-bg) 0%, rgba(20, 184, 166, 0.03) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                padding: '24px',
+                borderRadius: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                gap: '16px'
             }}>
-                <div style={{ position: 'relative', zIndex: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                        <div style={{
-                            background: 'rgba(255,255,255,0.2)',
-                            borderRadius: '50%', padding: '10px',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                            <FiSun style={{ color: "white", fontSize: 24 }} />
-                        </div>
-                        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'white' }}>Daily Health Tip</h3>
-                    </div>
+                <span style={{ 
+                    fontSize: '11px', 
+                    fontWeight: 800, 
+                    color: focusInfo.color, 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '1.5px' 
+                }}>
+                    Focus Aura
+                </span>
+                
+                <FocusAura reserve={readiness} />
 
-                    {tipLoading
-                        ? <p style={{ opacity: 0.8 }}>Fetching your tip...</p>
-                        : <div>
-                            <div style={{ fontSize: '1.2rem', fontWeight: 600, lineHeight: '1.6', fontStyle: 'italic', opacity: 0.95, marginBottom: '8px' }}>
-                                "{healthTip.tip || healthTip}"
-                            </div>
-                            {healthTip.link && (
-                                <a
-                                    href={healthTip.link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{ color: 'white', textDecoration: 'underline', fontSize: '0.9rem', opacity: 0.9 }}
-                                >
-                                    Read more from {healthTip.source || "Source"}
-                                </a>
-                            )}
-                        </div>}
+                {/* Score Confidence indicator */}
+                <div style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    padding: '3px 8px',
+                    borderRadius: '8px',
+                    color: qualityInfo.color,
+                    background: qualityInfo.bg,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginTop: '-4px',
+                    border: `1px solid ${qualityInfo.color}20`
+                }}>
+                    Data Quality: {qualityInfo.label}
                 </div>
 
-                {/* Decorative Background Icon */}
-                <FiSun style={{
-                    position: 'absolute',
-                    right: -20, bottom: -40,
-                    fontSize: '180px',
-                    color: 'white',
-                    opacity: 0.1,
-                    transform: 'rotate(-20deg)',
-                    pointerEvents: 'none'
-                }} />
+                {/* Factors checklist */}
+                <div style={{ 
+                    display: 'flex', 
+                    gap: '6px', 
+                    flexWrap: 'wrap', 
+                    justifyContent: 'center', 
+                    marginTop: '2px',
+                    maxWidth: '320px'
+                }}>
+                    {factorList.map((f, idx) => (
+                        <span key={idx} style={{
+                            fontSize: '9.5px',
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: '10px',
+                            background: f.active ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                            color: f.active ? '#10b981' : 'rgba(255, 255, 255, 0.25)',
+                            border: f.active ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(255, 255, 255, 0.04)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                        }}>
+                            {f.active ? '✓' : '✗'} {f.icon} {f.name}
+                        </span>
+                    ))}
+                </div>
+                
+                <div style={{ marginTop: '4px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                        Primary Focus
+                    </span>
+                    <span style={{ 
+                        fontSize: '13px', 
+                        fontWeight: 800, 
+                        background: 'rgba(20, 184, 166, 0.08)', 
+                        border: '1px solid rgba(20, 184, 166, 0.15)', 
+                        padding: '6px 14px', 
+                        borderRadius: '16px',
+                        color: 'var(--primary)',
+                        display: 'inline-block'
+                    }}>
+                        {userFocusGoal}
+                    </span>
+                </div>
             </div>
-        </>
+
+            {/* NEURAL STREAKS */}
+            <div className="dash-box" style={{ 
+                background: 'linear-gradient(135deg, var(--card-bg) 0%, rgba(245, 158, 11, 0.03) 100%)',
+                border: (overallStreak > 0) ? '1px solid rgba(245, 158, 11, 0.2)' : '1px solid var(--card-border)',
+                width: '100%',
+                borderRadius: '24px',
+                padding: '24px'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>Neural Streaks</h3>
+                        {overallStreak > 0 ? (
+                            <span className="header-badge streak-badge" style={{ margin: 0 }}>
+                                🔥 {overallStreak} Day{overallStreak !== 1 ? 's' : ''} Active
+                            </span>
+                        ) : (
+                            <span className="header-badge" style={{ margin: 0, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-muted)' }}>
+                                No Active Streak
+                            </span>
+                        )}
+                        {user?.streakShieldCount > 0 && (
+                            <span className="header-badge" style={{ margin: 0, background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60a5fa' }} title="Streak Shields Active">
+                                🛡️ x{user.streakShieldCount}
+                            </span>
+                        )}
+                    </div>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {[
+                        { label: 'Fitness', val: workoutStreak, color: '#ef4444', total: 7 },
+                        { label: 'Hydration', val: waterStreak, color: '#3b82f6', total: 7 },
+                        { label: 'Recovery', val: sleepStreak, color: '#8b5cf6', total: 7 }
+                    ].map(s => (
+                        <div key={s.label}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
+                                <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>{s.label} Streak</span>
+                                <span style={{ fontWeight: 900, color: s.val > 0 ? s.color : 'var(--text-muted)' }}>{s.val} Day{s.val !== 1 ? 's' : ''}</span>
+                            </div>
+                            <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                                <div style={{ 
+                                    width: `${Math.min((s.val/s.total)*100, 100)}%`, 
+                                    height: '100%', 
+                                    background: s.color,
+                                    boxShadow: `0 0 10px ${s.color}60`
+                                }} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* DAILY PROGRESS BARS */}
+            <DailyProgress workouts={workouts} meals={meals} water={water} activities={activities} />
+
+        </div>
     );
 };
 

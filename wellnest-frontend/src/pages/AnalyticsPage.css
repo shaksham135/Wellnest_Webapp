@@ -1,5 +1,5 @@
 .analytics-page-container {
-    padding: 20px;
+    padding: 10px 20px;
     max-width: 1200px;
     margin: 0 auto;
 }
@@ -7,8 +7,8 @@
 .analytics-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 2rem;
-    margin-top: 2rem;
+    gap: 1.5rem;
+    margin-top: 1rem;
 }
 
 .analytics-box {
@@ -140,5 +140,157 @@
     .chart-container {
         width: 100%;
         overflow: hidden;
+    }
+}
+
+/* PREMIUM NEURAL CORE STYLES */
+.premium-neural-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.8));
+    border: 1px solid var(--primary-border);
+    padding: 32px !important;
+    box-shadow: 0 0 30px rgba(94, 234, 212, 0.1);
+    color: #fff;
+}
+
+[data-theme="light"] .premium-neural-card {
+    background: linear-gradient(135deg, #ffffff, #f8fafc);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    color: var(--text-main);
+}
+
+.premium-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    height: 32px; /* Fixed height for the header row to ensure alignment */
+}
+
+.premium-icon {
+    font-size: 20px;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+}
+
+.premium-header h3 {
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: inherit;
+    font-size: 18px;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+}
+
+.premium-badge {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 18px;
+    margin: 0;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.neural-metrics-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 32px;
+}
+
+.neural-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.neural-metric .label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.value-bar-container {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+[data-theme="light"] .value-bar-container {
+    background: #f1f5f9;
+}
+
+.value-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.neural-metric .value {
+    font-size: 24px;
+    font-weight: 900;
+    color: inherit;
+}
+
+.ai-insights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ai-insight-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 14px 18px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.2s ease;
+}
+
+[data-theme="light"] .ai-insight-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.ai-insight-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateX(4px);
+}
+
+[data-theme="light"] .ai-insight-item:hover {
+    background: #f1f5f9;
+}
+
+.insight-icon {
+    color: var(--primary);
+    font-size: 18px;
+}
+
+.ai-insight-item p {
+    margin: 0;
+    font-size: 14px;
+    color: inherit;
+    opacity: 0.9;
+}
+
+@media (max-width: 600px) {
+    .neural-metrics-row {
+        grid-template-columns: 1fr;
     }
 }

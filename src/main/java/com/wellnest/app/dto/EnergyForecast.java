@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -14,7 +15,10 @@ public class EnergyForecast {
     private String status;      // PEAK, FLOW, STABLE, RECOVERY, DIP
     private String message;     // Current contextual insight
     private List<HourForecast> forecast; // Next 6 hours
-    private int cognitiveReserve; // 0-100 Cognitive Readiness
+    private int cognitiveReserve; // Legacy 0-100 Cognitive Readiness
+    private int dailyReadiness; // New 0-100 Daily Readiness
+    private String dataQuality; // HIGH, MEDIUM, LOW
+    private Map<String, Boolean> factors; // Active factors for today
 
     @Data
     @NoArgsConstructor

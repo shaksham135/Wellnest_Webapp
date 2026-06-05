@@ -70,6 +70,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/contact/**").permitAll() // Contact form public access
                         .requestMatchers("/api/chat/**").permitAll() // Chatbot public access
                         .requestMatchers("/api/activity/**").authenticated() // For mobile sync
+                        .requestMatchers("/api/mental", "/api/mental/**").authenticated()
+                        .requestMatchers("/api/analytics/**").authenticated()
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated() // rest require token
                 )
@@ -103,7 +105,9 @@ public class SecurityConfig {
             "capacitor://localhost",
             "http://localhost:*",
             "https://localhost:*",
+            "http://127.0.0.1",
             "http://127.0.0.1:*",
+            "https://127.0.0.1:*",
             "capacitor://*",
             "https://*.vercel.app",
             "https://*.onrender.com"

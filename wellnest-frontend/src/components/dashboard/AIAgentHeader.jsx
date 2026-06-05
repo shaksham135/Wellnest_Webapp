@@ -1,24 +1,71 @@
 import React, { useState, useEffect } from 'react';
-import { FiZap, FiMoon, FiActivity, FiArrowRight } from 'react-icons/fi';
+import CoinShopModal from './CoinShopModal';
+import { FiVolume2, FiVolumeX } from 'react-icons/fi';
+import PremiumGate from '../shared/PremiumGate';
 import { getDailyBriefing } from '../../api/assistantApi';
-import CognitiveAura from './CognitiveAura';
 import VoiceScanButton from './VoiceScanButton';
 import { useData } from '../../context/DataContext';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { calculateOverallStreak, toLocalDateString } from '../../utils/streakUtils';
+import { speakMessage } from '../../utils/ttsService';
 
-const AIAgentHeader = ({ user, activities, sleep, readinessScore }) => {
+
+const AIAgentHeader = ({ user, activities, sleep, readinessScore, onUserRefresh }) => {
+    const isTrainer = user?.role === 'ROLE_TRAINER' || user?.role === 'TRAINER';
+    const [shopOpen, setShopOpen] = useState(false);
     const navigate = useNavigate();
-    const { energyForecast, submitVoiceCommand } = useData();
+    const { energyForecast, submitVoiceCommand, workouts, meals, water, sleep: contextSleep, activities: contextActivities } = useData();
+    
+    const currentWorkouts = workouts || [];
+    const currentMeals = meals || [];
+    const currentWater = water || [];
+    const currentSleep = sleep || contextSleep || [];
+    const currentActivities = activities || contextActivities || [];
+
+    const overallStreak = calculateOverallStreak(
+        currentWorkouts,
+        currentMeals,
+        currentWater,
+        currentSleep,
+        currentActivities,
+        user?.streakShieldCount || 0
+    );
+
     const [briefing, setBriefing] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [isMuted, setIsMuted] = useState(() => localStorage.getItem('coach_voice_muted') === 'true');
+    const [showTextInput, setShowTextInput] = useState(false);
+    const [textCommand, setTextCommand] = useState("");
 
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
     
+    const toggleMute = () => {
+        setIsMuted(prev => {
+            const next = !prev;
+            localStorage.setItem('coach_voice_muted', String(next));
+            if (next && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            return next;
+        });
+    };
+
+    const checkVoiceLimit = () => {
+        const todayStr = toLocalDateString(new Date());
+        const isVoiceLimitExceeded = !user?.isPremium && 
+            (user?.lastVoiceDate === todayStr && user?.dailyVoiceCount >= 3);
+        
+        if (isVoiceLimitExceeded) {
+            const msg = "You've reached your free daily limit of 3 AI commands. Upgrade to Premium for unlimited voice logs! 🚀";
+            toast.error(msg);
+            setBriefing(msg);
+            speakMessage("You've reached your free daily limit of 3 AI commands. Upgrade to Premium for unlimited voice logs.", isMuted);
+            navigate('/premium');
+            return false;
+        }
+        return true;
+    };
+
     const handleVoiceScanComplete = async (audioBlob) => {
         try {
             setLoading(true);
@@ -27,20 +74,46 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore }) => {
             setBriefing(res.displayMessage);
             
             // 🎙️ Enable Coach's Voice (TTS) - Using the clean voiceMessage
-            if ('speechSynthesis' in window && res.voiceMessage) {
-                const utterance = new SpeechSynthesisUtterance(res.voiceMessage);
-                utterance.rate = 1.05; // Natural, energetic pace
-                window.speechSynthesis.speak(utterance);
+            if (res.voiceMessage) {
+                speakMessage(res.voiceMessage, isMuted);
             }
 
             console.log("AIAgentHeader: AI Command Executed. ⚡", res);
         } catch (err) {
             console.error("AIAgentHeader: Voice Command failed.", err);
-            setBriefing(err.message || "I couldn't quite catch that. Try saying 'Log 500ml water'.");
+            setBriefing(err.message || "I couldn't quite catch that. Try saying 'Log 500ml water' or 'Maine do glass paani piya'.");
             
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.speak(new SpeechSynthesisUtterance("I couldn't quite catch that."));
+            const speakMsg = err.voiceMessage || "I couldn't quite catch that.";
+            speakMessage(speakMsg, isMuted);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleTextCommandSubmit = async (e) => {
+        e.preventDefault();
+        const command = textCommand.trim();
+        if (!command) return;
+
+        if (!checkVoiceLimit()) return;
+
+        try {
+            setLoading(true);
+            const res = await submitVoiceCommand(command);
+            
+            setBriefing(res.displayMessage);
+            
+            if (res.voiceMessage) {
+                speakMessage(res.voiceMessage, isMuted);
             }
+            setTextCommand("");
+            setShowTextInput(false);
+            toast.success("Command logged! ✨");
+        } catch (err) {
+            console.error("AIAgentHeader: Text Command failed.", err);
+            setBriefing(err.message || "I couldn't quite catch that. Try writing 'Log 500ml water' or 'Maine do glass paani piya'.");
+            const speakMsg = err.voiceMessage || "I couldn't quite catch that.";
+            speakMessage(speakMsg, isMuted);
         } finally {
             setLoading(false);
         }
@@ -61,7 +134,7 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore }) => {
 
             try {
                 setLoading(true);
-                const localDate = new Date().toISOString().split('T')[0];
+                const localDate = toLocalDateString(new Date());
                 
                 // 7-second timeout for premium speed
                 const timeoutPromise = new Promise((resolve) => 
@@ -95,115 +168,192 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore }) => {
     }, [user?.id, user?.isPremium, (activities?.length || 0), (sleep?.length || 0)]); 
 
     const getGreeting = () => {
-        if (hour < 12) return "Good morning";
-        if (hour < 17) return "Good afternoon";
-        return "Good evening";
+        if (hour < 12) {
+            return "Good morning";
+        }
+        if (hour < 17) {
+            return "Welcome back";
+        }
+        return "Ready for today's check-in?";
     };
 
-    const getStatusIcon = () => {
-        if (hour < 12) return <FiZap style={{ color: '#fbbf24' }} />;
-        if (hour < 17) return <FiActivity style={{ color: '#5eead4' }} />;
-        return <FiMoon style={{ color: '#818cf8' }} />;
-    };
 
     return (
-        <div className="ai-agent-header card" style={{
-            padding: '24px',
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row-reverse',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '24px',
-            background: 'var(--card-bg)',
-            border: '1px solid var(--card-border)',
-            marginBottom: '24px',
-            position: 'relative',
-            overflow: 'hidden'
-        }}>
-        {/* Performance Hub: The Neural Suite Control Panel (Refined Suite) */}
-        <div className="neural-performance-hub" style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '20px', 
-            background: 'rgba(94, 234, 212, 0.05)',
-            padding: '12px 24px',
-            borderRadius: '24px',
-            border: '1px solid var(--card-border)',
-            boxShadow: 'var(--card-shadow)',
-            flexShrink: 0,
-            justifyContent: 'center',
-            width: isMobile ? '100%' : 'auto',
-            order: 2
-        }}>
-            <VoiceScanButton onScanComplete={handleVoiceScanComplete} mode="command" />
-
-            {user?.isPremium && (
-                <CognitiveAura reserve={energyForecast?.cognitiveReserve || 85} />
-            )}
-
-            <div 
-                onClick={() => { if (!user?.isPremium) navigate('/premium'); }}
-                style={{
-                    padding: '6px 14px',
-                    background: user?.isPremium ? 'rgba(94, 234, 212, 0.1)' : 'rgba(251, 191, 36, 0.1)',
-                    border: user?.isPremium ? '1px solid var(--primary-border)' : '1px solid #fbbf24',
-                    borderRadius: '14px',
-                    fontSize: '10px',
-                    fontWeight: 900,
-                    color: user?.isPremium ? 'var(--primary)' : '#fbbf24',
-                    textTransform: 'uppercase',
-                    letterSpacing: '1.2px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    cursor: user?.isPremium ? 'default' : 'pointer',
-                    whiteSpace: 'nowrap'
-                }}>
-                {user?.isPremium ? <><FiZap /> AI ACTIVE</> : <><FiZap /> GO PREMIUM <FiArrowRight /></>}
-            </div>
-        </div>
-
-            <div style={{ 
-                flex: isMobile ? '0 1 auto' : '1 1 auto', 
-                zIndex: 2, 
-                order: 1,
-                textAlign: isMobile ? 'center' : 'left'
-            }}>
-                <h2 style={{ 
-                    margin: 0, 
-                    fontSize: '1.25rem', 
-                    fontWeight: 800, 
-                    color: 'var(--text-main)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: isMobile ? 'center' : 'flex-start',
-                    gap: '8px',
-                    flexWrap: 'wrap'
-                }}>
-                    {getGreeting()}, {firstName}! {getStatusIcon()}
+        <>
+        <div className="ai-agent-header card">
+            <div className="header-text-section">
+                <h2>
+                    {getGreeting()}, {firstName}! {user?.hasPremiumBadge && <span style={{ color: '#fbbf24', textShadow: '0 0 8px rgba(251, 191, 36, 0.6)' }} title="Elite Member">👑</span>}
                 </h2>
-                <p style={{ 
-                    margin: '6px 0 0', 
-                    fontSize: '14px', 
-                    color: 'var(--text-muted)', 
-                    lineHeight: 1.5, 
-                    fontWeight: 500,
-                    maxWidth: '500px',
-                    marginLeft: isMobile ? 'auto' : '0',
-                    marginRight: isMobile ? 'auto' : '0'
-                }}>
-                    {loading ? (
-                        <span style={{ opacity: 0.6, fontStyle: 'italic' }}>AI is analyzing your stats for today...</span>
+
+                {!isTrainer && (
+                    <div className="header-badges-row">
+                        <span className="header-badge level-badge">LVL {user?.level || 1}</span>
+                        <span 
+                            className="header-badge streak-badge"
+                            title="Continuous Active Streak"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => {
+                                toast(`You have a ${overallStreak}-day active streak! Keep logging your trackers to maintain it. 🔥`, {
+                                    icon: '🔥',
+                                    style: {
+                                        background: 'var(--card-bg)',
+                                        color: 'var(--text-main)',
+                                        border: '1px solid rgba(245, 158, 11, 0.3)'
+                                    }
+                                });
+                            }}
+                        >
+                            🔥 {overallStreak} Days
+                        </span>
+                        <span
+                            className="header-badge coins-badge"
+                            onClick={() => setShopOpen(true)}
+                            title="Open Coin Shop"
+                            style={{ cursor: 'pointer' }}
+                        >
+                            🪙 {user?.coins || 0}
+                        </span>
+                    </div>
+                )}
+
+                {/* Mini XP Progress Bar */}
+                {!isTrainer && (
+                    <div className="header-xp-container" title={`${user?.xp || 0} / ${(user?.level || 1) * 100} XP to Level Up`}>
+                        <div className="header-xp-bar">
+                            <div 
+                                className="header-xp-fill" 
+                                style={{ width: `${Math.min(100, ((user?.xp || 0) / ((user?.level || 1) * 100)) * 100)}%` }} 
+                            />
+                        </div>
+                        <span className="header-xp-text">{user?.xp || 0} / {(user?.level || 1) * 100} XP</span>
+                    </div>
+                )}
+
+                <PremiumGate
+                    isPremium={user?.isPremium}
+                    featureName="AI Daily Briefings"
+                    featureDesc="Get time-aware personalized daily coaching insights based on your habit logs."
+                    compact={true}
+                >
+                    <p style={{ marginTop: '16px' }}>
+                        {loading ? (
+                            <span style={{ opacity: 0.6, fontStyle: 'italic' }}>AI is analyzing your stats for today...</span>
+                        ) : (
+                            briefing || "Ready to log today?"
+                        )}
+                    </p>
+                </PremiumGate>
+            </div>
+
+            {/* Performance Hub: Bottom Mic talk center */}
+            <div className="neural-performance-hub" style={{ flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', justifyContent: 'center', width: '100%' }}>
+                    <div style={{ width: '40px' }} /> {/* Balance space */}
+                    <VoiceScanButton onScanComplete={handleVoiceScanComplete} onBeforeStart={checkVoiceLimit} mode="command" />
+                    <button 
+                        onClick={toggleMute}
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '8px',
+                            borderRadius: '50%',
+                            transition: 'background 0.2s',
+                            outline: 'none',
+                            width: '40px',
+                            height: '40px'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                        title={isMuted ? "Unmute AI Voice" : "Mute AI Voice"}
+                    >
+                        {isMuted ? <FiVolumeX size={18} style={{ color: 'var(--text-muted)' }} /> : <FiVolume2 size={18} style={{ color: 'var(--text-muted)' }} />}
+                    </button>
+                </div>
+                
+                <div className="voice-helper-text" style={{ fontSize: '12px', color: 'var(--text-muted)', opacity: 0.85, textAlign: 'center', lineHeight: '1.6', marginTop: '4px' }}>
+                    <span style={{ display: 'block', fontWeight: '600', marginBottom: '2px' }}>🎤 Hold and speak naturally</span>
+                    <span style={{ fontSize: '11px', opacity: 0.75 }}>
+                        "Drank 500ml water" &bull; "Walked 30 mins" &bull; "Slept 7 hours"
+                    </span>
+                </div>
+                
+                <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '280px', margin: '0 auto' }}>
+                    {showTextInput ? (
+                        <form onSubmit={handleTextCommandSubmit} style={{ display: 'flex', gap: '8px', width: '100%', alignItems: 'center' }}>
+                            <input 
+                                type="text" 
+                                placeholder="Type log (e.g. 500ml water)..." 
+                                value={textCommand} 
+                                onChange={(e) => setTextCommand(e.target.value)}
+                                style={{
+                                    flex: 1,
+                                    background: 'rgba(255, 255, 255, 0.03)',
+                                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                                    borderRadius: '8px',
+                                    padding: '6px 12px',
+                                    fontSize: '12px',
+                                    color: 'var(--text-main)',
+                                    outline: 'none'
+                                }}
+                            />
+                            <button 
+                                type="submit" 
+                                className="primary-btn small" 
+                                style={{ width: 'auto', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', background: 'var(--primary)', color: '#000', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}
+                            >
+                                Log
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={() => { setShowTextInput(false); setTextCommand(""); }}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    fontSize: '11px',
+                                    textDecoration: 'underline'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </form>
                     ) : (
-                        briefing === "UNLOCKED_PREMIUM_ONLY" ? (
-                            <span style={{ color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
-                                <FiZap /> Upgrade to Premium to unlock AI daily briefing!
-                            </span>
-                        ) : (briefing || "Ready for your daily performance check-in? Sync your data to begin. 🚀")
+                        <button 
+                            onClick={() => setShowTextInput(true)}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--primary)',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                                textDecoration: 'underline',
+                                fontWeight: '600'
+                            }}
+                        >
+                            ⌨️ Can't speak? Type instead
+                        </button>
                     )}
-                </p>
+                </div>
             </div>
         </div>
+        <CoinShopModal
+            isOpen={shopOpen}
+            onClose={() => setShopOpen(false)}
+            userCoins={user?.coins || 0}
+            user={user}
+            onPurchaseSuccess={() => {
+                setShopOpen(false);
+                if (onUserRefresh) onUserRefresh();
+            }}
+        />
+    </>
     );
 };
 

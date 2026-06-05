@@ -3,15 +3,14 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
     FiBarChart2, 
     FiActivity, 
-    FiUsers, 
     FiTrendingUp
 } from 'react-icons/fi';
 
 const BottomNav = ({ isLoggedIn, userRole, onToggleMenu }) => {
     const location = useLocation();
     
-    // Hide BottomNav if not logged in or on specific pages like Admin Dashboard
-    const hideOnRoutes = ['/admin-dashboard', '/login', '/register', '/forgot-password', '/reset-password', '/setup-profile'];
+    // Hide BottomNav if not logged in or on specific pages like Admin Dashboard/Premium Page
+    const hideOnRoutes = ['/admin-dashboard', '/login', '/register', '/forgot-password', '/reset-password', '/setup-profile', '/premium'];
     const shouldHide = !isLoggedIn || hideOnRoutes.some(route => location.pathname.startsWith(route)) || location.pathname === '/';
 
     if (shouldHide) return null;
@@ -31,16 +30,6 @@ const BottomNav = ({ isLoggedIn, userRole, onToggleMenu }) => {
             <NavLink to="/analytics" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
                 <FiTrendingUp />
                 <span>Analytics</span>
-            </NavLink>
-            
-            <NavLink to={userRole === 'ROLE_TRAINER' ? '/trainers' : '/trainers'} className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-                <FiUsers />
-                <span>{userRole === 'ROLE_TRAINER' ? 'Clients' : 'Trainers'}</span>
-            </NavLink>
-
-            <NavLink to="/community" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-                <FiUsers />
-                <span>Feed</span>
             </NavLink>
         </nav>
     );

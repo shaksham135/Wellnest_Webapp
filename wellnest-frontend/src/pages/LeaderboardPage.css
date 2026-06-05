@@ -1,0 +1,463 @@
+/* e:\app\wellnest-frontend\src\pages\LeaderboardPage.css */
+
+.leaderboard-page-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 16px 80px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    box-sizing: border-box;
+}
+
+/* HEADER STYLE */
+.leaderboard-title-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 8px;
+}
+
+.leaderboard-icon-wrapper {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0.03) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    width: 60px;
+    height: 60px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fbbf24;
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.1);
+}
+
+.leaderboard-title-section h1 {
+    font-size: 2.2rem;
+    font-weight: 900;
+    margin: 0;
+    background: linear-gradient(135deg, var(--text-main) 0%, rgba(255, 255, 255, 0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.leaderboard-title-section p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 4px 0 0 0;
+}
+
+/* PODIUM STYLING */
+.leaderboard-podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 20px;
+    margin: 20px 0;
+    padding-top: 40px; /* Space for crown on 1st place */
+}
+
+.podium-card {
+    flex: 1;
+    max-width: 240px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: 28px;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    box-shadow: var(--shadow-md);
+    cursor: default;
+}
+
+.podium-card:hover {
+    transform: translateY(-8px);
+}
+
+/* 1st Place Specifics */
+.podium-card.first-place {
+    padding-top: 36px;
+    z-index: 2;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    background: linear-gradient(180deg, rgba(251, 191, 36, 0.04) 0%, rgba(11, 15, 31, 0.8) 100%);
+    box-shadow: 0 20px 50px rgba(251, 191, 36, 0.08), var(--shadow-lg);
+}
+
+.podium-card.first-place:hover {
+    box-shadow: 0 25px 60px rgba(251, 191, 36, 0.15), var(--shadow-lg);
+}
+
+.podium-crown {
+    position: absolute;
+    top: -36px;
+    font-size: 40px;
+    filter: drop-shadow(0 4px 10px rgba(251, 191, 36, 0.4));
+    animation: crownFloat 2s ease-in-out infinite alternate;
+}
+
+@keyframes crownFloat {
+    0% { transform: translateY(0) rotate(-5deg); }
+    100% { transform: translateY(-6px) rotate(5deg); }
+}
+
+/* 2nd Place Specifics */
+.podium-card.second-place {
+    z-index: 1;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: 0 15px 35px rgba(148, 163, 184, 0.05), var(--shadow-md);
+}
+
+/* 3rd Place Specifics */
+.podium-card.third-place {
+    z-index: 1;
+    border: 1px solid rgba(180, 83, 9, 0.25);
+    box-shadow: 0 15px 35px rgba(180, 83, 9, 0.05), var(--shadow-md);
+}
+
+/* Avatar container inside podium cards */
+.podium-avatar-wrapper {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.podium-avatar {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 24px;
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.first-place .podium-avatar {
+    width: 84px;
+    height: 84px;
+    font-size: 28px;
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+    border: 3px solid #fbbf24;
+    box-shadow: 0 8px 25px rgba(251, 191, 36, 0.35);
+}
+
+.second-place .podium-avatar {
+    background: linear-gradient(135deg, #cbd5e1 0%, #64748b 100%);
+    border: 2px solid #cbd5e1;
+    box-shadow: 0 8px 20px rgba(203, 213, 225, 0.25);
+}
+
+.third-place .podium-avatar {
+    background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+    border: 2px solid #f59e0b;
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.25);
+}
+
+.podium-rank-badge {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 900;
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    text-transform: uppercase;
+}
+
+.first-place .podium-rank-badge {
+    background: #fbbf24;
+    color: #0f172a;
+}
+
+.second-place .podium-rank-badge {
+    background: #cbd5e1;
+    color: #0f172a;
+}
+
+.third-place .podium-rank-badge {
+    background: #f59e0b;
+    color: #fff;
+}
+
+/* User Info on Podium */
+.podium-username {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    max-width: 100%;
+}
+
+.podium-username .name-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 130px;
+}
+
+.podium-score {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--primary);
+    margin-bottom: 12px;
+}
+
+.podium-score span {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.podium-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+}
+
+/* LIST CONTAINER STYLING */
+.leaderboard-list-container {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: 32px;
+    padding: 12px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+}
+
+.leaderboard-list-row {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    border-radius: 22px;
+    transition: background 0.2s ease, transform 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.leaderboard-list-row:hover {
+    background: rgba(255, 255, 255, 0.02);
+    transform: scale(1.01);
+}
+
+.leaderboard-list-row:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Highlight row for current user */
+.leaderboard-list-row.is-current-user {
+    background: linear-gradient(90deg, rgba(94, 234, 212, 0.08) 0%, rgba(167, 139, 250, 0.04) 100%);
+    border: 1px solid rgba(94, 234, 212, 0.25);
+    box-shadow: 0 10px 30px rgba(94, 234, 212, 0.05);
+}
+
+.leaderboard-list-row.is-current-user:hover {
+    background: linear-gradient(90deg, rgba(94, 234, 212, 0.12) 0%, rgba(167, 139, 250, 0.06) 100%);
+}
+
+.row-rank-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted);
+    margin-right: 18px;
+    flex-shrink: 0;
+}
+
+.is-current-user .row-rank-num {
+    background: var(--primary);
+    color: #0f172a;
+}
+
+.row-user-details {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    gap: 16px;
+}
+
+.row-user-left {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.row-username-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.row-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-main);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+}
+
+.is-current-user .row-name {
+    color: var(--primary);
+    font-weight: 800;
+}
+
+.row-status-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.row-user-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.row-score-wrapper {
+    text-align: right;
+}
+
+.row-score-val {
+    font-weight: 800;
+    font-size: 17px;
+    color: var(--text-main);
+}
+
+.is-current-user .row-score-val {
+    color: var(--primary);
+    font-size: 19px;
+}
+
+.row-score-label {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* RULES / CALCULATION CARDS */
+.leaderboard-rules-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: 32px;
+    padding: 28px;
+    box-shadow: var(--shadow-lg);
+}
+
+.rules-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+}
+
+.rules-panel-header span {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-main);
+}
+
+.rules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.rule-metric-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 20px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.rule-metric-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    transform: translateY(-2px);
+}
+
+.rule-metric-title {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.rule-metric-rate {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* MULTI-DEVICE RESPONSIVENESS */
+
+@media (max-width: 768px) {
+    .leaderboard-page-container {
+        padding-bottom: 100px;
+        gap: 24px;
+    }
+
+    .leaderboard-title-section h1 {
+        font-size: 1.8rem;
+    }
+
+    .leaderboard-podium {
+        flex-direction: column;
+        align-items: center;
+        gap: 40px; /* Space between stacked cards */
+        padding-top: 20px;
+    }
+
+    .podium-card {
+        width: 100%;
+        max-width: 280px;
+    }
+
+    .podium-card.first-place {
+        order: -1; /* Keep 1st place visually on top when stacked */
+        transform: scale(1.05);
+    }
+    
+    .podium-card.first-place:hover {
+        transform: scale(1.05) translateY(-4px);
+    }
+
+    .podium-card.second-place {
+        order: 1;
+    }
+
+    .podium-card.third-place {
+        order: 2;
+    }
+
+    .row-name {
+        max-width: 120px;
+    }
+}

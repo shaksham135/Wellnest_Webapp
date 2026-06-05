@@ -7,7 +7,7 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale,
   PointElement, LineElement, BarElement, Tooltip, Filler, Legend
 } from "chart.js";
-import { getWeeklyReport } from "../api/reportApi";
+import { getWeeklyReport, refreshWeeklyReport } from "../api/reportApi";
 import toast from "react-hot-toast";
 import "./HealthReport.css";
 
@@ -93,6 +93,7 @@ const HealthReport = () => {
   const [report,  setReport]  = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const printRef = useRef(null);
 
   const fetchReport = useCallback(async () => {
@@ -101,6 +102,22 @@ const HealthReport = () => {
     catch { setError("Failed to load your health report. Please try again."); }
     finally { setLoading(false); }
   }, []);
+
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    const tid = toast.loading("Recalculating weekly clinical analysis... 🩺");
+    try {
+      setIsRefreshing(true);
+      const res = await refreshWeeklyReport();
+      setReport(res.data);
+      toast.success("Health report refreshed successfully! ✨", { id: tid });
+    } catch (err) {
+      const errMsg = err.response?.data?.message || "Failed to refresh your health report. Try again.";
+      toast.error(errMsg, { id: tid, duration: 4000 });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
 
@@ -124,7 +141,7 @@ const HealthReport = () => {
     </div>
   );
 
-  const { stats = {}, isPremium, weekStart, weekEnd, insights = [], actionPlan = [], doctorSummary, weekHighlight, riskFlags = [] } = report;
+  const { stats = {}, isPremium, weekStart, weekEnd, insights = [], actionPlan = [], doctorSummary, weekHighlight, riskFlags = [], lastRefreshedAt } = report;
   const breakdown   = stats.scoreBreakdown || {};
   const vsLast      = stats.vsLastWeek || {};
   const daily       = stats.dailyBreakdown || [];
@@ -170,6 +187,21 @@ const HealthReport = () => {
               <div className="highlight-pill">🏆 {weekHighlight}</div>
             )}
           </div>
+          {isPremium && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', marginTop: '12px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                {lastRefreshedAt === "NEVER" ? "No manual updates this week" : `Last updated: ${new Date(lastRefreshedAt).toLocaleString()}`}
+              </div>
+              <button 
+                onClick={handleRefresh} 
+                className="primary-btn small" 
+                disabled={isRefreshing}
+                style={{ width: 'auto', padding: '6px 14px', fontSize: '12px', background: 'linear-gradient(135deg, #6366f1, #a78bfa)', border: 'none', borderRadius: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                {isRefreshing ? "Refreshing..." : "🔄 Refresh Analysis (1/week)"}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ── RISK FLAGS (premium only) ────────────────────────────────────  */}

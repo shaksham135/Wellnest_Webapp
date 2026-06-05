@@ -15,8 +15,7 @@ export const ActivityProvider = ({ children }) => {
 
     // --- A. Helper Functions First ---
     const getLocalDateString = (dateInput) => {
-        if (!dateInput) return new Date().toISOString().split('T')[0];
-        const date = new Date(dateInput);
+        const date = dateInput ? new Date(dateInput) : new Date();
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');

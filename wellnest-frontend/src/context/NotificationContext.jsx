@@ -51,8 +51,14 @@ export const NotificationProvider = ({ children }) => {
     }, [permissionStatus]);
 
     const fetchNotifications = useCallback(async () => {
+        // --- GUARD: Don't fetch if no session exists ---
+        const token = localStorage.getItem("token");
+        if (!token || token === "undefined" || token === "null") return;
+
         try {
             const data = await getNotifications();
+            if (!data) return;
+            
             setNotifications(data);
             const unread = data.filter(n => !n.read).length;
             setUnreadCount(unread);

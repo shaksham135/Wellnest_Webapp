@@ -59,6 +59,8 @@ import BottomNav from "./components/layout/BottomNav";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ActivityProvider } from "./context/ActivityContext";
 import storageService from "./api/storageService";
+import ErrorBoundary from "./components/shared/ErrorBoundary";
+import QuickActionFAB from "./components/layout/QuickActionFAB";
 
 // Styles
 import "./index.css";
@@ -78,7 +80,7 @@ const getUserRole = (providedToken) => {
 };
 
 // MainLayout moved outside to prevent re-mounting on every App render
-const MainLayout = ({ children, isLoggedIn, userRole, isMenuOpen, toggleMenu, closeMenu }) => {
+const MainLayout = ({ children, isLoggedIn, userRole, isMenuOpen, toggleMenu, closeMenu, onOpenChat }) => {
     const location = useLocation();
     const hideNavbar = location.pathname.startsWith('/admin-dashboard');
 
@@ -91,6 +93,7 @@ const MainLayout = ({ children, isLoggedIn, userRole, isMenuOpen, toggleMenu, cl
                     isOpen={isMenuOpen}
                     onToggle={toggleMenu}
                     onClose={closeMenu}
+                    onOpenChat={onOpenChat}
                 />
             )}
             {children}
@@ -113,6 +116,7 @@ const AppContent = ({
 }) => {
   const { clearAllData } = useData();
   const navigate = useNavigate();
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // --- NATIVE PUSH SYNC ---
   useEffect(() => {
@@ -137,6 +141,8 @@ const AppContent = ({
     // Push sync will be triggered by useEffect
   };
 
+  const openChat = () => { setIsChatOpen(true); closeMenu(); };
+
   if (!isAuthReady || !isSplashFinished) {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
@@ -151,8 +157,15 @@ const AppContent = ({
         toggleMenu={toggleMenu} 
         closeMenu={closeMenu}
         onLogout={handleLogout}
+        onOpenChat={openChat}
       >
-        <ChatbotWidget isLoggedIn={isLoggedIn} />
+        <ChatbotWidget 
+            isLoggedIn={isLoggedIn} 
+            forceOpen={isChatOpen} 
+            setForceOpen={setIsChatOpen}
+            hideFloatingButton={true}
+        />
+        <QuickActionFAB />
 
         <main>
           <Routes>
@@ -168,7 +181,7 @@ const AppContent = ({
 
             <Route path="/dashboard" element={
               <ProtectedRoute isLoggedIn={isLoggedIn}>
-                <Dashboard onLogout={handleLogout} />
+                <Dashboard onLogout={handleLogout} onOpenChat={openChat} />
               </ProtectedRoute>
             } />
 
@@ -341,6 +354,20 @@ const App = () => {
 
     window.addEventListener("storage", handleStorage);
 
+    // --- PWA Installation Support ---
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      window.deferredPrompt = e;
+      window.dispatchEvent(new Event('pwa-install-available'));
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    const handleAppInstalled = () => {
+      window.deferredPrompt = null;
+      console.log('PWA was installed');
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+
     // Native Back Button Handler
     let backListener = null;
     if (window.Capacitor && window.Capacitor.getPlatform() !== 'web') {
@@ -357,6 +384,8 @@ const App = () => {
 
     return () => {
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
       if (backListener) backListener.remove();
     };
   }, []);
@@ -368,14 +397,16 @@ const App = () => {
       <DataProvider>
         <ActivityProvider>
           <Router>
-            <AppContent 
-              isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}
-              userRole={userRole} setUserRole={setUserRole}
-              isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen}
-              toggleMenu={toggleMenu} closeMenu={closeMenu}
-              isAuthReady={isAuthReady} isSplashFinished={isSplashFinished}
-              handleSplashFinish={handleSplashFinish}
-            />
+            <ErrorBoundary>
+              <AppContent 
+                isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn}
+                userRole={userRole} setUserRole={setUserRole}
+                isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen}
+                toggleMenu={toggleMenu} closeMenu={closeMenu}
+                isAuthReady={isAuthReady} isSplashFinished={isSplashFinished}
+                handleSplashFinish={handleSplashFinish}
+              />
+            </ErrorBoundary>
           </Router>
         </ActivityProvider>
       </DataProvider>

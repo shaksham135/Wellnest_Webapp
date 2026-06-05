@@ -117,4 +117,124 @@ public class UserService {
         trainer.setUser(savedUser);
         trainerRepo.save(trainer);
     }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void addXp(User user, int xpAmount) {
+        // Check XP Booster — double XP if active
+        boolean boosterActive = user.getXpBoosterExpiry() != null &&
+                user.getXpBoosterExpiry().isAfter(java.time.LocalDateTime.now());
+        int effectiveXp = boosterActive ? xpAmount * 2 : xpAmount;
+
+        int currentXp = user.getXp() + effectiveXp;
+        int currentLevel = user.getLevel();
+        int requiredXp = currentLevel * 100; // Level 1 needs 100XP, Level 2 needs 200XP, etc.
+
+        int coinsEarned = 0;
+        while (currentXp >= requiredXp) {
+            currentXp -= requiredXp;
+            currentLevel++;
+            coinsEarned += currentLevel * 10; // Level up bonus coins (doubled from 5 to 10)
+            requiredXp = currentLevel * 100;
+        }
+
+        user.setXp(currentXp);
+        // Improved coin rate: xp/5 (was xp/10), + level-up bonus
+        int passiveCoins = effectiveXp / 5;
+        if (currentLevel > user.getLevel()) {
+            user.setLevel(currentLevel);
+            user.setCoins(user.getCoins() + coinsEarned + passiveCoins);
+
+            // League update logic based on level
+            if (currentLevel >= 15) {
+                user.setLeague("Diamond");
+            } else if (currentLevel >= 10) {
+                user.setLeague("Gold");
+            } else if (currentLevel >= 5) {
+                user.setLeague("Silver");
+            } else {
+                user.setLeague("Bronze");
+            }
+        } else {
+            user.setCoins(user.getCoins() + passiveCoins);
+        }
+        userRepo.save(user);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public java.util.Map<String, Object> purchaseItem(User user, String itemId) {
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+
+        int cost;
+        switch (itemId) {
+            case "streak_shield":   cost = 30;  break;
+            case "xp_booster":     cost = 75;  break;
+            case "premium_badge":  cost = 75;  break; // 75 Coins Elite Badge
+            case "theme_emerald":  cost = 50;  break; // Emerald Theme
+            case "theme_gold":     cost = 50;  break; // Gold Theme
+            case "theme_default":  cost = 0;   break; // Default Theme
+            default:
+                result.put("success", false);
+                result.put("message", "Unknown item");
+                return result;
+        }
+
+        // Check ownership so that "buying" an owned theme/badge acts as "Equip" (0 cost)
+        boolean alreadyOwned = false;
+        if ("premium_badge".equals(itemId) && user.isHasPremiumBadge()) {
+            alreadyOwned = true;
+        } else if ("theme_gold".equals(itemId) && user.isHasGoldTheme()) {
+            alreadyOwned = true;
+        } else if ("theme_emerald".equals(itemId) && user.isHasEmeraldTheme()) {
+            alreadyOwned = true;
+        } else if ("theme_default".equals(itemId)) {
+            alreadyOwned = true;
+        }
+
+        int costToCharge = alreadyOwned ? 0 : cost;
+
+        if (user.getCoins() < costToCharge) {
+            result.put("success", false);
+            result.put("message", "Not enough coins! You need " + costToCharge + " 🪙");
+            return result;
+        }
+
+        // Deduct coins
+        user.setCoins(user.getCoins() - costToCharge);
+
+        // Grant or equip item
+        switch (itemId) {
+            case "streak_shield":
+                user.setStreakShieldCount(user.getStreakShieldCount() + 1);
+                result.put("message", "🛡️ Streak Shield activated! Your streak is protected for 1 day.");
+                break;
+            case "xp_booster":
+                // 24 hours of 2x XP
+                user.setXpBoosterExpiry(java.time.LocalDateTime.now().plusHours(24));
+                result.put("message", "⚡ XP Booster active! Earn 2x XP for the next 24 hours.");
+                break;
+            case "premium_badge":
+                user.setHasPremiumBadge(true);
+                result.put("message", "👑 Elite Badge equipped! It now shows next to your name.");
+                break;
+            case "theme_emerald":
+                user.setHasEmeraldTheme(true);
+                user.setActiveTheme("emerald");
+                result.put("message", alreadyOwned ? "🌿 Emerald Theme equipped!" : "🌿 Emerald Theme purchased and equipped!");
+                break;
+            case "theme_gold":
+                user.setHasGoldTheme(true);
+                user.setActiveTheme("gold");
+                result.put("message", alreadyOwned ? "✨ Gold Theme equipped!" : "✨ Gold Theme purchased and equipped!");
+                break;
+            case "theme_default":
+                user.setActiveTheme("default");
+                result.put("message", "🎨 Default Theme equipped!");
+                break;
+        }
+
+        userRepo.save(user);
+        result.put("success", true);
+        result.put("newCoins", user.getCoins());
+        return result;
+    }
 }

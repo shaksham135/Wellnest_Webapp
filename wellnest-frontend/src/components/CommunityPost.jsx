@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiClock, FiMessageSquare, FiHeart, FiTrash2, FiEdit2, FiMoreHorizontal, FiSend } from 'react-icons/fi';
+import { FiClock, FiMessageSquare, FiHeart, FiTrash2, FiEdit2, FiMoreHorizontal, FiSend, FiStar } from 'react-icons/fi';
 import { toggleLike, deletePost, addComment, deleteComment } from '../api/blogApi';
 
 const CommunityPost = ({ post, onRefresh, onEdit }) => {
@@ -123,7 +123,24 @@ const CommunityPost = ({ post, onRefresh, onEdit }) => {
                         {post.author ? post.author.charAt(0).toUpperCase() : 'U'}
                     </div>
                     <div>
-                        <div style={{ fontWeight: 600, color: 'var(--text-main)', lineHeight: 1.2 }}>{post.author}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)', lineHeight: 1.2, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {post.author}
+                            {post.isAuthorVerified && (
+                                <span title="Verified Professional" style={{ color: '#3b82f6', display: 'flex' }}>
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M22.5 12.5c0-1.58-.88-2.95-2.18-3.65.15-.43.23-.88.23-1.35 0-2.21-1.79-4-4-4-.47 0-.92.08-1.35.23-.7-1.3-2.07-2.18-3.65-2.18s-2.95.88-3.65 2.18c-.43-.15-.88-.23-1.35-.23-2.21 0-4 1.79-4 4 0 .47.08.92.23 1.35-1.3.7-2.18 2.07-2.18 3.65s.88 2.95 2.18 3.65c-.15.43-.23.88-.23 1.35 0 2.21 1.79 4 4 4 .47 0 .92-.08 1.35-.23.7 1.3 2.07 2.18 3.65 2.18s2.95-.88 3.65-2.18c.43.15.88.23 1.35.23 2.21 0 4-1.79 4-4 0-.47-.08-.92-.23-1.35 1.3-.7 2.18-2.07 2.18-3.65zm-11 5.5l-4-4 1.41-1.41L11.5 15.17l7.59-7.59L20.5 9l-9 9z"></path></svg>
+                                </span>
+                            )}
+                            {post.isAuthorPremium && (
+                                <span className="premium-badge-mini" style={{ 
+                                    background: 'var(--primary-light)', color: 'var(--primary)', 
+                                    fontSize: '9px', fontWeight: 900, padding: '1px 6px', 
+                                    borderRadius: '4px', letterSpacing: '0.5px', display: 'flex', 
+                                    alignItems: 'center', gap: '3px' 
+                                }}>
+                                    <FiStar size={8} fill="currentColor" /> ELITE
+                                </span>
+                            )}
+                        </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <FiClock size={10} /> {post.date}
                         </div>

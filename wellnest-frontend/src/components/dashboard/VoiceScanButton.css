@@ -35,6 +35,15 @@
     border-radius: 50%;
     border: 2px solid #ef4444;
     animation: ripple-out 1.5s infinite ease-out;
+    pointer-events: none;
+}
+
+.ripple-1 {
+    animation-delay: 0s;
+}
+
+.ripple-2 {
+    animation-delay: 0.75s;
 }
 
 .status-label {
@@ -62,4 +71,38 @@
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+.audio-waveform-container .bar {
+    width: 2.5px;
+    background-color: #ef4444;
+    border-radius: 1px;
+    height: 100%;
+}
+
+.audio-waveform-container .bar-1 { animation: wave-bounce-1 0.6s infinite ease-in-out alternate; }
+.audio-waveform-container .bar-2 { animation: wave-bounce-2 0.4s infinite ease-in-out alternate 0.1s; }
+.audio-waveform-container .bar-3 { animation: wave-bounce-3 0.5s infinite ease-in-out alternate 0.2s; }
+.audio-waveform-container .bar-4 { animation: wave-bounce-4 0.7s infinite ease-in-out alternate 0.05s; }
+.audio-waveform-container .bar-5 { animation: wave-bounce-5 0.45s infinite ease-in-out alternate 0.15s; }
+
+@keyframes wave-bounce-1 {
+    0% { height: 4px; }
+    100% { height: 16px; }
+}
+@keyframes wave-bounce-2 {
+    0% { height: 6px; }
+    100% { height: 18px; }
+}
+@keyframes wave-bounce-3 {
+    0% { height: 3px; }
+    100% { height: 14px; }
+}
+@keyframes wave-bounce-4 {
+    0% { height: 5px; }
+    100% { height: 17px; }
+}
+@keyframes wave-bounce-5 {
+    0% { height: 4px; }
+    100% { height: 15px; }
 }

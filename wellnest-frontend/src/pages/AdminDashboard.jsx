@@ -2,11 +2,11 @@ import React, { useEffect, useState, useCallback } from "react";
 import apiClient from "../api/apiClient";
 import {
     FiUsers, FiTrash2, FiActivity, FiUserCheck, FiLogOut, FiX,
-    FiGrid, FiList, FiFileText, FiShield, FiSearch, FiChevronRight, FiGlobe, FiCheckCircle, FiXCircle, FiBell, FiAward
+    FiGrid, FiList, FiFileText, FiShield, FiSearch, FiChevronRight, FiGlobe, FiCheckCircle, FiXCircle, FiBell, FiAward, FiUnlock, FiClock, FiSend
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { getClientAnalytics, getPendingVerifications, verifyTrainer, rejectTrainerVerification } from "../api/trainerApi";
-import { toggleUserPremium, toggleUserSuspension, getSystemMetrics, toggleGlobalAi } from "../api/adminApi";
+import { toggleUserPremium, toggleUserSuspension, getSystemMetrics, toggleGlobalAi, getBetaRequests, approveBetaRequest, rejectBetaRequest, grantBetaPremium, grantLifetime, revokePremium } from "../api/adminApi";
 import ThemeToggle from "../components/ThemeToggle";
 import storageService from "../api/storageService";
 import logo from "../assets/logo.png";
@@ -48,6 +48,16 @@ const AdminDashboard = ({ onLogout }) => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [userAnalytics, setUserAnalytics] = useState(null);
     const [lightboxImage, setLightboxImage] = useState(null);
+    
+    // Retention Funnel State
+    const [retentionMetrics, setRetentionMetrics] = useState(null);
+    const [retentionLoading, setRetentionLoading] = useState(false);
+
+    // Beta Requests State
+    const [betaRequests, setBetaRequests] = useState([]);
+    const [betaLoading, setBetaLoading] = useState(false);
+    const [betaStatusFilter, setBetaStatusFilter] = useState('ALL');
+    const [betaNotesMap, setBetaNotesMap] = useState({});
 
     const navigate = useNavigate();
 
@@ -63,6 +73,81 @@ const AdminDashboard = ({ onLogout }) => {
                 });
         }
     }, [selectedUser]);
+
+    // Fetch Retention metrics when funnel tab is selected
+    useEffect(() => {
+        if (activeTab === 'funnel') {
+            const fetchRetention = async () => {
+                try {
+                    setRetentionLoading(true);
+                    const { getRetentionMetrics } = await import("../api/adminApi");
+                    const res = await getRetentionMetrics();
+                    setRetentionMetrics(res.data);
+                } catch (e) {
+                    console.error("Failed to fetch retention metrics", e);
+                } finally {
+                    setRetentionLoading(false);
+                }
+            };
+            fetchRetention();
+        }
+    }, [activeTab]);
+
+    // Fetch Beta Requests when beta tab is selected
+    useEffect(() => {
+        if (activeTab === 'beta') {
+            const fetchBeta = async () => {
+                setBetaLoading(true);
+                try {
+                    const res = await getBetaRequests(betaStatusFilter);
+                    setBetaRequests(res.data);
+                } catch (e) {
+                    console.error('Failed to fetch beta requests', e);
+                } finally {
+                    setBetaLoading(false);
+                }
+            };
+            fetchBeta();
+        }
+    }, [activeTab, betaStatusFilter]);
+
+    const handleApproveBetaRequest = async (id, notes) => {
+        try {
+            await approveBetaRequest(id, notes || '');
+            setBetaRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'APPROVED' } : r));
+            setUsers(prev => prev.map(u => u.id === betaRequests.find(r=>r.id===id)?.userId ? { ...u, isPremium: true, premiumAccessType: 'BETA_PREMIUM' } : u));
+        } catch(e) { alert('Failed to approve request.'); }
+    };
+
+    const handleRejectBetaRequest = async (id, notes) => {
+        try {
+            await rejectBetaRequest(id, notes || '');
+            setBetaRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'REJECTED' } : r));
+        } catch(e) { alert('Failed to reject request.'); }
+    };
+
+    const handleGrantBetaDirect = async (userId) => {
+        try {
+            await grantBetaPremium(userId);
+            setUsers(prev => prev.map(u => u.id === userId ? { ...u, isPremium: true, premiumAccessType: 'BETA_PREMIUM' } : u));
+        } catch(e) { alert('Failed to grant beta premium.'); }
+    };
+
+    const handleGrantLifetime = async (userId) => {
+        if (!window.confirm('Grant LIFETIME access to this user?')) return;
+        try {
+            await grantLifetime(userId);
+            setUsers(prev => prev.map(u => u.id === userId ? { ...u, isPremium: true, premiumAccessType: 'LIFETIME' } : u));
+        } catch(e) { alert('Failed to grant lifetime.'); }
+    };
+
+    const handleRevokePremium = async (userId) => {
+        if (!window.confirm('Revoke premium access for this user?')) return;
+        try {
+            await revokePremium(userId);
+            setUsers(prev => prev.map(u => u.id === userId ? { ...u, isPremium: false, premiumAccessType: 'FREE' } : u));
+        } catch(e) { alert('Failed to revoke premium.'); }
+    };
 
     const viewFullAnalytics = () => {
         navigate(`/trainers/client/${selectedUser.id}/analytics`, { state: { fromAdmin: true } });
@@ -321,10 +406,12 @@ const AdminDashboard = ({ onLogout }) => {
                     <div className="nav-group">
                         <p className="nav-label">Management</p>
                         <NavItem id="premium" icon={FiAward} label="Premium Control" />
+                        <NavItem id="beta" icon={FiUnlock} label="Beta Requests" />
                         <NavItem id="verification" icon={FiShield} label="User Verifications" />
                         <NavItem id="trainerVerification" icon={FiCheckCircle} label={`Cert Reviews ${pendingTrainerVerifications.length > 0 ? `(${pendingTrainerVerifications.length})` : ''}`} />
                         <NavItem id="posts" icon={FiFileText} label="Community Posts" />
                         <NavItem id="broadcast" icon={FiBell} label="Broadcast Alerts" />
+                        <NavItem id="funnel" icon={FiActivity} label="Activation Funnel" />
                     </div>
                 </nav>
 
@@ -398,6 +485,147 @@ const AdminDashboard = ({ onLogout }) => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Beta Requests Management Panel */}
+                    {activeTab === 'beta' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div className="data-card" style={{ padding: '28px 32px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+                                    <div>
+                                        <h2 style={{ margin: '0 0 6px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <FiUnlock color="#10b981" size={22} /> Beta Access Requests
+                                        </h2>
+                                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '14px' }}>
+                                            Review, approve or reject incoming beta tester applications.
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map(f => (
+                                            <button key={f} onClick={() => setBetaStatusFilter(f)}
+                                                style={{
+                                                    padding: '7px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+                                                    background: betaStatusFilter === f ? '#10b981' : 'rgba(255,255,255,0.05)',
+                                                    border: betaStatusFilter === f ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
+                                                    color: betaStatusFilter === f ? '#fff' : 'var(--text-muted)'
+                                                }}>{f}</button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {betaLoading ? (
+                                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                                        <FiClock style={{ fontSize: '32px', opacity: 0.3, display: 'block', margin: '0 auto 12px' }} />
+                                        <p>Loading requests...</p>
+                                    </div>
+                                ) : betaRequests.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
+                                        <FiUnlock style={{ fontSize: '40px', opacity: 0.2, display: 'block', margin: '0 auto 14px' }} />
+                                        <p>No beta requests found for filter: <strong>{betaStatusFilter}</strong></p>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                        {betaRequests.map(req => (
+                                            <div key={req.id} style={{
+                                                background: req.status === 'APPROVED' ? 'rgba(16,185,129,0.05)' : req.status === 'REJECTED' ? 'rgba(239,68,68,0.05)' : 'rgba(255,255,255,0.03)',
+                                                border: req.status === 'APPROVED' ? '1px solid rgba(16,185,129,0.25)' : req.status === 'REJECTED' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(255,255,255,0.08)',
+                                                borderRadius: '14px', padding: '20px 24px'
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+                                                    <div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                                                            <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-main)' }}>{req.userName}</span>
+                                                            <span style={{
+                                                                fontSize: '11px', fontWeight: 700, padding: '2px 10px', borderRadius: '100px', letterSpacing: '0.5px',
+                                                                background: req.status === 'APPROVED' ? 'rgba(16,185,129,0.15)' : req.status === 'REJECTED' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
+                                                                color: req.status === 'APPROVED' ? '#10b981' : req.status === 'REJECTED' ? '#ef4444' : '#f59e0b'
+                                                            }}>{req.status}</span>
+                                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '2px 10px', borderRadius: '100px' }}>
+                                                                {req.userPremiumAccessType || 'FREE'}
+                                                            </span>
+                                                        </div>
+                                                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{req.userEmail}</span>
+                                                    </div>
+                                                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                                        {req.createdAt ? new Date(req.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '—'}
+                                                    </span>
+                                                </div>
+
+                                                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '12px 14px', marginBottom: '14px', fontSize: '14px', color: 'var(--text-main)', lineHeight: '1.55', fontStyle: 'italic' }}>
+                                                    "{req.message}"
+                                                </div>
+
+                                                {req.status === 'PENDING' && (
+                                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                                        <div style={{ flex: 1, minWidth: '200px' }}>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Admin notes (optional)"
+                                                                value={betaNotesMap[req.id] || ''}
+                                                                onChange={e => setBetaNotesMap(prev => ({ ...prev, [req.id]: e.target.value }))}
+                                                                style={{ width: '100%', padding: '9px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'var(--text-main)', fontSize: '13px', boxSizing: 'border-box' }}
+                                                            />
+                                                        </div>
+                                                        <button onClick={() => handleApproveBetaRequest(req.id, betaNotesMap[req.id])} style={{ padding: '9px 18px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <FiCheckCircle /> Approve
+                                                        </button>
+                                                        <button onClick={() => handleRejectBetaRequest(req.id, betaNotesMap[req.id])} style={{ padding: '9px 18px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <FiXCircle /> Reject
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {req.adminNotes && (
+                                                    <div style={{ marginTop: '10px', fontSize: '12px', color: '#10b981', background: 'rgba(16,185,129,0.06)', padding: '8px 12px', borderRadius: '6px' }}>
+                                                        <strong>Admin Note:</strong> {req.adminNotes}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Direct Grant Panel */}
+                            <div className="data-card" style={{ padding: '28px 32px' }}>
+                                <h2 style={{ margin: '0 0 6px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px' }}>
+                                    <FiSend color="#8b5cf6" size={18} /> Direct Access Grant
+                                </h2>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 20px' }}>Grant or revoke premium tiers for any user directly from the user list.</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
+                                    {users.filter(u => u.role !== 'ROLE_ADMIN').map(u => (
+                                        <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.07)', flexWrap: 'wrap', gap: '10px' }}>
+                                            <div>
+                                                <span style={{ fontWeight: 600, color: 'var(--text-main)', marginRight: '10px' }}>{u.name}</span>
+                                                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{u.email}</span>
+                                                <span style={{
+                                                    marginLeft: '10px', fontSize: '11px', padding: '2px 8px', borderRadius: '100px', fontWeight: 700,
+                                                    background: u.premiumAccessType === 'FREE' || !u.premiumAccessType ? 'rgba(107,114,128,0.1)' : 'rgba(16,185,129,0.12)',
+                                                    color: u.premiumAccessType === 'FREE' || !u.premiumAccessType ? '#6b7280' : '#10b981'
+                                                }}>{u.premiumAccessType || 'FREE'}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                {(!u.isPremium || u.premiumAccessType === 'FREE') && (
+                                                    <button onClick={() => handleGrantBetaDirect(u.id)} style={{ padding: '6px 12px', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                                                        ⚡ Beta
+                                                    </button>
+                                                )}
+                                                {(!u.isPremium || u.premiumAccessType !== 'LIFETIME') && (
+                                                    <button onClick={() => handleGrantLifetime(u.id)} style={{ padding: '6px 12px', background: 'rgba(236,72,153,0.1)', color: '#ec4899', border: '1px solid rgba(236,72,153,0.3)', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                                                        ♾️ Lifetime
+                                                    </button>
+                                                )}
+                                                {u.isPremium && (
+                                                    <button onClick={() => handleRevokePremium(u.id)} style={{ padding: '6px 12px', background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
+                                                        Revoke
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Broadcast Panel */}
                     {activeTab === 'broadcast' && (
@@ -486,6 +714,118 @@ const AdminDashboard = ({ onLogout }) => {
                                         </div>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 📊 ACTIVATION FUNNEL & COHORT RETENTION */}
+                    {activeTab === 'funnel' && (
+                        <div className="funnel-tab-container" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                            <div className="data-card" style={{ padding: '32px' }}>
+                                <div style={{ marginBottom: '28px' }}>
+                                    <h2 style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-main)', marginTop: 0, marginBottom: '8px' }}>
+                                        <FiActivity color="var(--primary)" size={24} /> User Activation Funnel & Retention
+                                    </h2>
+                                    <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.9rem' }}>
+                                        Cohort analytics tracking user activation from initial signup to daily app return.
+                                    </p>
+                                </div>
+
+                                {retentionLoading ? (
+                                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                                        <FiActivity className="spinning" size={32} style={{ marginBottom: '12px' }} />
+                                        <p>Computing retention cohorts... 🧬</p>
+                                    </div>
+                                ) : retentionMetrics ? (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '28px' }}>
+                                        {/* Funnel Visual Card */}
+                                        <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '16px', padding: '24px' }}>
+                                            <h3 style={{ margin: '0 0 20px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>🚀 Onboarding Funnel Conversion</h3>
+                                            
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                                {/* Stage 1: Signup */}
+                                                <div style={{ position: 'relative' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>
+                                                        <span style={{ color: 'var(--text-main)' }}>1. Account Created</span>
+                                                        <span style={{ color: 'var(--text-muted)' }}>{retentionMetrics.totalSignups} Signups (100%)</span>
+                                                    </div>
+                                                    <div style={{ height: '24px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '6px', overflow: 'hidden' }}>
+                                                        <div style={{ width: '100%', height: '100%', background: 'linear-gradient(90deg, var(--primary) 0%, #818cf8 100%)' }}></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Stage 2: Voice Activated */}
+                                                <div style={{ position: 'relative' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>
+                                                        <span style={{ color: 'var(--text-main)' }}>2. Voice Log Activated</span>
+                                                        <span style={{ color: 'var(--text-muted)' }}>{retentionMetrics.firstVoiceLogCount} Users ({retentionMetrics.firstVoiceLogRate}%)</span>
+                                                    </div>
+                                                    <div style={{ height: '24px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '6px', overflow: 'hidden' }}>
+                                                        <div style={{ width: `${retentionMetrics.firstVoiceLogRate}%`, height: '100%', background: 'linear-gradient(90deg, #10b981 0%, #34d399 100%)' }}></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Stage 3: Day 2 Return */}
+                                                <div style={{ position: 'relative' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>
+                                                        <span style={{ color: 'var(--text-main)' }}>3. Day 2 Return Rate</span>
+                                                        <span style={{ color: 'var(--text-muted)' }}>{retentionMetrics.day2ReturnRate}% returning</span>
+                                                    </div>
+                                                    <div style={{ height: '24px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '6px', overflow: 'hidden' }}>
+                                                        <div style={{ width: `${retentionMetrics.day2ReturnRate}%`, height: '100%', background: 'linear-gradient(90deg, #0ea5e9 0%, #38bdf8 100%)' }}></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Stage 4: Day 7 Return */}
+                                                <div style={{ position: 'relative' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '13px', fontWeight: 600 }}>
+                                                        <span style={{ color: 'var(--text-main)' }}>4. Day 7 Return Rate</span>
+                                                        <span style={{ color: 'var(--text-muted)' }}>{retentionMetrics.day7ReturnRate}% returning</span>
+                                                    </div>
+                                                    <div style={{ height: '24px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '6px', overflow: 'hidden' }}>
+                                                        <div style={{ width: `${retentionMetrics.day7ReturnRate}%`, height: '100%', background: 'linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)' }}></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Voice Adoption Rate Card */}
+                                        <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                            <h3 style={{ margin: '0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>🎙️ Voice Feature Adoption</h3>
+                                            
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px 0' }}>
+                                                <div style={{ position: 'relative', width: '120px', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <div style={{ position: 'absolute', width: '100%', height: '100%', borderRadius: '50%', border: '8px solid rgba(255,255,255,0.03)', borderTopColor: 'var(--primary)', transform: 'rotate(-45deg)' }}></div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                        <span style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-main)' }}>{retentionMetrics.voiceUsageRate}%</span>
+                                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Voice Usage</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: 'var(--text-muted)' }}>Voice Logs Count</span>
+                                                    <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{retentionMetrics.voiceLogsCount}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: 'var(--text-muted)' }}>Total Habits Logged</span>
+                                                    <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{retentionMetrics.totalLogsCount}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span style={{ color: 'var(--text-muted)' }}>Voice/Manual Ratio</span>
+                                                    <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                                                        {retentionMetrics.totalLogsCount > 0 ? (retentionMetrics.voiceLogsCount / (retentionMetrics.totalLogsCount - retentionMetrics.voiceLogsCount || 1)).toFixed(2) : '0.00'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                                        <p>No retention data available.</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

@@ -21,6 +21,8 @@ public class BlogPostResponse {
     private Integer likes;
     private Boolean isLiked = false;
     private Long authorId;
+    private Boolean isAuthorPremium = false;
+    private Boolean isAuthorVerified = false;
     private String date;
     private List<CommentResponse> comments = new ArrayList<>();
 

@@ -14,3 +14,12 @@ export const updateFcmToken = (token) => apiClient.put("/users/me/fcm-token", { 
 
 // Toggle Premium Status
 export const togglePremium = () => apiClient.post("/users/me/toggle-premium");
+
+// Activate Premium Subscription
+export const activateSubscription = (plan) => apiClient.post("/subscription/activate", { plan });
+
+// Purchase item from Coin Shop
+export const purchaseShopItem = (itemId) => apiClient.post("/users/shop/purchase", { itemId });
+
+// Seed Demo Data
+export const seedDemoData = () => apiClient.post("/users/me/seed-demo-data");

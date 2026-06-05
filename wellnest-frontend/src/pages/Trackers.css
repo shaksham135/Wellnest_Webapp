@@ -263,3 +263,142 @@
     padding: 16px;
   }
 }
+
+/* Quick Actions Layout */
+.quick-logs-container {
+  margin: 16px 0 24px 0;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--card-border);
+  border-radius: 16px;
+}
+
+.quick-logs-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.quick-pills-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quick-pill-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-main);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quick-pill-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.15);
+}
+
+.quick-pill-btn:active {
+  transform: translateY(0);
+}
+
+/* Progress Card Layout */
+.tracker-progress-card {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.tracker-progress-circle-container {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.tracker-progress-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.tracker-progress-label {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.tracker-progress-sublabel {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.tracker-edit-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 4px;
+  outline: none;
+}
+
+.tracker-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--primary);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+[data-theme="light"] .tracker-edit-btn {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.06);
+  color: #334155;
+}
+
+[data-theme="light"] .tracker-edit-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--primary);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+/* Mobile Optimizations */
+@media (max-width: 480px) {
+  .tracker-progress-card {
+    padding: 16px;
+    gap: 16px;
+  }
+  
+  .tracker-progress-circle-container {
+    width: 64px;
+    height: 64px;
+  }
+  
+  .tracker-progress-label {
+    font-size: 1rem;
+  }
+  
+  .tracker-progress-sublabel {
+    font-size: 12px;
+  }
+}

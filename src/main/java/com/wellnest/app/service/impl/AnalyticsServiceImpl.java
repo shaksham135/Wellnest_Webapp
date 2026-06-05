@@ -7,6 +7,8 @@ import com.wellnest.app.service.AnalyticsService;
 import com.wellnest.app.service.AppUserService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import com.wellnest.app.util.TimezoneUtil;
+import java.time.ZoneId;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -48,7 +50,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public AnalyticsSummary getUserAnalytics(Authentication authentication) {
-        LocalDate endDate = LocalDate.now();
+        ZoneId zoneId = TimezoneUtil.getClientZoneId();
+        LocalDate endDate = LocalDate.now(zoneId);
         LocalDate startDate = endDate.minusDays(6); // Default to last 7 days
         return getUserAnalytics(authentication, startDate, endDate);
     }
@@ -66,7 +69,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         // or by injecting TrainerInteractionService.
         // For simplicity/safety, we assume the Controller ensures the trainer is
         // authorized.
-        LocalDate endDate = LocalDate.now();
+        ZoneId zoneId = TimezoneUtil.getClientZoneId();
+        LocalDate endDate = LocalDate.now(zoneId);
         LocalDate startDate = endDate.minusDays(6);
         return generateSummary(clientId, startDate, endDate);
     }
@@ -74,8 +78,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private AnalyticsSummary generateSummary(Long userId, LocalDate startDate, LocalDate endDate) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
-        Instant startInstant = startDate.atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant endInstant = endDate.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant();
+        ZoneOffset zoneOffset = TimezoneUtil.getClientZoneOffset();
+        Instant startInstant = startDate.atStartOfDay(zoneOffset).toInstant();
+        Instant endInstant = endDate.atTime(LocalTime.MAX).atZone(zoneOffset).toInstant();
 
         AnalyticsSummary summary = new AnalyticsSummary();
         summary.setStartDate(startDate);
@@ -139,11 +144,65 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             summary.setDailyActivityAnalytics(new DailyActivityAnalytics());
         }
 
+        // --- PREMIUM INSIGHTS ENGINE ---
+        if (user.isPremium()) {
+            summary.setPremiumInsights(generatePremiumInsights(user, summary));
+            summary.setNeuralMetrics(calculateNeuralMetrics(user, summary));
+        }
+
         return summary;
+    }
+
+    private List<String> generatePremiumInsights(User user, AnalyticsSummary summary) {
+        List<String> insights = new ArrayList<>();
+        
+        // 1. Metabolic Insight
+        double avgCal = summary.getNutritionAnalytics().getAvgDailyCalories();
+        double avgBurned = summary.getWorkoutAnalytics().getTotalDuration() > 0 ? 
+            (summary.getWorkoutAnalytics().getAvgDuration() * 5) : 0; // Simple estimate
+        
+        if (avgCal > 2500 && avgBurned < 200) {
+            insights.add("Metabolic surplus detected. Consider increasing cardio duration by 15% to maintain velocity.");
+        } else if (avgCal < 1500) {
+            insights.add("Caloric intake is below threshold for muscle preservation. AI suggests +200kcal on workout days.");
+        }
+
+        // 2. Sleep Insight
+        if (summary.getSleepAnalytics().getAvgSleepDuration() < 6) {
+            insights.add("Sleep debt is impacting recovery. Focus on a 7-hour window to boost daily readiness.");
+        }
+
+        // 3. Consistency Insight
+        if (summary.getWorkoutConsistency().getWorkoutCounts().size() > 5) {
+            insights.add("Elite consistency! You've hit 85% of your target windows this week.");
+        }
+
+        return insights;
+    }
+
+    private Map<String, Object> calculateNeuralMetrics(User user, AnalyticsSummary summary) {
+        Map<String, Object> neural = new HashMap<>();
+        
+        // Metabolic Velocity
+        double intake = summary.getNutritionAnalytics().getAvgDailyCalories();
+        double output = summary.getDailyActivityAnalytics().getAvgDailyCalories();
+        double velocity = (output / (intake + 1)) * 100;
+        neural.put("metabolicVelocity", Math.min(100, velocity));
+        
+        // Recovery Score
+        double sleep = summary.getSleepAnalytics().getAvgSleepDuration();
+        double recovery = (sleep / 8.0) * 100;
+        neural.put("recoveryScore", Math.min(100, recovery));
+        
+        // Intensity Factor
+        neural.put("intensityFactor", summary.getWorkoutAnalytics().getAvgDuration() > 45 ? "High" : "Optimal");
+        
+        return neural;
     }
 
     private WorkoutAnalytics calculateWorkoutAnalytics(Long userId, Instant startInstant,
             Instant endInstant) {
+        ZoneOffset zoneOffset = TimezoneUtil.getClientZoneOffset();
         List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, startInstant,
                 endInstant);
         WorkoutAnalytics analytics = new WorkoutAnalytics();
@@ -171,13 +230,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         Map<String, Double> weeklyTrend = workouts.stream()
                 .filter(w -> w.getPerformedAt() != null)
-                .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
+                .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(zoneOffset).toLocalDate().toString(),
                         Collectors.summingDouble(w -> w.getDurationMinutes() != null ? (double) w.getDurationMinutes() : 0.0)));
         analytics.setWeeklyTrend(weeklyTrend);
 
         Map<String, Double> dailyCaloriesBurned = workouts.stream()
                 .filter(w -> w.getPerformedAt() != null)
-                .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
+                .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(zoneOffset).toLocalDate().toString(),
                         Collectors.summingDouble(w -> w.getCaloriesBurned() != null ? (double) w.getCaloriesBurned() : 0.0)));
         analytics.setDailyCaloriesBurned(dailyCaloriesBurned);
 
@@ -186,6 +245,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     private NutritionAnalytics calculateNutritionAnalytics(Long userId, Instant startInstant,
             Instant endInstant, long days) {
+        ZoneOffset zoneOffset = TimezoneUtil.getClientZoneOffset();
         List<Meal> meals = mealRepository.findByUserIdAndLoggedAtBetween(userId, startInstant, endInstant);
         NutritionAnalytics analytics = new NutritionAnalytics();
 
@@ -219,7 +279,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         Map<String, Double> weeklyCalorieTrend = meals.stream()
                 .filter(m -> m.getLoggedAt() != null)
-                .collect(Collectors.groupingBy(m -> m.getLoggedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
+                .collect(Collectors.groupingBy(m -> m.getLoggedAt().atZone(zoneOffset).toLocalDate().toString(),
                         Collectors.summingDouble(m -> m.getCalories() != null ? (double) m.getCalories() : 0.0)));
         analytics.setWeeklyCalorieTrend(weeklyCalorieTrend);
 
@@ -233,6 +293,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     private SleepAnalytics calculateSleepAnalytics(User user, Instant startInstant, Instant endInstant) {
+        ZoneOffset zoneOffset = TimezoneUtil.getClientZoneOffset();
         List<SleepLog> sleepLogs = sleepLogRepository.findByUserIdAndSleepDateBetween(user.getId(), startInstant, endInstant);
         SleepAnalytics analytics = new SleepAnalytics();
 
@@ -270,7 +331,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         Map<String, Double> weeklyTrend = sleepLogs.stream()
                 .filter(s -> s.getSleepDate() != null)
-                .collect(Collectors.toMap(s -> s.getSleepDate().atZone(ZoneOffset.UTC).toLocalDate().toString(), 
+                .collect(Collectors.toMap(s -> s.getSleepDate().atZone(zoneOffset).toLocalDate().toString(), 
                         s -> s.getHours() != null ? (double) s.getHours() : 0.0,
                         (oldValue, newValue) -> newValue));
         analytics.setWeeklySleepTrend(weeklyTrend);
@@ -290,6 +351,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     private WaterIntakeAnalytics calculateWaterIntakeAnalytics(User user, Instant startInstant,
             Instant endInstant) {
+        ZoneOffset zoneOffset = TimezoneUtil.getClientZoneOffset();
         List<WaterIntake> waterIntakes = waterIntakeRepository.findByUserIdAndLoggedAtBetween(user.getId(), startInstant,
                 endInstant);
         WaterIntakeAnalytics analytics = new WaterIntakeAnalytics();
@@ -308,7 +370,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         Map<String, Double> dailyIntakeMap = waterIntakes.stream()
                 .filter(w -> w.getLoggedAt() != null)
                 .collect(Collectors.groupingBy(
-                        w -> w.getLoggedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
+                        w -> w.getLoggedAt().atZone(zoneOffset).toLocalDate().toString(),
                         Collectors.summingDouble(w -> w.getLiters() != null ? w.getLiters() * 1000 : 0.0)));
 
         // Calculate Days Met Goal based on aggregated daily totals
@@ -330,6 +392,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     private GoalProgress calculateGoalProgress(User user, Instant startInstant, Instant endInstant) {
+        ZoneOffset zoneOffset = TimezoneUtil.getClientZoneOffset();
         GoalProgress progress = new GoalProgress();
         String goal = user.getFitnessGoal();
         if (goal == null || goal.isEmpty()) {
@@ -414,8 +477,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             // Get weight logs for the specified date range
             List<WeightLog> weightLogs = weightLogRepository.findByUserIdAndLogDateBetween(
                     user.getId(),
-                    startInstant.atZone(ZoneOffset.UTC).toLocalDate(),
-                    endInstant.atZone(ZoneOffset.UTC).toLocalDate());
+                    startInstant.atZone(zoneOffset).toLocalDate(),
+                    endInstant.atZone(zoneOffset).toLocalDate());
 
             // Create a map of log date to weight
             Map<String, Double> weeklyTrend = weightLogs.stream()
@@ -425,12 +488,56 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                             w -> w.getWeightKg() != null ? w.getWeightKg() : 0.0,
                             (oldValue, newValue) -> newValue));
             progress.setWeeklyProgressTrend(weeklyTrend);
+        } else if ("STAY_HEALTHY".equalsIgnoreCase(normalizedGoal)) {
+            // MAINTENANCE LOGIC: Goal is to stay within 2kg of target
+            Double currentWeight = user.getWeightKg();
+            Double targetWeight = user.getTargetWeightKg();
+            progress.setCurrentValue(currentWeight != null ? currentWeight : 0.0);
+            progress.setTargetValue(targetWeight != null ? targetWeight : 0.0);
+            progress.setUnit("kg");
+
+            if (currentWeight != null && targetWeight != null) {
+                double diff = Math.abs(currentWeight - targetWeight);
+                int percentage = (diff <= 2.0) ? 100 : (int) Math.max(0, 100 - (diff * 10));
+                progress.setPercentageComplete(percentage);
+                progress.setStatus(percentage == 100 ? "Stable" : "Fluctuating");
+                progress.setRecommendation(percentage == 100 ? "Perfect stability." : "Try to regulate your daily routine.");
+            }
+        } else if ("BUILD_ENDURANCE".equalsIgnoreCase(normalizedGoal)) {
+            // ENDURANCE LOGIC: Track total workout duration minutes
+            List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(user.getId(), startInstant, endInstant);
+            double totalMinutes = workouts.stream().mapToDouble(w -> w.getDurationMinutes() != null ? w.getDurationMinutes() : 0.0).sum();
+            double targetMinutes = 300.0; // Standard endurance goal: 5 hours/week
+
+            progress.setCurrentValue(totalMinutes);
+            progress.setTargetValue(targetMinutes);
+            progress.setUnit("min");
+            int percentage = (int) ((totalMinutes / targetMinutes) * 100);
+            progress.setPercentageComplete(Math.min(100, percentage));
+            progress.setStatus(percentage >= 100 ? "Peak" : "Gaining");
+            progress.setRecommendation("Add 5 mins to each session to build stamina.");
+        } else if ("FLEXIBILITY".equalsIgnoreCase(normalizedGoal)) {
+            // FLEXIBILITY LOGIC: Track specific types of workouts
+            List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(user.getId(), startInstant, endInstant);
+            long flexSessions = workouts.stream().filter(w -> {
+                String type = w.getType() != null ? w.getType().toLowerCase() : "";
+                return type.contains("yoga") || type.contains("stretch") || type.contains("flex");
+            }).count();
+            double targetSessions = 3.0; // 3 sessions per week
+
+            progress.setCurrentValue((double) flexSessions);
+            progress.setTargetValue(targetSessions);
+            progress.setUnit("sessions");
+            int percentage = (int) ((flexSessions / targetSessions) * 100);
+            progress.setPercentageComplete(Math.min(100, percentage));
+            progress.setStatus(percentage >= 100 ? "Limber" : "Tight");
+            progress.setRecommendation("Morning stretching is 40% more effective.");
         } else if ("WORKOUT_FREQUENCY".equalsIgnoreCase(normalizedGoal) || "FITNESS".equalsIgnoreCase(normalizedGoal)) {
             // Existing workout frequency logic remains the same
             List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(user.getId(), startInstant,
                     endInstant);
             // Assume goal is custom configured or 4 workouts per week
-            long days = ChronoUnit.DAYS.between(startInstant.atZone(ZoneOffset.UTC).toLocalDate(), endInstant.atZone(ZoneOffset.UTC).toLocalDate()) + 1;
+            long days = ChronoUnit.DAYS.between(startInstant.atZone(zoneOffset).toLocalDate(), endInstant.atZone(zoneOffset).toLocalDate()) + 1;
             double weeks = days / 7.0;
             int targetWorkoutsWeekly = user.getTargetWorkoutsPerWeek() != null ? user.getTargetWorkoutsPerWeek() : 4;
             double targetWorkouts = targetWorkoutsWeekly * weeks;
@@ -453,7 +560,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             Map<String, Double> weeklyTrend = workouts.stream()
                     .filter(w -> w.getPerformedAt() != null)
-                    .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(ZoneOffset.UTC).toLocalDate().toString(),
+                    .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(zoneOffset).toLocalDate().toString(),
                             Collectors.collectingAndThen(Collectors.counting(), Long::doubleValue)));
             progress.setWeeklyProgressTrend(weeklyTrend);
         }
@@ -487,16 +594,18 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     private WorkoutConsistency calculateWorkoutConsistency(Long userId) {
-        LocalDate endDate = LocalDate.now();
+        ZoneId zoneId = TimezoneUtil.getClientZoneId();
+        ZoneOffset zoneOffset = TimezoneUtil.getClientZoneOffset();
+        LocalDate endDate = LocalDate.now(zoneId);
         LocalDate startDate = endDate.minusDays(89); // Approx 3 months
 
         List<Workout> workouts = workoutRepository.findByUserIdAndPerformedAtBetween(userId, 
-                startDate.atStartOfDay(ZoneOffset.UTC).toInstant(),
-                endDate.atTime(LocalTime.MAX).atZone(ZoneOffset.UTC).toInstant());
+                startDate.atStartOfDay(zoneOffset).toInstant(),
+                endDate.atTime(LocalTime.MAX).atZone(zoneOffset).toInstant());
 
         Map<LocalDate, Integer> workoutCounts = workouts.stream()
                 .filter(w -> w.getPerformedAt() != null)
-                .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(ZoneOffset.UTC).toLocalDate(), Collectors.summingInt(w -> 1)));
+                .collect(Collectors.groupingBy(w -> w.getPerformedAt().atZone(zoneOffset).toLocalDate(), Collectors.summingInt(w -> 1)));
 
         WorkoutConsistency consistency = new WorkoutConsistency();
         consistency.setStartDate(startDate);

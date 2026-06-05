@@ -14,7 +14,15 @@ import java.util.Map;
 @RequestMapping("/api/health-tips")
 public class HealthTipController {
 
-        private final RestTemplate restTemplate = new RestTemplate();
+        private final RestTemplate restTemplate;
+
+        public HealthTipController() {
+            org.springframework.http.client.SimpleClientHttpRequestFactory factory = 
+                new org.springframework.http.client.SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(1500); // 1.5s connect timeout
+            factory.setReadTimeout(1500);    // 1.5s read timeout
+            this.restTemplate = new RestTemplate(factory);
+        }
 
         // Robust Fallback List (Over 30 tips for monthly variety)
         record Tip(String text, String category) {

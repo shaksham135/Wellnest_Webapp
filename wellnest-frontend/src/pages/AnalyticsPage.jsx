@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import PremiumGate from "../components/shared/PremiumGate";
 import apiClient from "../api/apiClient";
 import cacheService from "../api/cacheService";
 import GoalProgress from "../components/dashboard/GoalProgress";
@@ -11,20 +12,34 @@ import HealthMetrics from "../components/dashboard/HealthMetrics";
 import WorkoutConsistency from "../components/dashboard/WorkoutConsistency";
 import CalorieBalanceChart from "../components/dashboard/CalorieBalanceChart";
 import DailyActivitySummary from "../components/dashboard/DailyActivitySummary";
+import PremiumPaywall from "../components/common/PremiumPaywall";
+import { useData } from "../context/DataContext";
+import WeeklySummaryCard from "../components/dashboard/WeeklySummaryCard";
+import PersonalizedInsights from "../components/dashboard/PersonalizedInsights";
+import ConsistencyHeatmap from "../components/dashboard/ConsistencyHeatmap";
+import { getActiveDays } from "../api/trackerApi";
 import './AnalyticsPage.css';
 
 const AnalyticsPage = () => {
     const cacheKey = '/analytics/summary';
     const [analyticsData, setAnalyticsData] = useState(cacheService.get(cacheKey) || null);
+    const [activeDays, setActiveDays] = useState([]);
     const [loading, setLoading] = useState(!cacheService.get(cacheKey));
     const [error, setError] = useState(null);
+    const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+    const { userData } = useData();
+    const isPremium = userData?.isPremium;
 
     const fetchAnalytics = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await apiClient.get('/analytics/summary');
-            setAnalyticsData(response.data);
-            cacheService.set(cacheKey, response.data);
+            const [summaryRes, activeDaysRes] = await Promise.all([
+                apiClient.get('/analytics/summary'),
+                getActiveDays().catch(() => ({ data: [] }))
+            ]);
+            setAnalyticsData(summaryRes.data);
+            setActiveDays(activeDaysRes.data || []);
+            cacheService.set(cacheKey, summaryRes.data);
         } catch (err) {
             setError('Failed to fetch analytics data.');
             console.error(err);
@@ -50,11 +65,32 @@ const AnalyticsPage = () => {
 
     return (
         <div className="analytics-page-container">
-            <div className="dashboard-header">
-                <h2>Analytics Dashboard</h2>
-                <p className="dashboard-subtitle">Your detailed health and fitness summary for the last 7 days.</p>
+            <PremiumPaywall 
+                isOpen={isPaywallOpen} 
+                onClose={() => setIsPaywallOpen(false)} 
+                featureName="Neural Core Insights" 
+            />
+            
+            <div className="dashboard-header" style={{ marginBottom: '16px', paddingBottom: '12px' }}>
+                <h2>Analytics</h2>
+                <p className="dashboard-subtitle">Last 7 days</p>
             </div>
             <div className="analytics-grid">
+                {/* 📊 WEEKLY SUMMARY & REFLECTION (Free for all) */}
+                <div className="analytics-box analytics-box-full-width">
+                    <WeeklySummaryCard activeDays={activeDays} analyticsData={analyticsData} />
+                </div>
+
+                {/* 🗓️ 30-DAY CONSISTENCY HEATMAP (Premium Gated) */}
+                <div className="analytics-box analytics-box-full-width">
+                    <ConsistencyHeatmap isPremium={isPremium} activeDays={activeDays} />
+                </div>
+
+                {/* 🧠 NEURAL CORE PERSONALIZED INSIGHTS (Premium Gated) */}
+                <div className="analytics-box analytics-box-full-width">
+                    <PersonalizedInsights isPremium={isPremium} analyticsData={analyticsData} />
+                </div>
+
                 <div className="analytics-box">
                     <GoalProgress data={analyticsData.goalProgress} onGoalSet={fetchAnalytics} />
                     <Link to="/analytics/goals" className="view-details-button">View Details</Link>

@@ -38,12 +38,9 @@ const storageService = {
     }
   },
 
-  /**
-   * Clear all auth related storage
-   */
   async clearAuth() {
-    const keys = ['token', 'userId', 'role', 'isVerified', 'dashboard_manifest'];
-    localStorage.clear(); // Safe to clear all in web-context usually
+    const keys = ['token', 'userId', 'role', 'isVerified', 'dashboard_manifest', 'user'];
+    keys.forEach(k => localStorage.removeItem(k));
     if (getIsNative()) {
       for (const key of keys) {
         await Preferences.remove({ key });

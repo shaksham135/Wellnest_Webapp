@@ -51,3 +51,41 @@ export const getSystemMetrics = async () => {
 export const toggleGlobalAi = async (enabled) => {
     return await apiClient.put(`/admin/settings/ai?enabled=${enabled}`);
 };
+
+export const getRetentionMetrics = async () => {
+    return await apiClient.get('/admin/retention');
+};
+
+// ===== BETA PREMIUM MANAGEMENT =====
+
+export const getBetaRequests = async (status = 'ALL') => {
+    return await apiClient.get(`/admin/beta-requests?status=${status}`);
+};
+
+export const approveBetaRequest = async (id, adminNotes = '') => {
+    return await apiClient.post(`/admin/beta-requests/${id}/approve`, { adminNotes });
+};
+
+export const rejectBetaRequest = async (id, adminNotes = '') => {
+    return await apiClient.post(`/admin/beta-requests/${id}/reject`, { adminNotes });
+};
+
+export const grantBetaPremium = async (userId) => {
+    return await apiClient.post(`/admin/grant-beta-premium/${userId}`);
+};
+
+export const grantLifetime = async (userId) => {
+    return await apiClient.post(`/admin/grant-lifetime/${userId}`);
+};
+
+export const revokePremium = async (userId) => {
+    return await apiClient.post(`/admin/revoke-premium/${userId}`);
+};
+
+export const convertToPaid = async (userId) => {
+    return await apiClient.post(`/admin/convert-to-paid/${userId}`);
+};
+
+export const getBetaStats = async () => {
+    return await apiClient.get('/admin/beta-stats');
+};

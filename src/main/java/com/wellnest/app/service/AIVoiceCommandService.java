@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
@@ -16,34 +18,114 @@ public class AIVoiceCommandService {
 
     private final GroqService groqService;
     private final TrackerService trackerService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final com.wellnest.app.repository.UserRepository userRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper()
+        .configure(com.fasterxml.jackson.core.JsonParser.Feature.ALLOW_COMMENTS, true)
+        .configure(com.fasterxml.jackson.core.JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
+        .configure(com.fasterxml.jackson.core.JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
 
-    public AIVoiceCommandService(GroqService groqService, TrackerService trackerService) {
+    public AIVoiceCommandService(GroqService groqService, 
+                                 TrackerService trackerService,
+                                 com.wellnest.app.repository.UserRepository userRepository) {
         this.groqService = groqService;
         this.trackerService = trackerService;
+        this.userRepository = userRepository;
     }
 
     public Map<String, Object> processVoiceCommand(Long userId, String transcript) {
         log.info("Processing Voice Command for userId {}: '{}'", userId, transcript);
+        if (transcript != null) {
+            transcript = transcript.replace(",", "");
+        }
         
-        String systemPrompt = "Wellnest AI Coach. Convert log to JSON. Match user's natural Hinglish/English conversational style. " +
-                "DO NOT repeat the user. DO NOT use labels like 'Pro-tip', 'Tip', or 'Coach'. " +
-                "RULES: Be conversational and high-energy. Weave advice naturally into the reply (e.g., 'Done! Peete raho, energy bani rahegi'). " +
-                "ACTIONS: WATER, MEAL, WORKOUT, SLEEP, ACTIVITY. " +
-                "FORMAT: { \"action\": \"...\", \"displayMessage\": \"[Conversational reply + Emojis]\", \"voiceMessage\": \"[Conversational reply, Clean text only]\", ... } " +
-                "SCHEMAS: WATER{liters}, MEAL{mealType, calories, protein, carbs, fats}, WORKOUT{type, durationMinutes, caloriesBurned}, SLEEP{hours, quality}, ACTIVITY{steps, distanceKm}. " +
-                "Return ONLY raw JSON. " +
-                "COMMAND: " + transcript;
+        // 1. Try local regex parsing first (0 tokens)
+        try {
+            Map<String, Object> localResult = tryRegexParse(userId, transcript);
+            if (localResult != null) {
+                return localResult;
+            }
+        } catch (Exception e) {
+            log.error("Regex Parsing failed, falling back to LLM: {}", e.getMessage());
+        }
+        
+        // Basic sanity check to avoid empty commands
+        if (transcript == null || transcript.trim().length() < 2) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("status", "ERROR");
+            result.put("displayMessage", "I couldn't catch that. Please speak a bit louder! 🎙️");
+            result.put("voiceMessage", "I couldn't catch that. Please speak louder.");
+            return result;
+        }
 
-        String aiResponse = groqService.getResponse(systemPrompt, "llama-3.1-8b-instant");
+        String normalized = normalizeNumbers(transcript.toLowerCase().trim());
+        
+        String systemPrompt = "You are Wellnest AI, a smart health assistant. Convert the user's voice log (in English, Hindi, or Hinglish) into a raw JSON object.\n\n" +
+                "ACTION SCHEMAS & EXAMPLES:\n" +
+                "1. WATER: {liters} (glass=0.25, bottle=1.0)\n" +
+                "   - E.g.: \"Logged 3 glasses of water\", \"Maine 2 bottle paani piya\"\n" +
+                "2. MEAL: {mealType (BREAKFAST|LUNCH|DINNER|SNACK), calories, protein, carbs, fats, foodName}\n" +
+                "   - E.g.: \"Ate 2 eggs\", \"Maine breakfast me sandwich khaya\", \"Dinner me 3 roti khayi\"\n" +
+                "   - Note: Estimate calories/macros for common Indian/Western foods if unspecified (e.g. roti=90kcal/3g protein, egg=75kcal/6g protein).\n" +
+                "3. WORKOUT: {type, durationMinutes (default 30), caloriesBurned}\n" +
+                "   - E.g.: \"Cardio for 40 minutes\", \"Gym kiya 1 hour\", \"Yoga did today\", \"Maine running ki half hour\"\n" +
+                "4. SLEEP: {hours, quality (GOOD|POOR)}\n" +
+                "   - E.g.: \"Slept for 7 hours\", \"8 ghante soya\", \"Sleep quality was bad\"\n" +
+                "   - Note: Set quality to POOR if sleep hours < 6 unless user explicitly states it was good sleep.\n" +
+                "5. ACTIVITY: {steps, distanceKm}\n" +
+                "   - E.g.: \"Walked 1000 steps\", \"Maine 5000 steps chle\", \"1000 kadam chale\", \"Aaj 8000 step chla\"\n" +
+                "   - Note: Use distanceKm = steps * 0.00075 if not specified.\n\n" +
+                "RULES FOR CLASSIFICATION:\n" +
+                "- NEVER classify steps or distance (e.g., \"1000 steps\", \"kadam\", \"chala\", \"chle\", \"chale\") as MEAL or WORKOUT. Steps/kadam MUST be classified as ACTIVITY.\n" +
+                "- If the user command is off-topic, chit-chat, hello/hi, or doesn't contain a clear health/habit log, reply with:\n" +
+                "  { \"action\": \"ERROR\", \"displayMessage\": \"I couldn't find any habit log in your message. Try saying 'Log 2 glasses of water' or 'Maine 3 roti khayi'! 🎙️\", \"voiceMessage\": \"I couldn't find any habit log in your message.\" }\n\n" +
+                "RULES FOR RESPONSE:\n" +
+                "- Reply in the same language style as the user (Hinglish/English).\n" +
+                "- displayMessage: Emojis allowed. E.g. 'Logged 1000 steps! Kadam badhate raho! 🏃‍♂️'\n" +
+                "- voiceMessage: Phonetic transliteration ONLY (use Latin/English characters for Hindi, e.g. 'Aapke steps log ho gaye' - NEVER USE DEVANAGARI/HINDI SCRIPT).\n" +
+                "- Output ONLY raw, clean, valid JSON. Do not include any comments or markdown codeblocks (```json).\n\n" +
+                "Format: { \"action\": \"WATER|MEAL|WORKOUT|SLEEP|ACTIVITY|ERROR\", \"displayMessage\": \"\", \"voiceMessage\": \"\", ...schemaKeys }\n" +
+                "USER COMMAND: " + transcript;
+
+        String aiResponse = groqService.getResponse(systemPrompt, "llama-3.1-8b-instant", 150);
         Map<String, Object> result = new HashMap<>();
 
         try {
             aiResponse = aiResponse.replace("```json", "").replace("```", "").trim();
+            
+            // Handle cases where the LLM surrounds JSON with text
+            if (!aiResponse.startsWith("{")) {
+                int braceStart = aiResponse.indexOf('{');
+                int braceEnd = aiResponse.lastIndexOf('}');
+                if (braceStart != -1 && braceEnd != -1 && braceEnd > braceStart) {
+                    aiResponse = aiResponse.substring(braceStart, braceEnd + 1);
+                }
+            }
+            
             JsonNode root = objectMapper.readTree(aiResponse);
             String action = root.path("action").asText("ERROR");
             String displayMsg = root.path("displayMessage").asText();
             String voiceMsg = root.path("voiceMessage").asText();
+
+            // 1. Cross-validate action with heuristic keywords to prevent misclassification
+            String heuristicAction = heuristicClassify(normalized);
+            if (heuristicAction != null && !heuristicAction.equals(action)) {
+                // If it is steps/activity but classified as MEAL or WORKOUT, override immediately
+                if ("ACTIVITY".equals(heuristicAction) && ("MEAL".equals(action) || "WORKOUT".equals(action) || "ERROR".equals(action))) {
+                    log.warn("Safeguard override: LLM misclassified ACTIVITY as {}. Overriding with Heuristic Parser.", action);
+                    Map<String, Object> heuristicResult = tryHeuristicParse(userId, transcript);
+                    if (heuristicResult != null) {
+                        return heuristicResult;
+                    }
+                }
+            }
+
+            if ("ERROR".equals(action)) {
+                Map<String, Object> fallbackResult = tryHeuristicParse(userId, transcript);
+                if (fallbackResult != null) {
+                    log.info("LLM returned ERROR, but Heuristic Parse succeeded!");
+                    return fallbackResult;
+                }
+            }
 
             // Default Fallbacks
             if (displayMsg.isEmpty()) displayMsg = "Logged your " + action.toLowerCase() + "! 🛡️⚡";
@@ -52,47 +134,101 @@ public class AIVoiceCommandService {
             switch (action) {
                 case "WATER":
                     WaterIntakeDto waterDto = new WaterIntakeDto();
-                    waterDto.setLiters(root.path("liters").asDouble(0.25));
-                    trackerService.createWaterForUser(userId, waterDto);
+                    double liters = root.path("liters").asDouble(0.25);
+                    if (liters <= 0.0) liters = 0.25;
+                    
+                    boolean explicitlyLiters = transcript.toLowerCase().contains("liter") || 
+                                               transcript.toLowerCase().contains("litre") || 
+                                               transcript.toLowerCase().contains(" l ") || 
+                                               transcript.toLowerCase().endsWith(" l") || 
+                                               transcript.toLowerCase().contains(" l.");
+                    
+                    if (!explicitlyLiters && liters > 10.0) {
+                        liters = liters / 1000.0;
+                        displayMsg = String.format("Logged %.2fL of water! Hydrated raho! 💧", liters);
+                        voiceMsg = String.format("Logged %.2f liters of water.", liters);
+                    }
+                    
+                    waterDto.setLiters(liters);
+                    waterDto.setNotes("Logged via Voice Log");
+                    com.wellnest.app.model.WaterIntake waterEntity = trackerService.createWaterForUser(userId, waterDto);
+                    result.put("createdId", waterEntity.getId());
+                    result.put("createdType", "WATER");
                     break;
 
                 case "MEAL":
                     MealDto mealDto = new MealDto();
-                    mealDto.setMealType(root.path("mealType").asText("SNACK").toUpperCase());
-                    mealDto.setCalories(root.path("calories").asInt(200));
-                    mealDto.setProtein(root.path("protein").asInt(10));
-                    mealDto.setCarbs(root.path("carbs").asInt(20));
-                    mealDto.setFats(root.path("fats").asInt(5));
-                    trackerService.createMealForUser(userId, mealDto);
+                    String mealTypeStr = root.path("mealType").asText("SNACK").toUpperCase();
+                    if (!java.util.List.of("BREAKFAST", "LUNCH", "DINNER", "SNACK").contains(mealTypeStr)) {
+                        mealTypeStr = "SNACK";
+                    }
+                    int calories = root.path("calories").asInt(200);
+                    if (calories < 0) calories = 200;
+                    
+                    mealDto.setMealType(mealTypeStr);
+                    mealDto.setCalories(calories);
+                    mealDto.setProtein(Math.max(0, root.path("protein").asInt(0)));
+                    mealDto.setCarbs(Math.max(0, root.path("carbs").asInt(0)));
+                    mealDto.setFats(Math.max(0, root.path("fats").asInt(0)));
+                    mealDto.setNotes(root.path("foodName").asText("Meal") + " (Voice Log)");
+                    com.wellnest.app.model.Meal mealEntity = trackerService.createMealForUser(userId, mealDto);
+                    result.put("createdId", mealEntity.getId());
+                    result.put("createdType", "MEAL");
                     break;
 
                 case "WORKOUT":
                     WorkoutDto workoutDto = new WorkoutDto();
                     workoutDto.setType(root.path("type").asText("General"));
-                    workoutDto.setDurationMinutes(root.path("durationMinutes").asInt(30));
-                    workoutDto.setCaloriesBurned(root.path("caloriesBurned").asInt(250));
-                    trackerService.createWorkoutForUser(userId, workoutDto);
+                    int duration = root.path("durationMinutes").asInt(30);
+                    if (duration < 1) duration = 30;
+                    
+                    int caloriesBurned = root.path("caloriesBurned").asInt(duration * 8);
+                    if (caloriesBurned < 0) caloriesBurned = 0;
+                    
+                    workoutDto.setDurationMinutes(duration);
+                    workoutDto.setCaloriesBurned(caloriesBurned);
+                    workoutDto.setNotes("Logged via Voice Log");
+                    com.wellnest.app.model.Workout workoutEntity = trackerService.createWorkoutForUser(userId, workoutDto);
+                    result.put("createdId", workoutEntity.getId());
+                    result.put("createdType", "WORKOUT");
                     break;
 
                 case "SLEEP":
                     SleepLogDto sleepDto = new SleepLogDto();
-                    sleepDto.setHours(root.path("hours").asDouble(8.0));
-                    sleepDto.setQuality(root.path("quality").asText("GOOD"));
-                    trackerService.createSleepForUser(userId, sleepDto);
+                    double hours = root.path("hours").asDouble(8.0);
+                    if (hours < 0.5) hours = 0.5;
+                    sleepDto.setHours(hours);
+                    
+                    String quality = root.path("quality").asText("GOOD").toUpperCase();
+                    if (!java.util.List.of("GOOD", "POOR", "FAIR", "EXCELLENT").contains(quality)) {
+                        quality = "GOOD";
+                    }
+                    sleepDto.setQuality(quality);
+                    sleepDto.setNotes("Logged via Voice Log");
+                    com.wellnest.app.model.SleepLog sleepEntity = trackerService.createSleepForUser(userId, sleepDto);
+                    result.put("createdId", sleepEntity.getId());
+                    result.put("createdType", "SLEEP");
                     break;
 
                 case "ACTIVITY":
                     DailyActivityDto activityDto = new DailyActivityDto();
-                    activityDto.setSteps(root.path("steps").asInt(0));
-                    activityDto.setDistanceKm(root.path("distanceKm").asDouble(0.0));
+                    int steps = root.path("steps").asInt(0);
+                    if (steps < 0) steps = 0;
+                    double distanceKm = root.path("distanceKm").asDouble(steps * 0.00075);
+                    if (distanceKm < 0.0) distanceKm = steps * 0.00075;
+                    
+                    activityDto.setSteps(steps);
+                    activityDto.setDistanceKm(distanceKm);
                     activityDto.setIsSync(false); // Manual voice entry is additive
-                    trackerService.logDailyActivity(userId, activityDto);
+                    com.wellnest.app.model.DailyActivity activityEntity = trackerService.logDailyActivity(userId, activityDto);
+                    result.put("createdId", activityEntity.getId());
+                    result.put("createdType", "ACTIVITY");
                     break;
 
                 default:
                     result.put("status", "ERROR");
-                    result.put("displayMessage", "I couldn't quite catch that. Try saying 'Log 500ml water'. 🎙️");
-                    result.put("voiceMessage", "I couldn't quite catch that. Try saying Log 500ml water.");
+                    result.put("displayMessage", displayMsg.isEmpty() ? "I couldn't quite catch that. Try saying 'Log 500ml water'. 🎙️" : displayMsg);
+                    result.put("voiceMessage", voiceMsg.isEmpty() ? "I couldn't quite catch that. Try saying Log 500ml water." : voiceMsg);
                     return result;
             }
 
@@ -102,11 +238,691 @@ public class AIVoiceCommandService {
 
         } catch (Exception e) {
             log.error("Failed to parse AI Voice Command: {}", e.getMessage());
+            
+            String friendlyMsg = e.getMessage();
+            if (e instanceof IllegalArgumentException) {
+                friendlyMsg = e.getMessage();
+            } else {
+                // Try heuristic parse fallback before returning ERROR
+                try {
+                    Map<String, Object> fallbackResult = tryHeuristicParse(userId, transcript);
+                    if (fallbackResult != null) {
+                        log.info("LLM failed, but Heuristic Parse succeeded!");
+                        return fallbackResult;
+                    }
+                } catch (Exception ex) {
+                    log.error("Heuristic fallback failed: {}", ex.getMessage());
+                    if (ex instanceof IllegalArgumentException) {
+                        friendlyMsg = ex.getMessage();
+                    } else {
+                        friendlyMsg = "AI Sync failed: " + ex.getMessage();
+                    }
+                }
+            }
+
             result.put("status", "ERROR");
-            result.put("displayMessage", "AI Sync failed: " + e.getMessage());
-            result.put("voiceMessage", "AI Sync failed.");
+            result.put("displayMessage", friendlyMsg);
+            result.put("voiceMessage", friendlyMsg);
         }
 
         return result;
+    }
+
+    private Map<String, Object> tryRegexParse(Long userId, String transcript) {
+        if (transcript == null || transcript.trim().isEmpty()) {
+            return null;
+        }
+
+        String normalized = transcript.toLowerCase().trim();
+        normalized = normalizeNumbers(normalized);
+
+        // 1. WATER LOGS
+        if ((normalized.contains("water") || normalized.contains("paani") || normalized.contains("gilaas") || 
+            normalized.contains("glass") || normalized.contains("liter") || normalized.contains("litre") || 
+            normalized.contains("botal") || normalized.contains("bottle") || normalized.contains("ml"))
+            && !(normalized.contains("milk") || normalized.contains("doodh") || normalized.contains("juice") || 
+                 normalized.contains("chai") || normalized.contains("tea") || normalized.contains("coffee") || 
+                 normalized.contains("shake") || normalized.contains("lassi"))) {
+            
+            Double value = extractFirstNumber(normalized);
+            if (value != null) {
+                double liters = 0.25; // default
+                if (normalized.contains("ml")) {
+                    liters = value * 0.001;
+                } else if (normalized.contains("glass") || normalized.contains("gilaas") || normalized.contains("gilas")) {
+                    liters = value * 0.25;
+                } else if (normalized.contains("liter") || normalized.contains("litre") || normalized.contains(" l ") || normalized.endsWith(" l")) {
+                    liters = value;
+                } else if (normalized.contains("bottle") || normalized.contains("botal")) {
+                    liters = value * 1.0;
+                } else {
+                    if (value >= 50) {
+                        liters = value * 0.001;
+                    } else {
+                        liters = value * 0.25;
+                    }
+                }
+                
+                boolean explicitlyLiters = normalized.contains("liter") || normalized.contains("litre") || 
+                                           normalized.contains(" l ") || normalized.endsWith(" l") || normalized.contains(" l.");
+                
+                if (explicitlyLiters && (liters < 0.05 || liters > 2.0)) {
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("status", "ERROR");
+                    result.put("displayMessage", "Invalid Quantity: Water logged at once must be between 0.05L (50ml) and 2.0L.");
+                    result.put("voiceMessage", "Water logged at once must be between 50ml and 2 liters.");
+                    return result;
+                }
+
+                if (liters > 0.0 && liters <= 10.0) {
+                    WaterIntakeDto waterDto = new WaterIntakeDto();
+                    waterDto.setLiters(liters);
+                    waterDto.setNotes("Logged via Voice Log");
+                    com.wellnest.app.model.WaterIntake waterEntity = trackerService.createWaterForUser(userId, waterDto);
+                    
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("status", "SUCCESS");
+                    result.put("action", "WATER");
+                    result.put("createdId", waterEntity.getId());
+                    result.put("createdType", "WATER");
+                    result.put("displayMessage", String.format("Logged %.2fL of water! Hydrated raho! 💧", liters));
+                    result.put("voiceMessage", String.format("Logged %.2f liters of water. Keep hydrating.", liters));
+                    log.info("Regex Match SUCCESS: logged water {}L for user {}", liters, userId);
+                    return result;
+                }
+            }
+        }
+
+        // 2. STEPS / ACTIVITY LOGS
+        if (normalized.contains("step") || normalized.contains("kadam") || 
+            normalized.contains("km") || normalized.contains("kilometer") || normalized.contains("kilometre") ||
+            ((normalized.contains("chala") || normalized.contains("chle") || normalized.contains("chale") || 
+              normalized.contains("chali") || normalized.contains("chla") || normalized.contains("walked") || 
+              normalized.contains("walk"))
+             && !(normalized.contains("minute") || normalized.contains("minutes") || normalized.contains("min") || 
+                  normalized.contains("mins") || normalized.contains("hour") || normalized.contains("hours") || 
+                  normalized.contains("ghante") || normalized.contains("ghanta") || normalized.contains("hr") || 
+                  normalized.contains("hrs")))) {
+            
+            Double value = extractFirstNumber(normalized);
+            if (value != null && value > 0.0) {
+                int steps = 0;
+                double distanceKm = 0.0;
+                
+                if (normalized.contains("km") || normalized.contains("kilometer") || normalized.contains("kilometre")) {
+                    distanceKm = value;
+                    steps = (int) Math.round(distanceKm / 0.00075);
+                } else {
+                    steps = value.intValue();
+                    distanceKm = steps * 0.00075;
+                }
+                
+                if (steps < 1 || steps > 50000) {
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("status", "ERROR");
+                    result.put("displayMessage", "Invalid Steps: Steps logged manually must be between 1 and 50,000 steps.");
+                    result.put("voiceMessage", "Steps logged manually must be between 1 and 50,000 steps.");
+                    return result;
+                }
+                
+                DailyActivityDto activityDto = new DailyActivityDto();
+                activityDto.setSteps(steps);
+                activityDto.setDistanceKm(distanceKm);
+                activityDto.setIsSync(false);
+                com.wellnest.app.model.DailyActivity activityEntity = trackerService.logDailyActivity(userId, activityDto);
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("status", "SUCCESS");
+                result.put("action", "ACTIVITY");
+                result.put("createdId", activityEntity.getId());
+                result.put("createdType", "ACTIVITY");
+                result.put("displayMessage", String.format("Logged %.2f km (%d steps)! Kadam badhate raho, fit raho! 🏃‍♂️", distanceKm, steps));
+                result.put("voiceMessage", String.format("Logged %.2f kilometers.", distanceKm));
+                log.info("Regex Match SUCCESS: logged activity steps {} distance {} for user {}", steps, distanceKm, userId);
+                return result;
+            }
+        }
+
+        // 3. SLEEP LOGS
+        if (normalized.contains("sleep") || normalized.contains("soya") || normalized.contains("neend") || 
+            normalized.contains("soye") || normalized.contains("soyi") || normalized.contains("slept") || 
+            normalized.contains("sleeping")) {
+            
+            Double value = extractFirstNumber(normalized);
+            if (value != null) {
+                double hours = value;
+                if (hours < 3.0 || hours > 18.0) {
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("status", "ERROR");
+                    result.put("displayMessage", "Invalid Duration: Sleep duration must be between 3 and 18 hours.");
+                    result.put("voiceMessage", "Sleep duration must be between 3 and 18 hours.");
+                    return result;
+                }
+                
+                String quality = "GOOD";
+                if (hours < 6.0 || normalized.contains("poor") || normalized.contains("bad") || normalized.contains("disturbed") || 
+                    normalized.contains("kharab") || normalized.contains("bekar") || normalized.contains("gandi")) {
+                    quality = "POOR";
+                }
+                
+                SleepLogDto sleepDto = new SleepLogDto();
+                sleepDto.setHours(hours);
+                sleepDto.setQuality(quality);
+                com.wellnest.app.model.SleepLog sleepEntity = trackerService.createSleepForUser(userId, sleepDto);
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("status", "SUCCESS");
+                result.put("action", "SLEEP");
+                result.put("createdId", sleepEntity.getId());
+                result.put("createdType", "SLEEP");
+                result.put("displayMessage", String.format("Logged %.1f hours of sleep! Quality was %s. 💤", hours, quality.toLowerCase()));
+                result.put("voiceMessage", String.format("Logged %.1f hours of sleep. Quality was %s.", hours, quality.toLowerCase()));
+                log.info("Regex Match SUCCESS: logged sleep {} hours for user {}", hours, userId);
+                return result;
+            }
+        }
+
+        // 4. WORKOUT LOGS
+        if (normalized.contains("workout") || normalized.contains("gym") || normalized.contains("run") || 
+            normalized.contains("yoga") || normalized.contains("cardio") || normalized.contains("hiit") || 
+            normalized.contains("strength") || normalized.contains("boxing") || normalized.contains("cycling") ||
+            normalized.contains("swimming") || normalized.contains("stretch") || normalized.contains("stretching") ||
+            normalized.contains("exercise") || normalized.contains("excersise") || normalized.contains("kasrat") || 
+            normalized.contains("training") ||
+            (normalized.contains("walk") && (normalized.contains("minute") || normalized.contains("min") || normalized.contains("hour") || normalized.contains("ghante") || normalized.contains("ghanta")))) {
+            
+            Double value = extractFirstNumber(normalized);
+            if (value != null && value > 0.0) {
+                int duration = value.intValue();
+                if (normalized.contains("hour") || normalized.contains("hr") || normalized.contains("ghante") || normalized.contains("ghanta")) {
+                    duration = (int) (value * 60);
+                }
+                
+                if (duration < 5 || duration > 180) {
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("status", "ERROR");
+                    result.put("displayMessage", "Invalid Duration: Workout duration must be between 5 and 180 minutes (3 hours).");
+                    result.put("voiceMessage", "Workout duration must be between 5 and 180 minutes.");
+                    return result;
+                }
+                
+                String type = "cardio";
+                double met = 7.0;
+                
+                if (normalized.contains("run")) {
+                    type = "running";
+                    met = 9.8;
+                } else if (normalized.contains("gym") || normalized.contains("strength")) {
+                    type = "strength";
+                    met = 5.0;
+                } else if (normalized.contains("yoga") || normalized.contains("pilates")) {
+                    type = "yoga";
+                    met = 3.0;
+                } else if (normalized.contains("hiit") || normalized.contains("crossfit")) {
+                    type = "hiit";
+                    met = 10.0;
+                } else if (normalized.contains("boxing")) {
+                    type = "boxing";
+                    met = 9.5;
+                } else if (normalized.contains("cycling") || normalized.contains("cycle")) {
+                    type = "cycling";
+                    met = 7.5;
+                } else if (normalized.contains("swimming") || normalized.contains("swim")) {
+                    type = "swimming";
+                    met = 8.0;
+                } else if (normalized.contains("stretch") || normalized.contains("stretching") || normalized.contains("flexibility")) {
+                    type = "stretching";
+                    met = 2.0;
+                } else if (normalized.contains("walk")) {
+                    type = "walking";
+                    met = 3.5;
+                } else if (normalized.contains("exercise") || normalized.contains("kasrat") || normalized.contains("workout") || normalized.contains("training")) {
+                    type = "workout";
+                    met = 6.0;
+                }
+                
+                // Fetch user weight
+                Double userWeight = 70.0;
+                try {
+                    com.wellnest.app.model.User user = userRepository.findById(userId).orElse(null);
+                    if (user != null && user.getWeightKg() != null) {
+                        userWeight = user.getWeightKg();
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to load user weight for regex workout calorie estimation", e);
+                }
+                
+                int caloriesBurned = (int) Math.round(met * userWeight * (duration / 60.0));
+                
+                WorkoutDto workoutDto = new WorkoutDto();
+                workoutDto.setType(type);
+                workoutDto.setDurationMinutes(duration);
+                workoutDto.setCaloriesBurned(caloriesBurned);
+                workoutDto.setNotes("Logged via Voice Log");
+                com.wellnest.app.model.Workout workoutEntity = trackerService.createWorkoutForUser(userId, workoutDto);
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("status", "SUCCESS");
+                result.put("action", "WORKOUT");
+                result.put("createdId", workoutEntity.getId());
+                result.put("createdType", "WORKOUT");
+                result.put("displayMessage", String.format("Logged %d mins of %s (%d kcal)! Raw performance! 🔥⚡", duration, type, caloriesBurned));
+                result.put("voiceMessage", String.format("Logged %d minutes of %s. Good job.", duration, type));
+                log.info("Regex Match SUCCESS: logged workout {} ({} mins) for user {}", type, duration, userId);
+                return result;
+            }
+        }
+
+        // 5. MEAL LOGS (Simple presets)
+        if (normalized.contains("shake") || normalized.contains("egg") || normalized.contains("anda") || 
+            normalized.contains("ande") || normalized.contains("andey") || 
+            normalized.contains("apple") || normalized.contains("seb") || normalized.contains("banana") || 
+            normalized.contains("kela") || normalized.contains("roti") || normalized.contains("bread")) {
+            
+            Double quantity = extractFirstNumber(normalized);
+            if (quantity == null) quantity = 1.0; // default
+            
+            int calories = 0;
+            int protein = 0;
+            int carbs = 0;
+            int fats = 0;
+            String foodName = "Snack";
+            String mealType = "SNACK";
+            
+            String qtyStr = (quantity % 1 == 0) ? String.format("%.0f", quantity) : String.format("%.1f", quantity);
+            
+            if (normalized.contains("shake") || normalized.contains("whey")) {
+                calories = (int) (120 * quantity);
+                protein = (int) (24 * quantity);
+                carbs = (int) (3 * quantity);
+                fats = (int) (1.5 * quantity);
+                foodName = qtyStr + " Protein Shake";
+            } else if (normalized.contains("egg") || normalized.contains("anda") || 
+                       normalized.contains("ande") || normalized.contains("andey")) {
+                calories = (int) (75 * quantity);
+                protein = (int) (6 * quantity);
+                carbs = 0;
+                fats = (int) (5 * quantity);
+                foodName = qtyStr + " Boiled Egg";
+            } else if (normalized.contains("apple") || normalized.contains("seb")) {
+                calories = (int) (95 * quantity);
+                protein = 0;
+                carbs = (int) (25 * quantity);
+                fats = 0;
+                foodName = qtyStr + " Apple";
+            } else if (normalized.contains("banana") || normalized.contains("kela")) {
+                calories = (int) (105 * quantity);
+                protein = (int) (1 * quantity);
+                carbs = (int) (27 * quantity);
+                fats = 0;
+                foodName = qtyStr + " Banana";
+            } else if (normalized.contains("roti")) {
+                calories = (int) (90 * quantity);
+                protein = (int) (3 * quantity);
+                carbs = (int) (18 * quantity);
+                fats = (int) (1 * quantity);
+                foodName = qtyStr + " Roti";
+            } else if (normalized.contains("bread")) {
+                calories = (int) (80 * quantity);
+                protein = (int) (3 * quantity);
+                carbs = (int) (15 * quantity);
+                fats = (int) (1 * quantity);
+                foodName = qtyStr + " Bread Slice";
+            }
+            
+            if (calories > 0) {
+                if (calories < 10 || calories > 3000) {
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("status", "ERROR");
+                    result.put("displayMessage", "Invalid Calories: Calories per meal must be between 10 and 3000 kcal.");
+                    result.put("voiceMessage", "Calories per meal must be between 10 and 3000 kilocalories.");
+                    return result;
+                }
+                
+                MealDto mealDto = new MealDto();
+                mealDto.setMealType(mealType);
+                mealDto.setCalories(calories);
+                mealDto.setProtein(protein);
+                mealDto.setCarbs(carbs);
+                mealDto.setFats(fats);
+                mealDto.setNotes(foodName + " (Voice Log)");
+                com.wellnest.app.model.Meal mealEntity = trackerService.createMealForUser(userId, mealDto);
+                
+                Map<String, Object> result = new HashMap<>();
+                result.put("status", "SUCCESS");
+                result.put("action", "MEAL");
+                result.put("createdId", mealEntity.getId());
+                result.put("createdType", "MEAL");
+                result.put("displayMessage", String.format("Logged %s (%d kcal, %dg Protein)! Swasth khao! 🥗", foodName, calories, protein));
+                result.put("voiceMessage", String.format("Logged %s. %d calories and %d grams of protein.", foodName, calories, protein));
+                log.info("Regex Match SUCCESS: logged meal {} for user {}", foodName, userId);
+                return result;
+            }
+        }
+
+        return null;
+    }
+
+    private String normalizeNumbers(String text) {
+        String res = text.replaceAll("\\bek\\b", "1")
+                   .replaceAll("\\bdo\\b", "2")
+                   .replaceAll("\\bteen\\b", "3")
+                   .replaceAll("\\bchaar\\b", "4")
+                   .replaceAll("\\bpaanch\\b", "5")
+                   .replaceAll("\\bche\\b", "6")
+                   .replaceAll("\\bchheh\\b", "6")
+                   .replaceAll("\\bsaat\\b", "7")
+                   .replaceAll("\\baath\\b", "8")
+                   .replaceAll("\\bnau\\b", "9")
+                   .replaceAll("\\bdas\\b", "10")
+                   .replaceAll("\\baadha\\b", "0.5")
+                   .replaceAll("\\bone\\b", "1")
+                   .replaceAll("\\btwo\\b", "2")
+                   .replaceAll("\\btoo\\b", "2")
+                   .replaceAll("\\bthree\\b", "3")
+                   .replaceAll("\\bfour\\b", "4")
+                   .replaceAll("\\bfive\\b", "5")
+                   .replaceAll("\\bsix\\b", "6")
+                   .replaceAll("\\bseven\\b", "7")
+                   .replaceAll("\\beight\\b", "8")
+                   .replaceAll("\\bnine\\b", "9")
+                   .replaceAll("\\bten\\b", "10");
+
+        // Handle common STT homophone error: "to/too" followed by a wellness item/unit
+        // e.g. "to eggs" -> "2 eggs", "to glass" -> "2 glass", "to roti" -> "2 roti"
+        res = res.replaceAll("\\bto\\s+(egg|anda|ande|andey|glass|gilaas|gilas|roti|apple|seb|banana|kela|bottle|botal|shake|bread|step|kadam|hour|ghante|ghanta)", "2 $1");
+        res = res.replaceAll("\\btoo\\s+(egg|anda|ande|andey|glass|gilaas|gilas|roti|apple|seb|banana|kela|bottle|botal|shake|bread|step|kadam|hour|ghante|ghanta)", "2 $1");
+
+        // Decimal k handling (e.g. 1.5k -> 1500)
+        res = res.replaceAll("(\\d+)\\.(\\d)\\s*k\\b", "$1$200");
+        res = res.replaceAll("(\\d+)\\.(\\d{2})\\s*k\\b", "$1$20");
+        // Integer k handling (e.g. 10k -> 10000)
+        res = res.replaceAll("(\\d+)\\s*k\\b", "$1000");
+        
+        // Decimal thousand handling (e.g. 1.5 thousand -> 1500)
+        res = res.replaceAll("(\\d+)\\.(\\d)\\s*thousand\\b", "$1$200");
+        res = res.replaceAll("(\\d+)\\s*thousand\\b", "$1000");
+        
+        // Decimal lakh handling (e.g. 1.5 lakh -> 150000)
+        res = res.replaceAll("(\\d+)\\.(\\d)\\s*lakhs?\\b", "$1$20000");
+        res = res.replaceAll("(\\d+)\\.(\\d{2})\\s*lakhs?\\b", "$1$2000");
+        res = res.replaceAll("(\\d+)\\s*lakhs?\\b", "$100000");
+        
+        // Decimal million handling (e.g. 1.5 million -> 1500000)
+        res = res.replaceAll("(\\d+)\\.(\\d)\\s*million\\b", "$1$200000");
+        res = res.replaceAll("(\\d+)\\.(\\d{2})\\s*million\\b", "$1$20000");
+        res = res.replaceAll("(\\d+)\\s*million\\b", "$1000000");
+
+        return res;
+    }
+
+    private Double extractFirstNumber(String text) {
+        Pattern p = Pattern.compile("(\\d+(\\.\\d+)?)");
+        Matcher m = p.matcher(text);
+        if (m.find()) {
+            try {
+                return Double.parseDouble(m.group(1));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private boolean isWellnessRelated(String text) {
+        if (text == null || text.trim().isEmpty()) return false;
+        String normalized = text.toLowerCase();
+        
+        String[] keywords = {
+            // Water & Drinks
+            "water", "paani", "pani", "glass", "gilaas", "gilas", "liter", "litre", "ml", "bottle", "botal", "cup", "drink", 
+            "piya", "peeya", "peea", "piye", "piyi", "pi", "pee", "peena", "drank", "drinking", "chai", "coffee", "juice",
+            
+            // Meals & Foods
+            "food", "meal", "khaya", "khana", "khaaya", "khae", "khaye", "khayi", "khai", "khao", "khayein", "eat", "ate", "eating", "eaten", "had", "had", "took", "take",
+            "breakfast", "lunch", "dinner", "snack", "snacks", "roti", "rotiyan", "rotis", "rice", "chawal", "chicken", "egg", "eggs", "anda", "ande", "andey", 
+            "shake", "protein", "whey", "apple", "apples", "seb", "banana", "bananas", "kela", "milk", "doodh", "dahi", "paneer", "curd", "calories", "kcal",
+            
+            // Workout & Physical Activities
+            "workout", "work-out", "gym", "run", "running", "walk", "walking", "walked", "yoga", "exercise", "excersise", "cardio", "hiit", 
+            "strength", "boxing", "cycling", "cycle", "swimming", "swim", "stretching", "stretch", "pilates", "dauda", "doda", "bhaga", "bhage", 
+            "kasrat", "training", "steps", "step", "kadam", "chala", "distance", "km", "kiya", "kia", "ki", "kar", "kara", "karna",
+            
+            // Sleep & Rest
+            "sleep", "slept", "sleeping", "soya", "soye", "soyi", "neend", "hour", "hours", "hr", "hrs", "ghante", "ghanta",
+            
+            // Weight & Stats
+            "weight", "vazan", "vajan"
+        };
+        
+        for (String keyword : keywords) {
+            if (normalized.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String heuristicClassify(String normalized) {
+        if (normalized.contains("step") || normalized.contains("kadam") || 
+            normalized.contains("km") || normalized.contains("kilometer") || normalized.contains("kilometre") ||
+            ((normalized.contains("chala") || normalized.contains("chle") || normalized.contains("chale") || 
+              normalized.contains("chali") || normalized.contains("chla") || normalized.contains("walked") || 
+              normalized.contains("walk"))
+             && !(normalized.contains("minute") || normalized.contains("minutes") || normalized.contains("min") || 
+                  normalized.contains("mins") || normalized.contains("hour") || normalized.contains("hours") || 
+                  normalized.contains("ghante") || normalized.contains("ghanta") || normalized.contains("hr") || 
+                  normalized.contains("hrs")))) {
+            return "ACTIVITY";
+        }
+        if ((normalized.contains("water") || normalized.contains("paani") || 
+            normalized.contains("gilaas") || normalized.contains("glass") || 
+            normalized.contains("botal") || normalized.contains("bottle") || 
+            normalized.contains("ml"))
+            && !(normalized.contains("milk") || normalized.contains("doodh") || normalized.contains("juice") || 
+                 normalized.contains("chai") || normalized.contains("tea") || normalized.contains("coffee") || 
+                 normalized.contains("shake") || normalized.contains("lassi"))) {
+            return "WATER";
+        }
+        if (normalized.contains("sleep") || normalized.contains("soya") || 
+            normalized.contains("neend") || normalized.contains("soye") ||
+            normalized.contains("soyi") || normalized.contains("slept") || 
+            normalized.contains("sleeping")) {
+            return "SLEEP";
+        }
+        if (normalized.contains("workout") || normalized.contains("gym") || 
+            normalized.contains("yoga") || normalized.contains("cardio") || 
+            normalized.contains("hiit") || normalized.contains("stretching") ||
+            normalized.contains("exercise") || normalized.contains("excersise") || 
+            normalized.contains("kasrat") || normalized.contains("training") ||
+            (normalized.contains("walk") && (normalized.contains("minute") || normalized.contains("min") || 
+                                              normalized.contains("hour") || normalized.contains("ghante") || 
+                                              normalized.contains("ghanta")))) {
+            return "WORKOUT";
+        }
+        if (normalized.contains("roti") || normalized.contains("egg") || 
+            normalized.contains("anda") || normalized.contains("ande") || 
+            normalized.contains("bread") || normalized.contains("breakfast") || 
+            normalized.contains("lunch") || normalized.contains("dinner") || 
+            normalized.contains("snack") || normalized.contains("khaya") || 
+            normalized.contains("khayi") || normalized.contains("khaye") ||
+            normalized.contains("milk") || normalized.contains("doodh") ||
+            normalized.contains("juice") || normalized.contains("shake")) {
+            return "MEAL";
+        }
+        return null;
+    }
+
+    private Map<String, Object> tryHeuristicParse(Long userId, String transcript) {
+        String normalized = transcript.toLowerCase().trim();
+        normalized = normalizeNumbers(normalized);
+        
+        String action = heuristicClassify(normalized);
+        if (action == null) return null;
+        
+        Double value = extractFirstNumber(normalized);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", "SUCCESS");
+        result.put("action", action);
+        
+        switch (action) {
+            case "WATER":
+                double liters = 0.25;
+                if (value != null) {
+                    if (normalized.contains("ml")) liters = value * 0.001;
+                    else if (normalized.contains("liter") || normalized.contains("litre") || normalized.contains(" l ") || normalized.endsWith(" l") || normalized.contains(" l.")) liters = value;
+                    else if (normalized.contains("bottle") || normalized.contains("botal")) liters = value * 1.0;
+                    else liters = value * 0.25;
+                }
+                
+                boolean explicitlyLiters = normalized.contains("liter") || normalized.contains("litre") || 
+                                           normalized.contains(" l ") || normalized.endsWith(" l") || normalized.contains(" l.");
+                
+                if (!explicitlyLiters && liters > 10.0) {
+                    liters = liters / 1000.0;
+                }
+                
+                if (liters < 0.05 || liters > 2.0) {
+                    result.put("status", "ERROR");
+                    result.put("displayMessage", "Invalid Quantity: Water logged at once must be between 0.05L (50ml) and 2.0L.");
+                    result.put("voiceMessage", "Water logged at once must be between 50ml and 2 liters.");
+                    return result;
+                }
+                
+                WaterIntakeDto waterDto = new WaterIntakeDto();
+                waterDto.setLiters(liters);
+                waterDto.setNotes("Logged via Voice (Heuristic Fallback)");
+                com.wellnest.app.model.WaterIntake waterEntity = trackerService.createWaterForUser(userId, waterDto);
+                result.put("createdId", waterEntity.getId());
+                result.put("createdType", "WATER");
+                result.put("displayMessage", String.format("Logged %.2fL of water! Hydrated raho! 💧 (Fallback)", liters));
+                result.put("voiceMessage", String.format("Logged %.2f liters of water.", liters));
+                return result;
+                
+            case "ACTIVITY":
+                int steps = 0;
+                double distanceKm = 0.0;
+                if (value != null && value > 0.0) {
+                    if (normalized.contains("km") || normalized.contains("kilometer") || normalized.contains("kilometre")) {
+                        distanceKm = value;
+                        steps = (int) Math.round(distanceKm / 0.00075);
+                    } else {
+                        steps = value.intValue();
+                        distanceKm = steps * 0.00075;
+                    }
+                } else {
+                    steps = 1000;
+                    distanceKm = 0.75;
+                }
+                
+                if (steps < 1 || steps > 50000) {
+                    result.put("status", "ERROR");
+                    result.put("displayMessage", "Invalid Steps: Steps logged manually must be between 1 and 50,000 steps.");
+                    result.put("voiceMessage", "Steps logged manually must be between 1 and 50,000 steps.");
+                    return result;
+                }
+                
+                DailyActivityDto activityDto = new DailyActivityDto();
+                activityDto.setSteps(steps);
+                activityDto.setDistanceKm(distanceKm);
+                activityDto.setIsSync(false);
+                com.wellnest.app.model.DailyActivity activityEntity = trackerService.logDailyActivity(userId, activityDto);
+                result.put("createdId", activityEntity.getId());
+                result.put("createdType", "ACTIVITY");
+                result.put("displayMessage", String.format("Logged %.2f km (%d steps)! Kadam badhate raho! 🏃‍♂️ (Fallback)", distanceKm, steps));
+                result.put("voiceMessage", String.format("Logged %.2f kilometers.", distanceKm));
+                return result;
+                
+            case "SLEEP":
+                double hours = (value != null && value > 0.0) ? value : 8.0;
+                if (hours < 3.0 || hours > 18.0) {
+                    result.put("status", "ERROR");
+                    result.put("displayMessage", "Invalid Duration: Sleep duration must be between 3 and 18 hours.");
+                    result.put("voiceMessage", "Sleep duration must be between 3 and 18 hours.");
+                    return result;
+                }
+                
+                String quality = "GOOD";
+                if (hours < 6.0) {
+                    quality = "POOR";
+                }
+                
+                SleepLogDto sleepDto = new SleepLogDto();
+                sleepDto.setHours(hours);
+                sleepDto.setQuality(quality);
+                sleepDto.setNotes("Logged via Voice (Heuristic Fallback)");
+                com.wellnest.app.model.SleepLog sleepEntity = trackerService.createSleepForUser(userId, sleepDto);
+                result.put("createdId", sleepEntity.getId());
+                result.put("createdType", "SLEEP");
+                result.put("displayMessage", String.format("Logged %.1f hours of sleep! Quality was marked %s. 💤 (Fallback)", hours, quality.toLowerCase()));
+                result.put("voiceMessage", String.format("Logged %.1f hours of sleep.", hours));
+                return result;
+                
+            case "WORKOUT":
+                int duration = value != null ? value.intValue() : 30;
+                if (normalized.contains("hour") || normalized.contains("hr") || normalized.contains("ghante") || normalized.contains("ghanta")) {
+                    duration = (int) (duration * 60);
+                }
+                
+                if (duration < 5 || duration > 180) {
+                    result.put("status", "ERROR");
+                    result.put("displayMessage", "Invalid Duration: Workout duration must be between 5 and 180 minutes (3 hours).");
+                    result.put("voiceMessage", "Workout duration must be between 5 and 180 minutes.");
+                    return result;
+                }
+                
+                int caloriesBurned = duration * 8;
+                
+                WorkoutDto workoutDto = new WorkoutDto();
+                workoutDto.setType("General");
+                workoutDto.setDurationMinutes(duration);
+                workoutDto.setCaloriesBurned(caloriesBurned);
+                workoutDto.setNotes("Logged via Voice (Heuristic Fallback)");
+                com.wellnest.app.model.Workout workoutEntity = trackerService.createWorkoutForUser(userId, workoutDto);
+                result.put("createdId", workoutEntity.getId());
+                result.put("createdType", "WORKOUT");
+                result.put("displayMessage", String.format("Logged %d mins of workout (%d kcal)! Keep sweating! 🔥 (Fallback)", duration, caloriesBurned));
+                result.put("voiceMessage", String.format("Logged %d minutes of workout.", duration));
+                return result;
+                
+            case "MEAL":
+                int mealCals = 250;
+                String foodName = "Meal";
+                if (normalized.contains("roti")) {
+                    int qty = value != null ? value.intValue() : 1;
+                    mealCals = qty * 90;
+                    foodName = qty + " Roti";
+                } else if (normalized.contains("egg") || normalized.contains("anda") || normalized.contains("ande")) {
+                    int qty = value != null ? value.intValue() : 1;
+                    mealCals = qty * 75;
+                    foodName = qty + " Egg";
+                } else if (normalized.contains("shake")) {
+                    mealCals = 150;
+                    foodName = "Protein Shake";
+                }
+                
+                if (mealCals < 10 || mealCals > 3000) {
+                    result.put("status", "ERROR");
+                    result.put("displayMessage", "Invalid Calories: Calories per meal must be between 10 and 3000 kcal.");
+                    result.put("voiceMessage", "Calories per meal must be between 10 and 3000 kilocalories.");
+                    return result;
+                }
+                
+                MealDto mealDto = new MealDto();
+                mealDto.setMealType("SNACK");
+                mealDto.setCalories(mealCals);
+                mealDto.setProtein(mealCals / 20);
+                mealDto.setCarbs(mealCals / 10);
+                mealDto.setFats(mealCals / 40);
+                mealDto.setNotes(foodName + " (Heuristic Fallback)");
+                com.wellnest.app.model.Meal mealEntity = trackerService.createMealForUser(userId, mealDto);
+                result.put("createdId", mealEntity.getId());
+                result.put("createdType", "MEAL");
+                result.put("displayMessage", String.format("Logged %s (%d kcal)! Swasth khao! 🥗 (Fallback)", foodName, mealCals));
+                result.put("voiceMessage", String.format("Logged %s.", foodName));
+                return result;
+        }
+        return null;
     }
 }

@@ -6,7 +6,9 @@ import com.wellnest.app.repository.NotificationRepository;
 import com.wellnest.app.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import com.wellnest.app.model.DailyActivity;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,6 +33,30 @@ public class NotificationService {
         "Getting 7-8 hours of sleep helps your muscles recover faster after workouts. 😴",
         "High-protein snacks like Greek yogurt or nuts help keep you full longer. 🥜",
         "Try deep breathing for 5 minutes today to reduce stress and improve focus. 🧘‍♀️"
+    };
+
+    private static final String[] STATIC_WATER_NUDGES = {
+        "Hey %s! Hydration check! Your body needs water to function at its best. Grab a glass! 🚰",
+        "Performance alert, %s! 💦 Drinking enough water keeps energy high and fatigue low. Log your water now!",
+        "Water check, %s! Fuel your performance with pure hydration. Let's hit that daily target! 🌊"
+    };
+
+    private static final String[] STATIC_MEAL_NUDGES = {
+        "Fuel check, %s! You haven't logged any meals today. Consistency in nutrition is key to your growth! 🍽️",
+        "Hey %s! Track your nutrition to stay on top of your macros. Let's log your food today! 🍳",
+        "Energy check, %s! Keep your metabolism active by logging your meals. What did you eat today? 🥗"
+    };
+
+    private static final String[] STATIC_SLEEP_NUDGES = {
+        "Rise and shine, %s! Did you get enough rest? Don't forget to log your sleep last night! 😴",
+        "Recovery check, %s! Quality sleep is where the magic happens. How many hours did you rest? 💤",
+        "Hey %s! Log your sleep last night to analyze your recovery score today. Keep the momentum high! 🌙"
+    };
+
+    private static final String[] STATIC_ALL_LOGGED_NUDGES = {
+        "Sensational work, %s! You've logged sleep, meals, and water today. You are operating at peak efficiency! 🏆",
+        "Boom! %s, all trackers logged today. You're building a bulletproof habit loop! Keep it up. 🚀",
+        "Perfect compliance, %s! Rest, fuel, and hydration are all logged. You're winning today! 🌟"
     };
 
     public NotificationService(NotificationRepository notificationRepository, 
@@ -157,14 +183,16 @@ public class NotificationService {
     @org.springframework.scheduling.annotation.Async
     public void broadcastNotification(String title, String message, String type, String targetGroup) {
         logger.info("Starting broadcast: " + title + " | Target: " + targetGroup);
-        List<User> users = userRepository.findAll();
-        
-        List<User> targetUsers = users.stream().filter(u -> {
-            if ("PREMIUM".equalsIgnoreCase(targetGroup)) return u.isPremium();
-            if ("FREE".equalsIgnoreCase(targetGroup)) return !u.isPremium() && (u.getRole() == null || u.getRole().contains("USER"));
-            if ("TRAINERS".equalsIgnoreCase(targetGroup)) return u.getRole() != null && u.getRole().contains("TRAINER");
-            return true; // "ALL" or fallback
-        }).collect(Collectors.toList());
+        List<User> targetUsers;
+        if ("PREMIUM".equalsIgnoreCase(targetGroup)) {
+            targetUsers = userRepository.findByIsPremiumTrue();
+        } else if ("FREE".equalsIgnoreCase(targetGroup)) {
+            targetUsers = userRepository.findAll().stream().filter(u -> !u.isPremium() && (u.getRole() == null || u.getRole().contains("USER"))).collect(Collectors.toList());
+        } else if ("TRAINERS".equalsIgnoreCase(targetGroup)) {
+            targetUsers = userRepository.findByRole("ROLE_TRAINER");
+        } else {
+            targetUsers = userRepository.findAll(); // Fallback for ALL
+        }
 
         int successCount = 0;
         int failCount = 0;
@@ -202,12 +230,16 @@ public class NotificationService {
     }
 
     private void processScheduledNudges(String title, String defaultMsg) {
-        List<User> premiumUsers = userRepository.findAll().stream()
-                .filter(User::isPremium)
-                .collect(Collectors.toList());
+        List<User> premiumUsers = userRepository.findByIsPremiumTrue();
 
         for (User user : premiumUsers) {
             try {
+                // --- ACTIVE-USER FILTERING (48 Hours) ---
+                if (!isUserActiveInLast48Hours(user)) {
+                    logger.info("User {} is inactive in the last 48 hours. Skipping AI cron nudge. 💤", user.getId());
+                    continue;
+                }
+
                 // --- NEURAL MEMORY (CACHING) GUARD ---
                 // Check if we already generated this specific nudge for today
                 java.time.Instant startOfToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
@@ -236,15 +268,43 @@ public class NotificationService {
                 List<com.wellnest.app.model.SleepLog> sleep = trackerService.getSleepForToday(user.getId()); 
                 boolean missingSleep = sleep.isEmpty();
 
-                if (missingSleep) context.append("Aha—it looks like you missed your sleep log last night! ");
-                if (missingMeals) context.append("Fuel check! You haven't logged any meals today. Consistency is key. ");
-                if (missingWater) context.append("Hydration gap detected—let's hit your target! ");
+                int missingCount = 0;
+                if (missingSleep) missingCount++;
+                if (missingMeals) missingCount++;
+                if (missingWater) missingCount++;
 
-                String aiMessage = groqService.generateNotification("elite coach", name, context.toString());
+                String nudgeMessage = null;
+
+                if (missingCount == 0) {
+                    // Hybrid optimization: 0 tokens used
+                    int index = (int) (Math.random() * STATIC_ALL_LOGGED_NUDGES.length);
+                    nudgeMessage = String.format(STATIC_ALL_LOGGED_NUDGES[index], name);
+                    logger.info("Hybrid Nudge (0-token All Logged) generated for user {}", user.getId());
+                } else if (missingCount == 1) {
+                    // Hybrid optimization: 0 tokens used
+                    if (missingWater) {
+                        int index = (int) (Math.random() * STATIC_WATER_NUDGES.length);
+                        nudgeMessage = String.format(STATIC_WATER_NUDGES[index], name);
+                    } else if (missingMeals) {
+                        int index = (int) (Math.random() * STATIC_MEAL_NUDGES.length);
+                        nudgeMessage = String.format(STATIC_MEAL_NUDGES[index], name);
+                    } else if (missingSleep) {
+                        int index = (int) (Math.random() * STATIC_SLEEP_NUDGES.length);
+                        nudgeMessage = String.format(STATIC_SLEEP_NUDGES[index], name);
+                    }
+                    logger.info("Hybrid Nudge (0-token Single Gap) generated for user {}", user.getId());
+                } else {
+                    // Call Groq (complex multi-parameter alert)
+                    if (missingSleep) context.append("Aha—it looks like you missed your sleep log last night! ");
+                    if (missingMeals) context.append("Fuel check! You haven't logged any meals today. Consistency is key. ");
+                    if (missingWater) context.append("Hydration gap detected—let's hit your target! ");
+
+                    nudgeMessage = groqService.generateNotification("elite coach", name, context.toString());
+                }
                 
-                if (aiMessage != null && !aiMessage.contains("Error")) {
+                if (nudgeMessage != null && !nudgeMessage.contains("Error")) {
                     // SENT TO ANDROID AND PERSISTED IN DB (CACHED)
-                    createNotification(user.getId(), title, aiMessage, "AI_NUDGE");
+                    createNotification(user.getId(), title, nudgeMessage, "AI_NUDGE");
                     logger.info("Sent personalized AI nudge (Cached): {} to user {}", title, user.getId());
                 }
 
@@ -254,5 +314,41 @@ public class NotificationService {
                 logger.error("Error processing scheduled nudge for user " + user.getId() + ": " + e.getMessage());
             }
         }
+    }
+
+    private boolean isUserActiveInLast48Hours(User user) {
+        LocalDate today = LocalDate.now();
+        LocalDate twoDaysAgo = today.minusDays(2);
+        
+        // 1. Check user chat/voice/scan dates
+        if (user.getLastChatDate() != null && !user.getLastChatDate().isBefore(twoDaysAgo)) return true;
+        if (user.getLastVoiceDate() != null && !user.getLastVoiceDate().isBefore(twoDaysAgo)) return true;
+        if (user.getLastScanDate() != null && !user.getLastScanDate().isBefore(twoDaysAgo)) return true;
+        
+        // 2. Check if they have logged daily activities in the last 2 days
+        try {
+            List<DailyActivity> activities = trackerService.getDailyActivities(user.getId(), twoDaysAgo, today);
+            if (activities != null && !activities.isEmpty()) {
+                for (DailyActivity act : activities) {
+                    if ((act.getSteps() != null && act.getSteps() > 0) || 
+                        (act.getActiveCalories() != null && act.getActiveCalories() > 0) ||
+                        (act.getDistanceKm() != null && act.getDistanceKm() > 0)) {
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Error checking active-user daily activities: " + e.getMessage());
+        }
+        
+        // 3. Fallback: check if they have registered/created recently
+        if (user.getCreatedAt() != null) {
+            LocalDateTime twoDaysAgoLDT = LocalDateTime.now().minusDays(2);
+            if (user.getCreatedAt().isAfter(twoDaysAgoLDT)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }

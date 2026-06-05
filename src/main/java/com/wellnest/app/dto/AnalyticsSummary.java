@@ -15,4 +15,8 @@ public class AnalyticsSummary {
     private HealthMetrics healthMetrics;
     private WorkoutConsistency workoutConsistency;
     private DailyActivityAnalytics dailyActivityAnalytics;
+    
+    // SaaS Premium Features
+    private java.util.List<String> premiumInsights;
+    private java.util.Map<String, Object> neuralMetrics;
 }

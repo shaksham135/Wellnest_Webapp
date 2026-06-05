@@ -33,20 +33,31 @@ public class TrackerController {
 
     private final TrackerService trackerService;
     private final AppUserService appUserService;
+    private final com.wellnest.app.service.AssistantService assistantService;
+    private final com.wellnest.app.repository.UserRepository userRepository;
+    private final com.wellnest.app.service.UserService userService;
 
-    public TrackerController(TrackerService trackerService, AppUserService appUserService) {
+    public TrackerController(TrackerService trackerService, 
+                           AppUserService appUserService,
+                           com.wellnest.app.service.AssistantService assistantService,
+                           com.wellnest.app.repository.UserRepository userRepository,
+                           com.wellnest.app.service.UserService userService) {
         this.trackerService = trackerService;
         this.appUserService = appUserService;
+        this.assistantService = assistantService;
+        this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     // -------------------- WORKOUT --------------------
 
     @PostMapping("/workouts")
-    public ResponseEntity<Workout> createWorkout(@Valid @RequestBody WorkoutDto dto,
+    public ResponseEntity<com.wellnest.app.dto.LogResponse<Workout>> createWorkout(@Valid @RequestBody WorkoutDto dto,
             Authentication authentication) {
         Long userId = appUserService.getUserIdFromAuthentication(authentication);
         Workout created = trackerService.createWorkoutForUser(userId, dto);
-        return ResponseEntity.ok(created);
+        com.wellnest.app.model.User user = userRepository.findById(userId).orElse(null);
+        return ResponseEntity.ok((com.wellnest.app.dto.LogResponse<Workout>) assistantService.generateInstantInsight(created, user));
     }
 
     @GetMapping("/workouts")
@@ -63,14 +74,23 @@ public class TrackerController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/workouts/{id}")
+    public ResponseEntity<Workout> updateWorkout(@PathVariable Long id, @Valid @RequestBody WorkoutDto dto,
+            Authentication authentication) {
+        Long userId = appUserService.getUserIdFromAuthentication(authentication);
+        Workout updated = trackerService.updateWorkoutForUser(userId, id, dto);
+        return ResponseEntity.ok(updated);
+    }
+
     // -------------------- MEAL --------------------
 
     @PostMapping("/meals")
-    public ResponseEntity<Meal> createMeal(@Valid @RequestBody MealDto dto,
+    public ResponseEntity<com.wellnest.app.dto.LogResponse<Meal>> createMeal(@Valid @RequestBody MealDto dto,
             Authentication authentication) {
         Long userId = appUserService.getUserIdFromAuthentication(authentication);
         Meal created = trackerService.createMealForUser(userId, dto);
-        return ResponseEntity.ok(created);
+        com.wellnest.app.model.User user = userRepository.findById(userId).orElse(null);
+        return ResponseEntity.ok((com.wellnest.app.dto.LogResponse<Meal>) assistantService.generateInstantInsight(created, user));
     }
 
     @GetMapping("/meals")
@@ -87,14 +107,23 @@ public class TrackerController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/meals/{id}")
+    public ResponseEntity<Meal> updateMeal(@PathVariable Long id, @Valid @RequestBody MealDto dto,
+            Authentication authentication) {
+        Long userId = appUserService.getUserIdFromAuthentication(authentication);
+        Meal updated = trackerService.updateMealForUser(userId, id, dto);
+        return ResponseEntity.ok(updated);
+    }
+
     // -------------------- WATER --------------------
 
     @PostMapping("/water")
-    public ResponseEntity<WaterIntake> createWater(@Valid @RequestBody WaterIntakeDto dto,
+    public ResponseEntity<com.wellnest.app.dto.LogResponse<WaterIntake>> createWater(@Valid @RequestBody WaterIntakeDto dto,
             Authentication authentication) {
         Long userId = appUserService.getUserIdFromAuthentication(authentication);
         WaterIntake created = trackerService.createWaterForUser(userId, dto);
-        return ResponseEntity.ok(created);
+        com.wellnest.app.model.User user = userRepository.findById(userId).orElse(null);
+        return ResponseEntity.ok((com.wellnest.app.dto.LogResponse<WaterIntake>) assistantService.generateInstantInsight(created, user));
     }
 
     @GetMapping("/water")
@@ -111,14 +140,23 @@ public class TrackerController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/water/{id}")
+    public ResponseEntity<WaterIntake> updateWater(@PathVariable Long id, @Valid @RequestBody WaterIntakeDto dto,
+            Authentication authentication) {
+        Long userId = appUserService.getUserIdFromAuthentication(authentication);
+        WaterIntake updated = trackerService.updateWaterForUser(userId, id, dto);
+        return ResponseEntity.ok(updated);
+    }
+
     // -------------------- SLEEP --------------------
 
     @PostMapping("/sleep")
-    public ResponseEntity<SleepLog> createSleep(@Valid @RequestBody SleepLogDto dto,
+    public ResponseEntity<com.wellnest.app.dto.LogResponse<SleepLog>> createSleep(@Valid @RequestBody SleepLogDto dto,
             Authentication authentication) {
         Long userId = appUserService.getUserIdFromAuthentication(authentication);
         SleepLog created = trackerService.createSleepForUser(userId, dto);
-        return ResponseEntity.ok(created);
+        com.wellnest.app.model.User user = userRepository.findById(userId).orElse(null);
+        return ResponseEntity.ok((com.wellnest.app.dto.LogResponse<SleepLog>) assistantService.generateInstantInsight(created, user));
     }
 
     @GetMapping("/sleep")
@@ -135,14 +173,23 @@ public class TrackerController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/sleep/{id}")
+    public ResponseEntity<SleepLog> updateSleep(@PathVariable Long id, @Valid @RequestBody SleepLogDto dto,
+            Authentication authentication) {
+        Long userId = appUserService.getUserIdFromAuthentication(authentication);
+        SleepLog updated = trackerService.updateSleepForUser(userId, id, dto);
+        return ResponseEntity.ok(updated);
+    }
+
     // -------------------- DAILY ACTIVITY (Steps, Calories) --------------------
 
     @PostMapping("/activity")
-    public ResponseEntity<DailyActivity> createDailyActivity(@Valid @RequestBody DailyActivityDto dto,
+    public ResponseEntity<com.wellnest.app.dto.LogResponse<DailyActivity>> createDailyActivity(@Valid @RequestBody DailyActivityDto dto,
             Authentication authentication) {
         Long userId = appUserService.getUserIdFromAuthentication(authentication);
         DailyActivity created = trackerService.logDailyActivity(userId, dto);
-        return ResponseEntity.ok(created);
+        com.wellnest.app.model.User user = userRepository.findById(userId).orElse(null);
+        return ResponseEntity.ok((com.wellnest.app.dto.LogResponse<DailyActivity>) assistantService.generateInstantInsight(created, user));
     }
 
     @GetMapping("/activity")
@@ -160,5 +207,38 @@ public class TrackerController {
         Long userId = appUserService.getUserIdFromAuthentication(authentication);
         trackerService.deleteDailyActivity(userId, id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/undo")
+    public ResponseEntity<Void> undoLog(
+            @RequestParam("type") String type,
+            @RequestParam("id") Long id,
+            Authentication authentication) {
+        Long userId = appUserService.getUserIdFromAuthentication(authentication);
+        switch (type.toUpperCase()) {
+            case "WATER":
+                trackerService.deleteWater(userId, id);
+                break;
+            case "MEAL":
+                trackerService.deleteMeal(userId, id);
+                break;
+            case "WORKOUT":
+                trackerService.deleteWorkout(userId, id);
+                break;
+            case "SLEEP":
+                trackerService.deleteSleep(userId, id);
+                break;
+            case "ACTIVITY":
+                trackerService.deleteDailyActivity(userId, id);
+                break;
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/active-days")
+    public ResponseEntity<List<java.time.LocalDate>> getActiveDays(Authentication authentication) {
+        Long userId = appUserService.getUserIdFromAuthentication(authentication);
+        List<java.time.LocalDate> list = trackerService.getActiveDates(userId);
+        return ResponseEntity.ok(list);
     }
 }

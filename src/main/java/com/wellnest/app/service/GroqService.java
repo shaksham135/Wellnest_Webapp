@@ -63,7 +63,7 @@ public class GroqService {
                 "STRATEGY: Use the provided context to create a 'hook'. If logs are missing, mention the performance gap. If streaks exist, celebrate them. " +
                 "NEVER be boring. NEVER use generic templates. " +
                 "CONTEXT: " + context + ". ";
-        return getResponse(systemPrompt, fastModel);
+        return getResponse(systemPrompt, fastModel, 40);
     }
 
     public String transcribeAudio(MultipartFile audio) {
@@ -84,6 +84,7 @@ public class GroqService {
             // Multi-part Body
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("model", "whisper-large-v3");
+            body.add("prompt", "Wellnest fitness tracker voice log. Mixture of English, Hindi and Hinglish. e.g. 'Maine 2 glass paani piya', '1 hour gym workout done', '6 hours of sleep quality poor', 'Log 500ml water', 'Lunch me 3 roti khayi'. Keep spelling natural.");
             
             // Wrap MultipartFile for RestTemplate
             Resource resource = new ByteArrayResource(audio.getBytes()) {
@@ -117,6 +118,10 @@ public class GroqService {
     }
 
     public String getResponse(String prompt, String modelName) {
+        return getResponse(prompt, modelName, null);
+    }
+
+    public String getResponse(String prompt, String modelName, Integer maxTokens) {
         if (!systemSettingsService.isAiEnabled()) {
             log.warn("Global AI is DISABLED. Skipping Groq Completions.");
             return "I'm focusing on your stats, let's keep the momentum high today! (AI Server Maintenance)";
@@ -140,6 +145,9 @@ public class GroqService {
             ObjectNode rootNode = objectMapper.createObjectNode();
             rootNode.put("model", modelName);
             rootNode.put("temperature", 0.7);
+            if (maxTokens != null) {
+                rootNode.put("max_tokens", maxTokens);
+            }
 
             ArrayNode messages = rootNode.putArray("messages");
             ObjectNode message = messages.addObject();

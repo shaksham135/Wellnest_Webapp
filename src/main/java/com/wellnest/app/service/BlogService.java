@@ -83,10 +83,23 @@ public class BlogService {
     }
 
     public List<BlogPostResponse> getPostsByCategory(String category, String userEmail) {
+        User user = userEmail != null ? userRepository.findByEmail(userEmail).orElse(null) : null;
+        
+        if (category != null && category.equalsIgnoreCase("Trending")) {
+            return blogPostRepository.findAll()
+                .stream()
+                .map(post -> toResponse(post, user))
+                .sorted((a, b) -> {
+                    int scoreA = (a.getLikes() * 2) + a.getComments().size();
+                    int scoreB = (b.getLikes() * 2) + b.getComments().size();
+                    return scoreB - scoreA;
+                })
+                .collect(Collectors.toList());
+        }
+
         if (category == null || category.equalsIgnoreCase("All")) {
             return getAllPosts(userEmail);
         }
-        User user = userEmail != null ? userRepository.findByEmail(userEmail).orElse(null) : null;
         return blogPostRepository.findByCategoryOrderByCreatedAtDesc(category)
                 .stream()
                 .map(post -> toResponse(post, user))
@@ -320,6 +333,8 @@ public class BlogService {
 
         if (post.getUser() != null) {
             response.setAuthorId(post.getUser().getId());
+            response.setIsAuthorPremium(post.getUser().isPremium());
+            response.setIsAuthorVerified(post.getUser().isVerified());
         }
 
         if (currentUser != null) {

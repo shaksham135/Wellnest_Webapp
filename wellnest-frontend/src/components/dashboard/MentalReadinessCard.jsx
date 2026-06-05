@@ -19,7 +19,7 @@ const MentalReadinessCard = () => {
         );
     }
 
-    if (!latestMentalState || !latestMentalState.state || !latestMentalState.state.focusScore) {
+    if (!latestMentalState || !latestMentalState.state || (latestMentalState.state.focusScore == null && latestMentalState.state.moodScore == null && latestMentalState.state.stressScore == null)) {
         return (
             <div className="stats-box cognitive-card empty" style={{ minHeight: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '20px' }}>
                 <div className="card-header" style={{ padding: '24px', width: '100%', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -38,7 +38,8 @@ const MentalReadinessCard = () => {
         );
     }
 
-    const { state, reserve } = latestMentalState;
+    const { state, readiness, reserve } = latestMentalState;
+    const finalReadiness = readiness !== undefined ? readiness : (reserve || 70);
 
     return (
         <div className="stats-box cognitive-card result">
@@ -59,15 +60,15 @@ const MentalReadinessCard = () => {
                             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                         />
                         <path className="circle"
-                            strokeDasharray={`${reserve}, 100`}
+                            strokeDasharray={`${finalReadiness}, 100`}
                             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                         />
-                        <text x="18" y="20.35" className="percentage">{reserve}%</text>
+                        <text x="18" y="20.35" className="percentage">{finalReadiness}%</text>
                     </svg>
                 </div>
                 <div className="reserve-info">
-                    <h4>Cognitive Reserve</h4>
-                    <p>Current brainpower available for physical focus.</p>
+                    <h4>Daily Readiness</h4>
+                    <p>Current score available for focus & recovery.</p>
                 </div>
             </div>
 
@@ -81,27 +82,30 @@ const MentalReadinessCard = () => {
                     { label: 'Focus', icon: <FiZap />, val: state.focusScore, color: 'var(--primary)', class: 'focus' },
                     { label: 'Stress', icon: <FiActivity />, val: state.stressScore, color: '#f43f5e', class: 'stress' },
                     { label: 'Mood', icon: <FiTrendingUp />, val: state.moodScore, color: '#a78bfa', class: 'mood' }
-                ].map((m, i) => (
-                    <div key={i} className="metric-glass-item" style={{
-                        background: 'rgba(255,255,255,0.03)',
-                        padding: '12px',
-                        borderRadius: '16px',
-                        border: '1px solid rgba(255,255,255,0.05)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-                            {m.icon} {m.label}
+                ].map((m, i) => {
+                    const isValNull = m.val == null;
+                    return (
+                        <div key={i} className="metric-glass-item" style={{
+                            background: 'rgba(255,255,255,0.03)',
+                            padding: '12px',
+                            borderRadius: '16px',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>
+                                {m.icon} {m.label}
+                            </div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-main)' }}>
+                                {isValNull ? 'N/A' : `${m.val}/10`}
+                            </div>
+                            <div className="metric-bar" style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                                <div className={`bar-fill ${m.class}`} style={{ width: `${isValNull ? 0 : m.val * 10}%`, height: '100%', background: m.color, borderRadius: '2px' }}></div>
+                            </div>
                         </div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-main)' }}>
-                            {m.val}/10
-                        </div>
-                        <div className="metric-bar" style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
-                            <div className={`bar-fill ${m.class}`} style={{ width: `${m.val * 10}%`, height: '100%', background: m.color, borderRadius: '2px' }}></div>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             <div className="ai-directive" style={{

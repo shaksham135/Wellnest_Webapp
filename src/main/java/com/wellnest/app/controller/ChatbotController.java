@@ -149,7 +149,7 @@ public class ChatbotController {
         promptBuilder.append("- BOLD KEY TERMS: Use **bold** for metrics, numbers, and key actions.\n");
         promptBuilder.append("- BE CONCISE: Total answer must be short and easy to scan on mobile.\n");
 
-        String aiResponse = groqService.getResponse(promptBuilder.toString());
+        String aiResponse = groqService.getResponse(promptBuilder.toString(), "llama-3.1-8b-instant", 300);
 
         return ResponseEntity.ok(Map.of("response", aiResponse));
     }
@@ -161,6 +161,12 @@ public class ChatbotController {
             return ResponseEntity.badRequest().body("Description is required");
         }
 
+        // Try local matching first to save API tokens
+        String localMatch = tryLocalMealAnalysis(description);
+        if (localMatch != null) {
+            return ResponseEntity.ok(localMatch);
+        }
+
         String prompt = "Analyze the nutritional content of this meal: \"" + description + "\". " +
                 "Return ONLY a valid JSON object with these exact keys: " +
                 "{\"calories\": number, \"protein\": number, \"carbs\": number, \"fats\": number}. " +
@@ -168,7 +174,7 @@ public class ChatbotController {
                 "If you cannot determine the values, provide reasonable estimates based on average portions.";
 
         try {
-            String aiResponse = groqService.getResponse(prompt);
+            String aiResponse = groqService.getResponse(prompt, "llama-3.1-8b-instant", 40);
             
             // Clean up AI response in case it wraps with ```json ... ```
             String cleanedResponse = aiResponse.replaceAll("(?s).*?\\{(.*)\\}.*", "{$1}").trim();
@@ -183,5 +189,123 @@ public class ChatbotController {
         } catch (Exception e) {
             return ResponseEntity.status(500).body("AI Analysis failed: " + e.getMessage());
         }
+    }
+
+    private String tryLocalMealAnalysis(String description) {
+        if (description == null) return null;
+        String desc = description.toLowerCase().trim();
+        
+        int quantity = 1;
+        java.util.regex.Matcher countMatcher = java.util.regex.Pattern.compile("(\\d+)").matcher(desc);
+        if (countMatcher.find()) {
+            try {
+                quantity = Integer.parseInt(countMatcher.group(1));
+            } catch (Exception e) {}
+        } else {
+            if (desc.contains("one") || desc.contains("ek") || desc.contains(" a ") || desc.startsWith("a ")) {
+                quantity = 1;
+            } else if (desc.contains("two") || desc.contains("do")) {
+                quantity = 2;
+            } else if (desc.contains("three") || desc.contains("teen")) {
+                quantity = 3;
+            } else if (desc.contains("four") || desc.contains("chaar")) {
+                quantity = 4;
+            }
+        }
+        
+        int cal = 0, prot = 0, carb = 0, fat = 0;
+        boolean matched = false;
+        
+        if (desc.contains("roti") || desc.contains("chapati") || desc.contains("chappati")) {
+            cal += 90 * quantity;
+            prot += 3 * quantity;
+            carb += 18 * quantity;
+            fat += 1 * quantity;
+            matched = true;
+        } else if (desc.contains("egg") || desc.contains("anda") || desc.contains("ande")) {
+            cal += 75 * quantity;
+            prot += 6 * quantity;
+            carb += 0 * quantity;
+            fat += 5 * quantity;
+            matched = true;
+        } else if (desc.contains("chicken") || desc.contains("murga") || desc.contains("murgi")) {
+            cal += 165 * quantity;
+            prot += 31 * quantity;
+            carb += 0 * quantity;
+            fat += 4 * quantity;
+            matched = true;
+        } else if (desc.contains("rice") || desc.contains("chawal") || desc.contains("bhaat")) {
+            cal += 200 * quantity;
+            prot += 4 * quantity;
+            carb += 45 * quantity;
+            fat += 0 * quantity;
+            matched = true;
+        } else if (desc.contains("apple") || desc.contains("seb")) {
+            cal += 80 * quantity;
+            prot += 0;
+            carb += 20 * quantity;
+            fat += 0;
+            matched = true;
+        } else if (desc.contains("banana") || desc.contains("kela")) {
+            cal += 105 * quantity;
+            prot += 1 * quantity;
+            carb += 27 * quantity;
+            fat += 0;
+            matched = true;
+        } else if (desc.contains("milk") || desc.contains("doodh")) {
+            cal += 150 * quantity;
+            prot += 8 * quantity;
+            carb += 12 * quantity;
+            fat += 8 * quantity;
+            matched = true;
+        } else if (desc.contains("curd") || desc.contains("dahi") || desc.contains("yogurt")) {
+            cal += 100 * quantity;
+            prot += 5 * quantity;
+            carb += 6 * quantity;
+            fat += 4 * quantity;
+            matched = true;
+        } else if (desc.contains("oat")) {
+            cal += 150 * quantity;
+            prot += 5 * quantity;
+            carb += 27 * quantity;
+            fat += 3 * quantity;
+            matched = true;
+        } else if (desc.contains("salad")) {
+            cal += 40 * quantity;
+            prot += 1 * quantity;
+            carb += 8 * quantity;
+            fat += 0;
+            matched = true;
+        } else if (desc.contains("paneer")) {
+            cal += 265 * quantity;
+            prot += 18 * quantity;
+            carb += 1 * quantity;
+            fat += 20 * quantity;
+            matched = true;
+        } else if (desc.contains("protein") || desc.contains("whey") || desc.contains("shake")) {
+            cal += 120 * quantity;
+            prot += 24 * quantity;
+            carb += 3 * quantity;
+            fat += 1;
+            matched = true;
+        } else if (desc.contains("tea") || desc.contains("chai")) {
+            cal += 90 * quantity;
+            prot += 2 * quantity;
+            carb += 15 * quantity;
+            fat += 3 * quantity;
+            matched = true;
+        } else if (desc.contains("coffee")) {
+            cal += 80 * quantity;
+            prot += 2 * quantity;
+            carb += 12 * quantity;
+            fat += 2 * quantity;
+            matched = true;
+        }
+        
+        if (matched) {
+            return String.format("{\"calories\":%d,\"protein\":%d,\"carbs\":%d,\"fats\":%d}", cal, prot, carb, fat);
+        }
+        
+        return null;
     }
 }

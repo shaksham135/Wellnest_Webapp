@@ -230,3 +230,13 @@ CREATE TABLE IF NOT EXISTS daily_briefings (
     FOREIGN KEY (user_id) REFERENCES users(id),
     UNIQUE (user_id, date)
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS weekly_reports (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    json_content LONGTEXT NOT NULL,
+    week_start DATE NOT NULL,
+    last_refreshed_at DATETIME(6) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    UNIQUE (user_id, week_start)
+) ENGINE=InnoDB;

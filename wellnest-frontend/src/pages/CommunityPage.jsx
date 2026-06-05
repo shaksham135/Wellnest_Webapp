@@ -5,7 +5,7 @@ import { getPosts, createPost, updatePost } from '../api/blogApi';
 import SkeletonUI from '../components/common/SkeletonUI';
 import PullToRefresh from '../components/common/PullToRefresh';
 import BottomSheet from '../components/common/BottomSheet';
-import { FiPlus, FiRefreshCw, FiFilter, FiInbox, FiClock, FiCalendar } from 'react-icons/fi';
+import { FiPlus, FiRefreshCw, FiFilter, FiInbox, FiClock, FiCalendar, FiZap } from 'react-icons/fi';
 import storageService from '../api/storageService';
 import cacheService from '../api/cacheService';
 
@@ -106,21 +106,32 @@ const CommunityPage = ({ isLoggedIn: propIsLoggedIn }) => {
 
     // Sorting Logic
     const sortedPosts = [...posts].sort((a, b) => {
-        const dateA = new Date(a.date || a.createdAt); // Handle mismatching date fields if any
+        if (sortBy === 'trending') {
+            const scoreA = (a.likes * 2) + (a.comments?.length || 0);
+            const scoreB = (b.likes * 2) + (b.comments?.length || 0);
+            return scoreB - scoreA;
+        }
+        const dateA = new Date(a.date || a.createdAt);
         const dateB = new Date(b.date || b.createdAt);
         if (sortBy === 'newest') return dateB - dateA;
         if (sortBy === 'oldest') return dateA - dateB;
         return 0;
     });
 
+    const getSortLabel = () => {
+        if (sortBy === 'trending') return 'Trending Pulse';
+        if (sortBy === 'newest') return 'Newest First';
+        return 'Oldest First';
+    };
+
     return (
         <PullToRefresh onRefresh={fetchPosts}>
             <div className="blog-page" style={{ minHeight: '100vh', paddingBottom: '60px' }}>
             <div className="blog-header" style={{ maxWidth: '680px', margin: '0 auto', padding: '30px 0 20px' }}>
                 <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '4px' }}>Community Feed</h1>
-                    <p style={{ color: 'var(--text-muted)' }}>
-                        Connect with the community.
+                    <h1 style={{ fontSize: '2.4rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '8px', letterSpacing: '-0.5px' }}>Community Wall</h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>
+                        The neural heartbeat of Wellnest.
                     </p>
                 </div>
 
@@ -130,18 +141,18 @@ const CommunityPage = ({ isLoggedIn: propIsLoggedIn }) => {
                         onClick={fetchPosts}
                         disabled={loading}
                         title="Refresh feed"
-                        style={{ background: 'var(--card-bg)' }}
+                        style={{ background: 'var(--card-bg)', width: '48px', height: '48px', borderRadius: '14px' }}
                     >
                         <FiRefreshCw className={loading ? 'spin' : ''} />
                     </button>
                     {canCreatePost && (
                         <button
                             className="primary-btn"
-                            style={{ width: 'auto' }}
+                            style={{ width: 'auto', padding: '0 24px', borderRadius: '14px', fontWeight: 800 }}
                             onClick={handleNewPostClick}
                             title="Create a new post"
                         >
-                            <FiPlus /> New Post
+                            <FiPlus /> Share Story
                         </button>
                     )}
                 </div>
@@ -155,22 +166,38 @@ const CommunityPage = ({ isLoggedIn: propIsLoggedIn }) => {
                     style={{ 
                         background: 'var(--card-bg)', 
                         gap: '8px', 
-                        padding: '10px 16px',
+                        padding: '10px 20px',
                         border: '1px solid var(--card-border)',
                         color: 'var(--text-main)',
-                        fontWeight: 600
+                        fontWeight: 700,
+                        borderRadius: '12px',
+                        fontSize: '13px'
                     }}
                 >
-                    <FiFilter /> Sort: {sortBy === 'newest' ? 'Newest First' : 'Oldest First'}
+                    <FiFilter /> {getSortLabel()}
                 </button>
             </div>
 
             <BottomSheet 
                 isOpen={isSortOpen} 
                 onClose={() => setIsSortOpen(false)} 
-                title="Sort Community Feed"
+                title="Neural Sort"
             >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <button 
+                        className={`sort-option-item ${sortBy === 'trending' ? 'active' : ''}`}
+                        onClick={() => { setSortBy('trending'); setIsSortOpen(false); }}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '15px', padding: '16px', 
+                            borderRadius: '16px', background: sortBy === 'trending' ? 'var(--primary-light)' : 'var(--input-bg)',
+                            border: '1px solid', borderColor: sortBy === 'trending' ? 'var(--primary)' : 'var(--card-border)',
+                            color: sortBy === 'trending' ? 'var(--primary)' : 'var(--text-main)',
+                            fontWeight: 700, width: '100%', textAlign: 'left', cursor: 'pointer'
+                        }}
+                    >
+                        <FiZap style={{ fontSize: '20px' }} />
+                        <span>Trending Pulse</span>
+                    </button>
                     <button 
                         className={`sort-option-item ${sortBy === 'newest' ? 'active' : ''}`}
                         onClick={() => { setSortBy('newest'); setIsSortOpen(false); }}
@@ -179,11 +206,11 @@ const CommunityPage = ({ isLoggedIn: propIsLoggedIn }) => {
                             borderRadius: '16px', background: sortBy === 'newest' ? 'var(--primary-light)' : 'var(--input-bg)',
                             border: '1px solid', borderColor: sortBy === 'newest' ? 'var(--primary)' : 'var(--card-border)',
                             color: sortBy === 'newest' ? 'var(--primary)' : 'var(--text-main)',
-                            fontWeight: 600, width: '100%', textAlign: 'left', cursor: 'pointer'
+                            fontWeight: 700, width: '100%', textAlign: 'left', cursor: 'pointer'
                         }}
                     >
                         <FiClock style={{ fontSize: '20px' }} />
-                        <span>Newest First</span>
+                        <span>Newest Story</span>
                     </button>
                     <button 
                         className={`sort-option-item ${sortBy === 'oldest' ? 'active' : ''}`}
@@ -193,11 +220,11 @@ const CommunityPage = ({ isLoggedIn: propIsLoggedIn }) => {
                             borderRadius: '16px', background: sortBy === 'oldest' ? 'var(--primary-light)' : 'var(--input-bg)',
                             border: '1px solid', borderColor: sortBy === 'oldest' ? 'var(--primary)' : 'var(--card-border)',
                             color: sortBy === 'oldest' ? 'var(--primary)' : 'var(--text-main)',
-                            fontWeight: 600, width: '100%', textAlign: 'left', cursor: 'pointer'
+                            fontWeight: 700, width: '100%', textAlign: 'left', cursor: 'pointer'
                         }}
                     >
                         <FiCalendar style={{ fontSize: '20px' }} />
-                        <span>Oldest First</span>
+                        <span>Timeline Origin</span>
                     </button>
                 </div>
             </BottomSheet>

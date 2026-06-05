@@ -12,6 +12,7 @@ import java.util.Optional;
 @Repository
 public interface DailyActivityRepository extends JpaRepository<DailyActivity, Long> {
     Optional<DailyActivity> findByUserIdAndDate(Long userId, LocalDate date);
+    List<DailyActivity> findByUserId(Long userId);
     
     // For Reports (Ascending)
     List<DailyActivity> findByUserIdAndDateBetweenOrderByDateAsc(Long userId, LocalDate startDate, LocalDate endDate);

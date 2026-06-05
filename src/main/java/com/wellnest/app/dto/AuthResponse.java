@@ -18,6 +18,8 @@ public class AuthResponse {
     @com.fasterxml.jackson.annotation.JsonProperty("isPremium")
     private boolean isPremium;
 
+    private String premiumAccessType;
+
     public AuthResponse(String token, String message, String role, boolean profileComplete, Long userId,
             boolean isVerified, boolean isPremium) {
         this.token = token;
@@ -27,6 +29,19 @@ public class AuthResponse {
         this.userId = userId;
         this.isVerified = isVerified;
         this.isPremium = isPremium;
+        this.premiumAccessType = isPremium ? "PAID_PREMIUM" : "FREE";
+    }
+
+    public AuthResponse(String token, String message, String role, boolean profileComplete, Long userId,
+            boolean isVerified, boolean isPremium, String premiumAccessType) {
+        this.token = token;
+        this.message = message;
+        this.role = role;
+        this.profileComplete = profileComplete;
+        this.userId = userId;
+        this.isVerified = isVerified;
+        this.isPremium = isPremium;
+        this.premiumAccessType = premiumAccessType != null ? premiumAccessType : "FREE";
     }
 
 }

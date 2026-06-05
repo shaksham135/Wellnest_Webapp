@@ -24,6 +24,12 @@ public class User {
     private int dailyChatCount = 0;
     private java.time.LocalDate lastChatDate;
 
+    private int dailyVoiceCount = 0;
+    private java.time.LocalDate lastVoiceDate;
+
+    private int dailyScanCount = 0;
+    private java.time.LocalDate lastScanDate;
+
     private String name;
 
     @Column(nullable = false, unique = true)
@@ -66,6 +72,30 @@ public class User {
 
     @Column(nullable = false)
     private boolean isSuspended = false;
+
+    private int xp = 0;
+    private int level = 1;
+    private int coins = 0;
+    private String league = "Bronze";
+
+    // Coin Shop Items
+    private int streakShieldCount = 0;
+    private String activeTheme = "default";
+    private LocalDateTime xpBoosterExpiry = null;
+    private boolean hasPremiumBadge = false;
+    private boolean hasGoldTheme = false;
+    private boolean hasEmeraldTheme = false;
+
+    private String subscriptionPlan;
+    private String subscriptionStatus;
+    private java.time.LocalDate subscriptionDate;
+    private LocalDateTime premiumActivatedAt;
+
+    // Beta Premium Access Type: FREE | BETA_PREMIUM | PAID_PREMIUM | ADMIN_GRANTED | LIFETIME
+    @Column(nullable = false)
+    private String premiumAccessType = "FREE";
+
+    private LocalDateTime firstVoiceLogAt;
 
     private String fcmToken;
 

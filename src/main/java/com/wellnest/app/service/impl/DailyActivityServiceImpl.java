@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import com.wellnest.app.util.TimezoneUtil;
 
 @Service
 public class DailyActivityServiceImpl implements DailyActivityService {
@@ -23,7 +24,7 @@ public class DailyActivityServiceImpl implements DailyActivityService {
     @Transactional
     public void syncActivity(User user, DailyActivityDto dto) {
         // Trust the local date from the user's phone if provided
-        LocalDate targetDate = (dto.getDate() != null) ? dto.getDate() : LocalDate.now();
+        LocalDate targetDate = (dto.getDate() != null) ? dto.getDate() : LocalDate.now(TimezoneUtil.getClientZoneId());
         
         DailyActivity activity = dailyActivityRepository.findByUserIdAndDate(user.getId(), targetDate)
                 .orElse(new DailyActivity(user, targetDate, 0, 0, 0.0));

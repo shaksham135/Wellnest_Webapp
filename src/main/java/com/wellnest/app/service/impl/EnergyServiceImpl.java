@@ -57,11 +57,22 @@ public class EnergyServiceImpl implements EnergyService {
 
         // 2. Finalize Current Metrics
         int currentEnergy = calculateEnergyAt(user, now);
-        int cognitiveReserve = mentalFitnessService.getCognitiveReserve(user);
+        int dailyReadiness = mentalFitnessService.getDailyReadiness(user);
         String status = determineStatus(currentEnergy, now.getHour());
         String message = generateInsight(currentEnergy, forecast, now.getHour());
+        String dataQuality = mentalFitnessService.getDataQuality(user);
+        java.util.Map<String, Boolean> factors = mentalFitnessService.getReadinessFactors(user);
 
-        return new EnergyForecast(currentEnergy, status, message, forecast, cognitiveReserve);
+        return new EnergyForecast(
+            currentEnergy, 
+            status, 
+            message, 
+            forecast, 
+            dailyReadiness, // legacy compatibility mapped to dailyReadiness
+            dailyReadiness, // new dailyReadiness field
+            dataQuality, 
+            factors
+        );
     }
 
     private int calculateEnergyAt(User user, LocalDateTime time) {
@@ -93,8 +104,8 @@ public class EnergyServiceImpl implements EnergyService {
         double totalAfterburn = 0;
 
         // Apply "Stress Tax": Mental fatigue makes physical expenditure more draining
-        int cognitiveReserve = mentalFitnessService.getCognitiveReserve(user);
-        double mentalTaxMultiplier = 1.0 + Math.max(0, (50.0 - cognitiveReserve) / 100.0); // up to 1.4x tax
+        int dailyReadiness = mentalFitnessService.getDailyReadiness(user);
+        double mentalTaxMultiplier = 1.0 + Math.max(0, (50.0 - dailyReadiness) / 100.0); // up to 1.4x tax
 
         for (Workout w : recentWorkouts) {
             long minutesAgo = Duration.between(w.getPerformedAt(), time.toInstant(ZoneOffset.UTC)).toMinutes();
@@ -131,7 +142,7 @@ public class EnergyServiceImpl implements EnergyService {
             long minutesAgo = Duration.between(m.getLoggedAt(), time.toInstant(ZoneOffset.UTC)).toMinutes();
             if (minutesAgo < 180) { // 3 hours window
                 double fuelFactor = 1.0 - (minutesAgo / 180.0);
-                energy += (15 * fuelFactor); // Glucose spike decay
+                energy += (8.0 * fuelFactor); // Subtle glucose spike decay (+8 max boost, internal only)
             }
         }
 
@@ -151,25 +162,45 @@ public class EnergyServiceImpl implements EnergyService {
         int futureEnergy = forecast.get(forecast.size() - 1).getEnergyValue();
         String trend = (futureEnergy > energy + 10) ? "SURGING" : (futureEnergy < energy - 10) ? "DIPPING" : "STABLE";
 
-        // --- 2. BUILD AI PROMPT ---
-        String prompt = String.format(
-            "You are an elite, 5-word pro-athlete coach for Wellnest. " +
-            "Context: Time %02d:00. Current Energy: %d%%. 6-hour Trend: %s (%d%%). " +
-            "Task: Give one short, high-performance tactical advice. No fluff. Max 10 words.",
-            hour, energy, trend, futureEnergy
-        );
-
-        try {
-            String aiMessage = groqService.getResponse(prompt);
-            // Clean up typical AI boilerplate if any
-            return aiMessage.replace("\"", "").trim();
-        } catch (Exception e) {
-            log.error("Groq Energy Insight failed, using fallback", e);
-            // --- FALLBACK LOGIC ---
-            if (hour >= 23 || hour < 5) return "Prioritize deep recovery for tomorrow. 💤";
-            if (energy >= 85) return "Peak performance window. Use it! 🚀";
-            if (trend.equals("SURGING")) return "Energy surge incoming. Prepare to push. 📈";
-            return "Maintain consistent fuel and focus. ⚡";
+        // --- 2. LOCAL RULE-BASED ADVICE (0 API COST) ---
+        if (hour >= 23 || hour < 5) {
+            return "Prioritize deep recovery for tomorrow. 💤";
+        }
+        
+        if (energy >= 85) {
+            if (trend.equals("DIPPING")) {
+                return "Peak window closing. Execute key tasks now! ⚡";
+            }
+            return "Peak performance zone. Push hard! 🚀";
+        }
+        
+        if (energy >= 65) { // FLOW
+            if (trend.equals("SURGING")) {
+                return "Energy rising. Gear up for action! 📈";
+            } else if (trend.equals("DIPPING")) {
+                return "Flow state active. Stay locked in. 🎯";
+            } else {
+                return "Keep the momentum high. Stay focused. 🔥";
+            }
+        }
+        
+        if (energy >= 45) { // STABLE
+            if (trend.equals("SURGING")) {
+                return "Recovering nicely. Prep for next effort. ⚡";
+            } else if (trend.equals("DIPPING")) {
+                return "Hydration check! Grab a quick snack. 🍎";
+            } else {
+                return "Maintain posture and steady breathing. 🧘‍♂️";
+            }
+        }
+        
+        // DIP (<45)
+        if (trend.equals("SURGING")) {
+            return "Energy rebound starting. Stand up, stretch! 🏃‍♂️";
+        } else if (trend.equals("DIPPING")) {
+            return "Critical energy dip. Prioritize light rest. 🔌";
+        } else {
+            return "Recharge time. Drink water, take a walk. 💧";
         }
     }
 }

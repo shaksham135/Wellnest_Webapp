@@ -14,14 +14,15 @@ import {
     FiX,
     FiChevronDown,
     FiAward,
-    FiBell
+    FiBell,
+    FiCpu
 } from "react-icons/fi";
 import { useNotifications } from "../../context/NotificationContext";
 import ThemeToggle from "../ThemeToggle"; // Adjust import path if needed
 
 
 
-const Navbar = ({ isLoggedIn, userRole, isOpen, onToggle, onClose }) => {
+const Navbar = ({ isLoggedIn, userRole, isOpen, onToggle, onClose, onOpenChat }) => {
     const location = useLocation();
     const { unreadCount } = useNotifications() || { unreadCount: 0 };
 
@@ -128,36 +129,30 @@ const Navbar = ({ isLoggedIn, userRole, isOpen, onToggle, onClose }) => {
                                     <span>Analytics</span>
                                 </NavLink>
 
-                                {/* Community Dropdown */}
+                                {/* Explore Dropdown */}
                                 <div className="nav-dropdown-container">
                                     <button type="button" className="nav-link dropdown-trigger" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                                         <FiUsers />
-                                        <span style={{ fontFamily: 'inherit' }}>Community</span>
+                                        <span style={{ fontFamily: 'inherit' }}>Explore</span>
                                         <FiChevronDown style={{ marginLeft: '4px', fontSize: '14px' }} />
                                     </button>
                                     <div className="nav-dropdown-menu">
-                                        <NavLink to="/leaderboard" className="nav-link" onClick={onClose}>
-                                            <FiAward />
-                                            <span>Leaderboard</span>
-                                        </NavLink>
+                                         <button 
+                                             className="nav-link" 
+                                             onClick={() => { onOpenChat(); onClose(); }}
+                                             style={{ background: 'transparent', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer' }}
+                                         >
+                                             <FiCpu />
+                                             <span>Neural AI Assistant</span>
+                                         </button>
+                                         <NavLink to="/leaderboard" className="nav-link" onClick={onClose}>
+                                             <FiAward />
+                                             <span>Leaderboard</span>
+                                         </NavLink>
                                         <NavLink to="/blog" className="nav-link" onClick={onClose}>
                                             <FiBookOpen />
                                             <span>Articles</span>
                                         </NavLink>
-                                        <NavLink to="/community" className="nav-link" onClick={onClose}>
-                                            <FiUsers />
-                                            <span>Community Feed</span>
-                                        </NavLink>
-                                        <NavLink to="/trainers" className="nav-link" onClick={onClose}>
-                                            <FiUsers />
-                                            <span>{userRole === 'ROLE_TRAINER' ? 'My Clients' : 'Trainer Matching'}</span>
-                                        </NavLink>
-                                        {userRole === 'ROLE_USER' && (
-                                            <NavLink to="/my-trainers" className="nav-link" onClick={onClose}>
-                                                <FiCheck />
-                                                <span>My Trainers</span>
-                                            </NavLink>
-                                        )}
                                     </div>
                                 </div>
 

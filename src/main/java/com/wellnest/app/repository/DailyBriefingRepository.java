@@ -11,4 +11,5 @@ import java.util.Optional;
 @Repository
 public interface DailyBriefingRepository extends JpaRepository<DailyBriefing, Long> {
     Optional<DailyBriefing> findByUserAndDate(User user, LocalDate date);
+    void deleteByUser(User user);
 }
