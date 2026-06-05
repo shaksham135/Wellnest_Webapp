@@ -23,12 +23,11 @@ import cacheService from "../api/cacheService";
 import { useData } from "../context/DataContext";
 import { toLocalDateString } from "../utils/streakUtils";
 import apiClient from "../api/apiClient";
-// No simple icons used currently
-
 import toast from "react-hot-toast";
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
-
+import { useActivity } from "../context/ActivityContext";
+import { FiActivity, FiRefreshCw } from "react-icons/fi";
 import ResonancePulse from "../components/shared/ResonancePulse";
 import VoiceScanButton from "../components/dashboard/VoiceScanButton";
 import LogHistoryTimeline from "../components/dashboard/LogHistoryTimeline";
