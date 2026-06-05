@@ -144,9 +144,9 @@ const UserDashboard = ({ user }) => {
                             fontWeight: 800,
                             padding: '3px 8px',
                             borderRadius: '10px',
-                            background: f.active ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.02)',
-                            color: f.active ? '#10b981' : 'rgba(255, 255, 255, 0.25)',
-                            border: f.active ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(255, 255, 255, 0.04)',
+                            background: f.active ? 'rgba(16, 185, 129, 0.08)' : 'var(--input-bg)',
+                            color: f.active ? '#10b981' : 'var(--text-muted)',
+                            border: f.active ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid var(--input-border)',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px'

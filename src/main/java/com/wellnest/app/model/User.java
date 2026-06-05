@@ -96,6 +96,7 @@ public class User {
     private String premiumAccessType = "FREE";
 
     private LocalDateTime firstVoiceLogAt;
+    private LocalDateTime weightLastChangedAt;
 
     private String fcmToken;
     @CreationTimestamp

@@ -42,11 +42,35 @@ public class UserService {
     }
 
     public void updateWeight(User user, Double newWeight) {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+        // 1. Time-frequency validation (12-hour limit with 5-minute grace period)
+        if (user.getWeightLastChangedAt() != null) {
+            java.time.LocalDateTime lastChange = user.getWeightLastChangedAt();
+            if (lastChange.plusMinutes(5).isBefore(now) && lastChange.plusHours(12).isAfter(now)) {
+                long secondsRemaining = java.time.Duration.between(now, lastChange.plusHours(12)).getSeconds();
+                long hours = secondsRemaining / 3600;
+                long minutes = (secondsRemaining % 3600) / 60;
+                String timeMsg = (hours > 0 ? hours + "h " : "") + minutes + "m";
+                throw new IllegalArgumentException("Weight can only be updated once every 12 hours. Please wait " + timeMsg + ".");
+            }
+        }
+
+        // 2. Drastic change validation (20% threshold, skip if within grace period)
+        if (user.getWeightKg() != null && user.getWeightKg() > 0) {
+            double prevWeight = user.getWeightKg();
+            double diffPercent = Math.abs(newWeight - prevWeight) / prevWeight;
+            boolean isGracePeriod = user.getWeightLastChangedAt() != null && user.getWeightLastChangedAt().plusMinutes(5).isAfter(now);
+            if (!isGracePeriod && diffPercent > 0.20) {
+                throw new IllegalArgumentException("Weight change is too drastic. New weight must be within 20% of your last recorded weight (" + prevWeight + " kg).");
+            }
+        }
+
         java.time.LocalDate today = java.time.LocalDate.now();
         java.util.List<com.wellnest.app.model.WeightLog> logs = weightLogRepository
                 .findByUserIdOrderByLogDateAsc(user.getId());
 
-        // 1. Handle "No History" or "Only Today's History"
+        // 3. Handle "No History" or "Only Today's History"
         if (logs.isEmpty()) {
             // Case A: Absolutely no logs. Backfill existing weight to Yesterday.
             java.time.LocalDate startDate = user.getCreatedAt() != null
@@ -56,8 +80,8 @@ public class UserService {
             if (!startDate.isBefore(today)) {
                 startDate = today.minusDays(1);
             }
-            // Use current user weight as the "start", or newWeight if null (edge case)
-            Double startWeight = user.getWeightKg() != null ? user.getWeightKg() : newWeight;
+            // Use current user weight as the "start", or newWeight if null/0 (edge case)
+            Double startWeight = (user.getWeightKg() != null && user.getWeightKg() > 0) ? user.getWeightKg() : newWeight;
 
             com.wellnest.app.model.WeightLog initialLog = new com.wellnest.app.model.WeightLog(user, startWeight,
                     startDate);
@@ -80,7 +104,7 @@ public class UserService {
             }
         }
 
-        // 2. Clear pre-existing logs for TODAY (Standard "One Log Per Day" rule)
+        // 4. Clear pre-existing logs for TODAY (Standard "One Log Per Day" rule)
         // We re-fetch or filter because we might have just modified one above.
         java.util.List<com.wellnest.app.model.WeightLog> todayLogs = weightLogRepository
                 .findByUserIdAndLogDateBetween(user.getId(), today, today);
@@ -88,12 +112,13 @@ public class UserService {
             weightLogRepository.deleteAll(todayLogs);
         }
 
-        // 3. Log the NEW weight for TODAY
+        // 5. Log the NEW weight for TODAY
         com.wellnest.app.model.WeightLog newLog = new com.wellnest.app.model.WeightLog(user, newWeight, today);
         weightLogRepository.save(newLog);
 
-        // 4. Update User entity
+        // 6. Update User entity
         user.setWeightKg(newWeight);
+        user.setWeightLastChangedAt(now);
         userRepo.save(user);
     }
 
@@ -101,6 +126,10 @@ public class UserService {
         java.util.List<com.wellnest.app.model.WeightLog> logs = weightLogRepository
                 .findByUserIdOrderByLogDateAsc(user.getId());
         weightLogRepository.deleteAll(logs);
+
+        // Reset the weight change timer on history clear
+        user.setWeightLastChangedAt(null);
+        userRepo.save(user);
 
         // After clearing, we should probably re-initialize the current weight as the
         // "start"

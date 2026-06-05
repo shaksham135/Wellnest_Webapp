@@ -52,7 +52,8 @@ const QuickActionFAB = () => {
                 width: '40px', height: '40px', borderRadius: '50%',
                 background: action.color, color: 'white', border: 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '16px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
+                fontSize: '16px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+                pointerEvents: 'auto'
               }}
             >
               {action.icon}
@@ -71,7 +72,8 @@ const QuickActionFAB = () => {
           fontSize: '22px', cursor: 'pointer', 
           boxShadow: '0 4px 12px rgba(20, 184, 166, 0.3)',
           transform: isOpen ? 'rotate(45deg)' : 'rotate(0)',
-          transition: 'all 0.3s ease'
+          transition: 'all 0.3s ease',
+          pointerEvents: 'auto'
         }}
       >
         {isOpen ? <FiX /> : <FiPlus />}

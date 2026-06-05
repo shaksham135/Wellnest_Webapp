@@ -61,6 +61,7 @@ import { ActivityProvider } from "./context/ActivityContext";
 import storageService from "./api/storageService";
 import ErrorBoundary from "./components/shared/ErrorBoundary";
 import QuickActionFAB from "./components/layout/QuickActionFAB";
+import PWAInstallBanner from "./components/common/PWAInstallBanner";
 
 // Styles
 import "./index.css";
@@ -166,6 +167,7 @@ const AppContent = ({
             hideFloatingButton={true}
         />
         <QuickActionFAB />
+        <PWAInstallBanner />
 
         <main>
           <Routes>

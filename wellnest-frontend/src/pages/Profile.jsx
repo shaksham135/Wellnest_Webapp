@@ -237,7 +237,8 @@ const Profile = ({ onLogout }) => {
       setIsEditing(false);
     } catch (err) {
       console.error(err);
-      alert("Failed to update profile. Please check your inputs.");
+      const serverMsg = err.response?.data?.message || "Failed to update profile. Please check your inputs.";
+      alert(serverMsg);
     } finally {
       setSaveLoading(false);
     }

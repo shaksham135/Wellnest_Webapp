@@ -56,7 +56,11 @@ public class WeightLogController {
                 // 1. Backfilling logic (if no history or only-today history exists)
                 // 2. Same-day overwrite logic
                 // 3. User entity update
-                userService.updateWeight(user, weight);
+                try {
+                        userService.updateWeight(user, weight);
+                } catch (IllegalArgumentException e) {
+                        return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
+                }
 
                 return ResponseEntity.ok("Weight logged successfully");
         }

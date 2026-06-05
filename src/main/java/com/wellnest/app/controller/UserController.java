@@ -105,14 +105,18 @@ public class UserController {
 
     // PUT /api/users/me/profile (used by Setup Profile page)
     @PutMapping("/me/profile")
-    public ResponseEntity<UserProfileResponse> updateProfile(
+    public ResponseEntity<?> updateProfile(
             @Valid @RequestBody ProfileUpdateRequest req,
             Authentication auth) {
         String email = auth.getName();
         User user = userService.findByEmail(email).orElseThrow();
 
         if (req.getWeightKg() != null && !req.getWeightKg().equals(user.getWeightKg())) {
-            userService.updateWeight(user, req.getWeightKg());
+            try {
+                userService.updateWeight(user, req.getWeightKg());
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
+            }
         } else {
             user.setWeightKg(req.getWeightKg());
         }

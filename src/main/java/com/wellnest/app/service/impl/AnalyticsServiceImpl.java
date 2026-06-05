@@ -419,11 +419,15 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             progress.setTargetValue(targetWeight);
             progress.setUnit("kg");
 
-            // Get the initial weight from the weight logs or use current weight as fallback
+            // Get the initial weight from the weight logs (excluding zero/invalid weights) or use current weight as fallback
             List<WeightLog> allWeightLogs = weightLogRepository.findByUserIdOrderByLogDateAsc(user.getId());
-            double initialWeight = (allWeightLogs.isEmpty() || allWeightLogs.get(0).getWeightKg() == null) 
-                    ? currentWeight 
-                    : allWeightLogs.get(0).getWeightKg();
+            double initialWeight = currentWeight;
+            for (com.wellnest.app.model.WeightLog log : allWeightLogs) {
+                if (log.getWeightKg() != null && log.getWeightKg() > 0) {
+                    initialWeight = log.getWeightKg();
+                    break;
+                }
+            }
 
             System.out.println("DEBUG GOAL: Current Weight = " + currentWeight);
             System.out.println("DEBUG GOAL: Target Weight = " + targetWeight);
@@ -463,6 +467,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             if (Math.abs(currentWeight - targetWeight) < 0.5) {
                 progress.setStatus("Target Reached");
                 progress.setRecommendation("Congratulations! You've reached your target weight.");
+                percentage = 100;
+                progress.setPercentageComplete(percentage);
             } else if (percentage >= 50) {
                 progress.setStatus("On Track");
                 progress.setRecommendation("Great job! You're more than halfway there.");

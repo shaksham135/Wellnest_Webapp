@@ -3302,6 +3302,7 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {

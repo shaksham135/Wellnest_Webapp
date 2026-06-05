@@ -73,10 +73,12 @@ const GoalProgress = ({ data, onGoalSet }) => {
             await apiClient.post('/weight-logs', { weightKg: parseFloat(newCurrentWeight) });
             setIsUpdatingWeight(false);
             setNewCurrentWeight('');
+            setError(''); // Clear error on success
             if (onGoalSet) onGoalSet(); // Refresh data
         } catch (err) {
             console.error('Error updating weight:', err);
-            setError('Failed to update weight.');
+            const serverMsg = err.response?.data?.message || 'Failed to update weight.';
+            setError(serverMsg);
         }
     };
 
