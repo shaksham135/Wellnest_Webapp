@@ -144,7 +144,16 @@ public class GroqService {
             // Request Body (OpenAI format)
             ObjectNode rootNode = objectMapper.createObjectNode();
             rootNode.put("model", modelName);
-            rootNode.put("temperature", 0.7);
+            
+            // Speed up parsing queries by forcing JSON Mode and 0.1 temperature
+            if (prompt.toLowerCase().contains("json")) {
+                rootNode.put("temperature", 0.1);
+                ObjectNode responseFormatNode = rootNode.putObject("response_format");
+                responseFormatNode.put("type", "json_object");
+            } else {
+                rootNode.put("temperature", 0.7);
+            }
+
             if (maxTokens != null) {
                 rootNode.put("max_tokens", maxTokens);
             }

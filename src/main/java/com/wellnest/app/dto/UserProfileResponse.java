@@ -50,6 +50,7 @@ public class UserProfileResponse {
     private java.time.LocalDate subscriptionDate;
     private java.time.LocalDateTime premiumActivatedAt;
     private java.time.LocalDateTime firstVoiceLogAt;
+    private int maxVoiceCommandsLimit;
 
     public UserProfileResponse() {
     }

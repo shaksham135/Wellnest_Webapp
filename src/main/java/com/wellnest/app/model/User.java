@@ -98,10 +98,26 @@ public class User {
     private LocalDateTime firstVoiceLogAt;
 
     private String fcmToken;
-
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    public int calculateMaxVoiceCommandsLimit() {
+        if (this.isPremium()) {
+            return 99999; // unlimited proxy
+        }
+        
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate signupDate = this.getCreatedAt() != null ? this.getCreatedAt().toLocalDate() : today;
+        
+        if (signupDate.equals(today)) {
+            return 7;
+        } else if (signupDate.plusDays(2).equals(today)) {
+            return 5;
+        } else {
+            return 3;
+        }
+    }
 
     public User() {
     }

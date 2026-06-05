@@ -98,6 +98,7 @@ public class UserController {
         dto.setSubscriptionDate(user.getSubscriptionDate());
         dto.setPremiumActivatedAt(user.getPremiumActivatedAt());
         dto.setFirstVoiceLogAt(user.getFirstVoiceLogAt());
+        dto.setMaxVoiceCommandsLimit(user.calculateMaxVoiceCommandsLimit());
         dto.setPremiumAccessType(user.getPremiumAccessType() != null ? user.getPremiumAccessType() : "FREE");
         return ResponseEntity.ok(dto);
     }
@@ -167,6 +168,7 @@ public class UserController {
         dto.setSubscriptionDate(user.getSubscriptionDate());
         dto.setPremiumActivatedAt(user.getPremiumActivatedAt());
         dto.setFirstVoiceLogAt(user.getFirstVoiceLogAt());
+        dto.setMaxVoiceCommandsLimit(user.calculateMaxVoiceCommandsLimit());
         dto.setPremiumAccessType(user.getPremiumAccessType() != null ? user.getPremiumAccessType() : "FREE");
         return ResponseEntity.ok(dto);
     }

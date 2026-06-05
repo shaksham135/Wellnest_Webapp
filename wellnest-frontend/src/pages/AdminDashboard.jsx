@@ -59,6 +59,11 @@ const AdminDashboard = ({ onLogout }) => {
     const [betaStatusFilter, setBetaStatusFilter] = useState('ALL');
     const [betaNotesMap, setBetaNotesMap] = useState({});
 
+    // Feedback State
+    const [feedbacks, setFeedbacks] = useState([]);
+    const [feedbackLoading, setFeedbackLoading] = useState(false);
+    const [feedbackCategoryFilter, setFeedbackCategoryFilter] = useState('ALL');
+
     const navigate = useNavigate();
 
     // Fetch Analytics when user is selected
@@ -110,6 +115,25 @@ const AdminDashboard = ({ onLogout }) => {
             fetchBeta();
         }
     }, [activeTab, betaStatusFilter]);
+
+    // Fetch Feedbacks when feedback tab is selected
+    useEffect(() => {
+        if (activeTab === 'feedback') {
+            const fetchFeedbacks = async () => {
+                setFeedbackLoading(true);
+                try {
+                    const { getBetaFeedbacks } = await import("../api/adminApi");
+                    const res = await getBetaFeedbacks();
+                    setFeedbacks(res.data);
+                } catch (e) {
+                    console.error('Failed to fetch beta feedbacks', e);
+                } finally {
+                    setFeedbackLoading(false);
+                }
+            };
+            fetchFeedbacks();
+        }
+    }, [activeTab]);
 
     const handleApproveBetaRequest = async (id, notes) => {
         try {
@@ -407,6 +431,7 @@ const AdminDashboard = ({ onLogout }) => {
                         <p className="nav-label">Management</p>
                         <NavItem id="premium" icon={FiAward} label="Premium Control" />
                         <NavItem id="beta" icon={FiUnlock} label="Beta Requests" />
+                        <NavItem id="feedback" icon={FiFileText} label="Beta Feedback" />
                         <NavItem id="verification" icon={FiShield} label="User Verifications" />
                         <NavItem id="trainerVerification" icon={FiCheckCircle} label={`Cert Reviews ${pendingTrainerVerifications.length > 0 ? `(${pendingTrainerVerifications.length})` : ''}`} />
                         <NavItem id="posts" icon={FiFileText} label="Community Posts" />
@@ -623,6 +648,88 @@ const AdminDashboard = ({ onLogout }) => {
                                         </div>
                                     ))}
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Beta Feedback Submissions Panel */}
+                    {activeTab === 'feedback' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div className="data-card" style={{ padding: '28px 32px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+                                    <div>
+                                        <h2 style={{ margin: '0 0 6px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <FiFileText color="#8b5cf6" size={22} /> Beta Testing Feedback
+                                        </h2>
+                                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '14px' }}>
+                                            Read through suggestions, usability notes, and reported bugs from active beta testers.
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                        {['ALL', 'SUGGESTION', 'BUG', 'USABILITY', 'OTHER'].map(f => (
+                                            <button key={f} onClick={() => setFeedbackCategoryFilter(f)}
+                                                style={{
+                                                    padding: '7px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+                                                    background: feedbackCategoryFilter === f ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
+                                                    border: feedbackCategoryFilter === f ? '1px solid #8b5cf6' : '1px solid rgba(255,255,255,0.1)',
+                                                    color: feedbackCategoryFilter === f ? '#fff' : 'var(--text-muted)'
+                                                }}>{f === 'ALL' ? 'Show All' : f}</button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {feedbackLoading ? (
+                                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                                        <FiClock className="spin" style={{ fontSize: '32px', opacity: 0.3, display: 'block', margin: '0 auto 12px' }} />
+                                        <p>Loading feedbacks...</p>
+                                    </div>
+                                ) : feedbacks.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
+                                        <FiFileText style={{ fontSize: '40px', opacity: 0.2, display: 'block', margin: '0 auto 14px' }} />
+                                        <p>No beta feedbacks found.</p>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        {feedbacks
+                                            .filter(f => feedbackCategoryFilter === 'ALL' || f.category === feedbackCategoryFilter)
+                                            .map(fb => (
+                                                <div key={fb.id} style={{
+                                                    background: 'rgba(255,255,255,0.02)',
+                                                    border: '1px solid rgba(255,255,255,0.06)',
+                                                    borderRadius: '16px',
+                                                    padding: '20px 24px'
+                                                }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+                                                        <div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                                                                <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-main)' }}>{fb.userName}</span>
+                                                                <span style={{
+                                                                    fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '100px', letterSpacing: '0.5px',
+                                                                    background: fb.category === 'BUG' ? 'rgba(239,68,68,0.15)' : fb.category === 'SUGGESTION' ? 'rgba(16,185,129,0.15)' : fb.category === 'USABILITY' ? 'rgba(59,130,246,0.15)' : 'rgba(107,114,128,0.15)',
+                                                                    color: fb.category === 'BUG' ? '#ef4444' : fb.category === 'SUGGESTION' ? '#10b981' : fb.category === 'USABILITY' ? '#3b82f6' : '#9ca3af'
+                                                                }}>{fb.category}</span>
+                                                            </div>
+                                                            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{fb.userEmail}</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                                            <div style={{ display: 'flex', color: '#fbbf24', fontSize: '14px' }}>
+                                                                {Array.from({ length: 5 }).map((_, i) => (
+                                                                    <span key={i} style={{ color: i < fb.rating ? '#fbbf24' : 'rgba(255,255,255,0.15)' }}>★</span>
+                                                                ))}
+                                                            </div>
+                                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                                                {fb.createdAt ? new Date(fb.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '14px 16px', fontSize: '14px', color: 'var(--text-main)', lineHeight: '1.55', whiteSpace: 'pre-wrap' }}>
+                                                        {fb.feedbackText}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

@@ -215,6 +215,59 @@ const Dashboard = ({ onLogout, onOpenChat }) => {
             </div>
         )}
 
+        {/* ACTIVE BETA FEEDBACK BANNER */}
+        {user?.premiumAccessType === 'BETA_PREMIUM' && (
+            <div className="beta-feedback-banner" style={{
+                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.05))',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                borderRadius: '16px',
+                padding: '16px 20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px',
+                boxShadow: '0 4px 20px rgba(139, 92, 246, 0.1)',
+                animation: 'slideDown 0.5s ease-out',
+                cursor: 'pointer',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+            }}
+            onClick={() => navigate('/premium')}
+            onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 24px rgba(139, 92, 246, 0.15)';
+            }}
+            onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(139, 92, 246, 0.1)';
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ fontSize: '28px' }}>📝</div>
+                    <div>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#a78bfa', fontWeight: 800 }}>
+                            Beta Tester Feedback
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
+                            Found a bug or have a suggestion? Share your feedback with us!
+                        </p>
+                    </div>
+                </div>
+                <div style={{
+                    background: 'rgba(139, 92, 246, 0.2)',
+                    color: '#a78bfa',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    border: '1px solid rgba(139, 92, 246, 0.3)'
+                }}>
+                    Give Feedback
+                </div>
+            </div>
+        )}
+
         {/* BETA ACCESS BANNER - Prominent in mobile view */}
         {betaStatus && !user?.isPremium && !betaStatus.hasRequest && (
             <div className="beta-access-banner" style={{

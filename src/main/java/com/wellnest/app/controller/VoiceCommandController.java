@@ -60,11 +60,12 @@ public class VoiceCommandController {
             userRepository.save(user);
         }
 
-        if (!user.isPremium() && user.getDailyVoiceCount() >= 3) {
+        int limit = user.calculateMaxVoiceCommandsLimit();
+        if (!user.isPremium() && user.getDailyVoiceCount() >= limit) {
             return ResponseEntity.status(403).body(Map.of(
                 "status", "FORBIDDEN", 
-                "displayMessage", "You've reached your free daily limit of 3 AI commands. Upgrade to Premium for unlimited voice logs! 🚀",
-                "voiceMessage", "You've reached your free daily limit of 3 AI commands. Upgrade to Premium for unlimited voice logs."
+                "displayMessage", "You've reached your free daily limit of " + limit + " AI commands. Upgrade to Premium for unlimited voice logs! 🚀",
+                "voiceMessage", "You've reached your free daily limit of " + limit + " AI commands. Upgrade to Premium for unlimited voice logs."
             ));
         }
 

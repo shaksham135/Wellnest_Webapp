@@ -37,6 +37,39 @@ const PremiumPage = () => {
     const [submitted, setSubmitted] = useState(false);
     const [loadingStatus, setLoadingStatus] = useState(true);
 
+    // Feedback States
+    const [feedbackCategory, setFeedbackCategory] = useState('SUGGESTION');
+    const [feedbackRating, setFeedbackRating] = useState(5);
+    const [feedbackText, setFeedbackText] = useState('');
+    const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+    const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+    const handleSendFeedback = async (e) => {
+        e.preventDefault();
+        if (!feedbackText.trim()) {
+            toast.error("Please enter your feedback text.");
+            return;
+        }
+        setFeedbackSubmitting(true);
+        try {
+            await apiClient.post('/feedback', {
+                category: feedbackCategory,
+                rating: feedbackRating,
+                feedbackText: feedbackText.trim()
+            });
+            toast.success("Feedback submitted successfully! Thank you. 🚀");
+            setFeedbackSubmitted(true);
+            setFeedbackText('');
+            setFeedbackRating(5);
+        } catch (err) {
+            console.error("Failed to submit feedback", err);
+            const msg = err?.response?.data?.error || "Failed to submit feedback. Please try again.";
+            toast.error(msg);
+        } finally {
+            setFeedbackSubmitting(false);
+        }
+    };
+
     const accessType = userData?.premiumAccessType || (userData?.isPremium ? 'PAID_PREMIUM' : 'FREE');
     const tierConfig = TIER_CONFIG[accessType] || TIER_CONFIG.FREE;
     const hasPremium = accessType !== 'FREE';
@@ -115,6 +148,158 @@ const PremiumPage = () => {
                             <FiZap /> Go to Dashboard
                         </button>
                     </div>
+
+                    {/* BETA FEEDBACK CARD */}
+                    {accessType === 'BETA_PREMIUM' && (
+                        <div className="beta-feedback-card" style={{
+                            background: 'var(--card-bg)',
+                            border: '1px solid var(--card-border)',
+                            borderRadius: '24px',
+                            padding: '32px',
+                            marginTop: '28px',
+                            boxShadow: 'var(--card-shadow)',
+                            backdropFilter: 'blur(10px)',
+                            textAlign: 'left'
+                        }}>
+                            <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '6px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                Beta Testing Feedback 📝
+                            </h2>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>
+                                Help us improve Wellnest before public release. Report bugs, technical issues, or suggest improvements!
+                            </p>
+
+                            {feedbackSubmitted ? (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '24px',
+                                    background: 'rgba(16, 185, 129, 0.08)',
+                                    borderRadius: '16px',
+                                    border: '1px solid rgba(16, 185, 129, 0.2)'
+                                }}>
+                                    <FiCheckCircle size={36} color="#10b981" style={{ marginBottom: '12px' }} />
+                                    <h3 style={{ margin: '0 0 8px', color: '#10b981', fontSize: '18px' }}>Thank you for your feedback!</h3>
+                                    <p style={{ margin: '0 0 16px', fontSize: '14px', color: 'var(--text-muted)' }}>
+                                        Your input directly helps us fix issues and polish the overall user experience.
+                                    </p>
+                                    <button 
+                                        onClick={() => setFeedbackSubmitted(false)}
+                                        style={{
+                                            padding: '8px 16px',
+                                            background: 'rgba(255,255,255,0.05)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: '8px',
+                                            color: 'var(--text-main)',
+                                            cursor: 'pointer',
+                                            fontSize: '13px',
+                                            fontWeight: 600
+                                        }}
+                                    >
+                                        Submit another response
+                                    </button>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleSendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                                        <div style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Feedback Category</label>
+                                            <select 
+                                                value={feedbackCategory}
+                                                onChange={e => setFeedbackCategory(e.target.value)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '12px',
+                                                    borderRadius: '12px',
+                                                    border: '1px solid var(--card-border)',
+                                                    background: 'rgba(255,255,255,0.03)',
+                                                    color: 'var(--text-main)',
+                                                    outline: 'none',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                <option value="SUGGESTION">💡 Suggestion / Feature Request</option>
+                                                <option value="BUG">🐛 Bug / Technical Issue</option>
+                                                <option value="USABILITY">🎨 UI Design & Usability</option>
+                                                <option value="OTHER">❓ Other Feedback</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '180px' }}>
+                                            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Rating</label>
+                                            <div style={{ display: 'flex', alignItems: 'center', height: '42px' }}>
+                                                {[1, 2, 3, 4, 5].map(star => (
+                                                    <span 
+                                                        key={star} 
+                                                        onClick={() => setFeedbackRating(star)}
+                                                        style={{
+                                                            cursor: 'pointer',
+                                                            fontSize: '28px',
+                                                            marginRight: '6px',
+                                                            color: star <= feedbackRating ? '#fbbf24' : 'rgba(255,255,255,0.2)',
+                                                            transition: 'transform 0.2s',
+                                                            userSelect: 'none'
+                                                        }}
+                                                        onMouseOver={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                                                        onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                                                    >
+                                                        ★
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Your Message</label>
+                                        <textarea
+                                            value={feedbackText}
+                                            onChange={e => setFeedbackText(e.target.value)}
+                                            placeholder="Please describe your experience, suggest a feature, or detail the steps to reproduce any bug you found..."
+                                            rows={5}
+                                            maxLength={2000}
+                                            required
+                                            style={{
+                                                width: '100%',
+                                                padding: '14px',
+                                                borderRadius: '12px',
+                                                border: '1px solid var(--card-border)',
+                                                background: 'rgba(255,255,255,0.03)',
+                                                color: 'var(--text-main)',
+                                                outline: 'none',
+                                                resize: 'vertical',
+                                                fontSize: '14px',
+                                                lineHeight: '1.5',
+                                                boxSizing: 'border-box'
+                                            }}
+                                        />
+                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right' }}>
+                                            {feedbackText.length} / 2000 characters
+                                        </div>
+                                    </div>
+
+                                    <button 
+                                        type="submit" 
+                                        disabled={feedbackSubmitting}
+                                        style={{
+                                            padding: '12px 24px',
+                                            background: 'linear-gradient(135deg, var(--primary), #059669)',
+                                            color: '#000',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            fontSize: '14px',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            alignSelf: 'flex-start',
+                                            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.2)',
+                                            transition: 'opacity 0.2s',
+                                            opacity: feedbackSubmitting ? 0.7 : 1
+                                        }}
+                                    >
+                                        {feedbackSubmitting ? 'Submitting...' : 'Submit Feedback'}
+                                    </button>
+                                </form>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         );

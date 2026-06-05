@@ -22,13 +22,16 @@ public class SubscriptionController {
     private final UserService userService;
     private final BetaRequestRepository betaRequestRepository;
     private final NotificationService notificationService;
+    private final com.wellnest.app.service.EmailService emailService;
 
     public SubscriptionController(UserService userService,
                                   BetaRequestRepository betaRequestRepository,
-                                  NotificationService notificationService) {
+                                  NotificationService notificationService,
+                                  com.wellnest.app.service.EmailService emailService) {
         this.userService = userService;
         this.betaRequestRepository = betaRequestRepository;
         this.notificationService = notificationService;
+        this.emailService = emailService;
     }
 
     /**
@@ -61,6 +64,12 @@ public class SubscriptionController {
             "Beta Access Request Submitted",
             "Your request for Wellnest Beta Premium has been received. We'll review it within 24-48 hours.",
             "INFO");
+
+        try {
+            emailService.sendBetaRequestNotification(user.getEmail(), user.getName(), message.trim());
+        } catch (Exception e) {
+            System.err.println("Error sending beta request admin notification: " + e.getMessage());
+        }
 
         return ResponseEntity.ok(Map.of(
             "message", "Beta access request submitted successfully! We'll review it soon.",
@@ -155,6 +164,7 @@ public class SubscriptionController {
         dto.setSubscriptionDate(user.getSubscriptionDate());
         dto.setPremiumActivatedAt(user.getPremiumActivatedAt());
         dto.setFirstVoiceLogAt(user.getFirstVoiceLogAt());
+        dto.setMaxVoiceCommandsLimit(user.calculateMaxVoiceCommandsLimit());
         dto.setPremiumAccessType("PAID_PREMIUM");
         return ResponseEntity.ok(dto);
     }

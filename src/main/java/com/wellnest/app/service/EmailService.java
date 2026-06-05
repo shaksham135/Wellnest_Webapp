@@ -60,7 +60,113 @@ public class EmailService {
             mailSender.send(message);
             System.out.println("Email sent successfully via SMTP to " + fromEmail);
         } catch (Exception e) {
-            System.err.println("Error sending email via SMTP: " + e.getMessage());
+            System.err.println("CRITICAL ERROR: Failed to send contact message via SMTP to " + fromEmail + ". Error: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    @Async
+    public void sendBetaRequestNotification(String userEmail, String userName, String userMsg) {
+        String subject = "New Beta Access Request: " + userName;
+        String bodyText = "Hello Admin,\n\n" +
+                "A user has requested beta access to Wellnest Premium.\n\n" +
+                "User Details:\n" +
+                "- Name: " + userName + "\n" +
+                "- Email: " + userEmail + "\n\n" +
+                "Message/Reason:\n" + userMsg + "\n\n" +
+                "Please log in to the Admin Dashboard to review and approve/reject this request.\n\n" +
+                "Thank you,\nThe Wellnest Team";
+
+        // Try Resend first
+        if (sendViaResend(fromEmail, userEmail, subject, bodyText)) {
+            return;
+        }
+
+        // Fallback to SMTP
+        try {
+            jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
+            org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(
+                    message, true);
+
+            helper.setFrom(fromEmail, userName + " (via Wellnest)");
+            helper.setTo(fromEmail);
+            helper.setReplyTo(userEmail);
+            helper.setSubject(subject);
+            helper.setText(bodyText);
+
+            mailSender.send(message);
+            System.out.println("Beta access request notification sent successfully via SMTP to " + fromEmail);
+        } catch (Exception e) {
+            System.err.println("Error sending beta access request email via SMTP: " + e.getMessage());
+        }
+    }
+
+    @Async
+    public void sendPremiumAccessGrantedEmail(String userEmail, String userName, String accessType) {
+        String subject = "Your Wellnest Premium Access is Active! 👑";
+        String body = "Hello " + userName + ",\n\n" +
+                "Congratulations! Your Wellnest Premium access is now active.\n\n" +
+                "Access Plan / Type: " + accessType + "\n" +
+                "Subscription Status: ACTIVE\n\n" +
+                "You now have unlimited access to all premium features, including voice logging, daily readiness scores, AI neural diagnostics, and deep pattern analysis.\n\n" +
+                "Thank you for being a part of Wellnest Beta. Please share your feedback with us to help us improve!\n\n" +
+                "Best regards,\nThe Wellnest Team";
+
+        // Try Resend first
+        if (sendViaResend(userEmail, null, subject, body)) {
+            return;
+        }
+
+        // Fallback to SMTP
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(userEmail);
+            message.setSubject(subject);
+            message.setText(body);
+
+            mailSender.send(message);
+            System.out.println("Premium activation email sent successfully via SMTP to " + userEmail);
+        } catch (Exception e) {
+            System.err.println("CRITICAL ERROR: Failed to send premium activation email via SMTP to " + userEmail + ". Error: " + e.getMessage());
+        }
+    }
+
+    @Async
+    public void sendFeedbackNotification(String userEmail, String userName, String category, String feedbackText, int rating) {
+        String subject = "New Beta Feedback Received [" + category + "]";
+        String body = "Hello Admin,\n\n" +
+                "A user has submitted feedback for the Wellnest Beta test phase:\n\n" +
+                "User Details:\n" +
+                "- Name: " + userName + "\n" +
+                "- Email: " + userEmail + "\n\n" +
+                "Feedback Details:\n" +
+                "- Category: " + category + "\n" +
+                "- Rating: " + rating + " / 5 stars\n\n" +
+                "Written Feedback:\n" +
+                "\"" + feedbackText + "\"\n\n" +
+                "Thank you,\nThe Wellnest Team";
+
+        // Try Resend first
+        if (sendViaResend(fromEmail, userEmail, subject, body)) {
+            return;
+        }
+
+        // Fallback to SMTP
+        try {
+            jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
+            org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(
+                    message, true);
+
+            helper.setFrom(fromEmail, userName + " (via Wellnest)");
+            helper.setTo(fromEmail);
+            helper.setReplyTo(userEmail);
+            helper.setSubject(subject);
+            helper.setText(body);
+
+            mailSender.send(message);
+            System.out.println("Feedback notification email sent successfully via SMTP to " + fromEmail);
+        } catch (Exception e) {
+            System.err.println("Error sending feedback notification email via SMTP: " + e.getMessage());
         }
     }
 

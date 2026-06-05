@@ -153,6 +153,18 @@ body {
   }
 }
 
+/* Enable smooth vertical mobile scrolling over cards, boxes, and charts */
+.card,
+.dash-box,
+.analytics-box,
+.stats-box,
+.insight-card,
+.client-card,
+.request-card,
+canvas {
+  touch-action: pan-y;
+}
+
 /* ---------------- COMMON CARD BASE ---------------- */
 .card {
   background: var(--card-bg);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CoinShopModal from './CoinShopModal';
-import { FiVolume2, FiVolumeX } from 'react-icons/fi';
+import { FiVolume2, FiVolumeX, FiX, FiZap, FiCheckCircle } from 'react-icons/fi';
 import { getDailyBriefing } from '../../api/assistantApi';
 import VoiceScanButton from './VoiceScanButton';
 import { useData } from '../../context/DataContext';
@@ -36,6 +36,7 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore, onUserRefresh 
     const [isMuted, setIsMuted] = useState(() => localStorage.getItem('coach_voice_muted') === 'true');
     const [showTextInput, setShowTextInput] = useState(false);
     const [textCommand, setTextCommand] = useState("");
+    const [showLimitModal, setShowLimitModal] = useState(false);
 
     
     const toggleMute = () => {
@@ -50,16 +51,15 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore, onUserRefresh 
     };
 
     const checkVoiceLimit = () => {
+        if (user?.isPremium) return true;
+
         const todayStr = toLocalDateString(new Date());
-        const isVoiceLimitExceeded = !user?.isPremium && 
-            (user?.lastVoiceDate === todayStr && user?.dailyVoiceCount >= 3);
+        const limit = user?.maxVoiceCommandsLimit || 3;
+        const isVoiceLimitExceeded = user?.lastVoiceDate === todayStr && user?.dailyVoiceCount >= limit;
         
         if (isVoiceLimitExceeded) {
-            const msg = "You've reached your free daily limit of 3 AI commands. Upgrade to Premium for unlimited voice logs! 🚀";
-            toast.error(msg);
-            setBriefing(msg);
-            speakMessage("You've reached your free daily limit of 3 AI commands. Upgrade to Premium for unlimited voice logs.", isMuted);
-            navigate('/premium');
+            setShowLimitModal(true);
+            speakMessage("You've reached your free daily limit of AI commands. Upgrade to Premium or request Beta access for unlimited voice logs.", isMuted);
             return false;
         }
         return true;
@@ -334,6 +334,25 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore, onUserRefresh 
                             ⌨️ Can't speak? Type instead
                         </button>
                     )}
+
+                    {!user?.isPremium && (
+                        <div className="quota-indicator" style={{
+                            fontSize: '11px',
+                            color: 'var(--text-muted)',
+                            marginTop: '8px',
+                            background: 'rgba(255,255,255,0.03)',
+                            padding: '4px 12px',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontWeight: '500'
+                        }}>
+                            <FiZap size={11} style={{ color: 'var(--primary)' }} />
+                            <span>AI Commands: {user?.dailyVoiceCount || 0} / {user?.maxVoiceCommandsLimit || 3} used today</span>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -347,6 +366,113 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore, onUserRefresh 
                 if (onUserRefresh) onUserRefresh();
             }}
         />
+
+        {showLimitModal && (
+            <div className="limit-modal-backdrop" style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                backdropFilter: 'blur(8px)',
+                zIndex: 1000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px'
+            }}>
+                <div className="limit-modal-content" style={{
+                    background: 'var(--card-bg)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '24px',
+                    padding: '32px',
+                    maxWidth: '440px',
+                    width: '100%',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                    textAlign: 'center',
+                    position: 'relative',
+                    boxSizing: 'border-box'
+                }}>
+                    <button 
+                        onClick={() => setShowLimitModal(false)}
+                        style={{
+                            position: 'absolute',
+                            top: '16px',
+                            right: '16px',
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            fontSize: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
+                        <FiX />
+                    </button>
+                    
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚡</div>
+                    <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '8px', color: 'var(--text-main)', marginStart: 0, marginEnd: 0 }}>
+                        You're using the free plan
+                    </h2>
+                    <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>
+                        Wellnest Beta is currently accepting testers.
+                    </p>
+                    
+                    <div style={{
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                        borderRadius: '16px',
+                        padding: '20px',
+                        textAlign: 'left',
+                        marginBottom: '28px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px'
+                    }}>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                            Request Beta Access to unlock:
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--text-main)' }}>
+                            <FiCheckCircle style={{ color: '#10b981', flexShrink: 0 }} size={16} /> Unlimited Voice Logging
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--text-main)' }}>
+                            <FiCheckCircle style={{ color: '#10b981', flexShrink: 0 }} size={16} /> Unlimited AI Commands
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--text-main)' }}>
+                            <FiCheckCircle style={{ color: '#10b981', flexShrink: 0 }} size={16} /> Daily Readiness Insights
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--text-main)' }}>
+                            <FiCheckCircle style={{ color: '#10b981', flexShrink: 0 }} size={16} /> Premium Analytics
+                        </div>
+                    </div>
+                    
+                    <button 
+                        onClick={() => {
+                            setShowLimitModal(false);
+                            navigate('/premium');
+                        }}
+                        className="primary-btn"
+                        style={{
+                            width: '100%',
+                            padding: '14px',
+                            borderRadius: '14px',
+                            fontWeight: 700,
+                            fontSize: '15px',
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            color: '#fff',
+                            border: 'none',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                        }}
+                    >
+                        Request Beta Access
+                    </button>
+                </div>
+            </div>
+        )}
     </>
     );
 };

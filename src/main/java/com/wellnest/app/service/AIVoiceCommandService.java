@@ -59,32 +59,20 @@ public class AIVoiceCommandService {
 
         String normalized = normalizeNumbers(transcript.toLowerCase().trim());
         
-        String systemPrompt = "You are Wellnest AI, a smart health assistant. Convert the user's voice log (in English, Hindi, or Hinglish) into a raw JSON object.\n\n" +
-                "ACTION SCHEMAS & EXAMPLES:\n" +
+        String systemPrompt = "Convert user's health log (English/Hinglish) into JSON format.\n" +
+                "SCHEMAS:\n" +
                 "1. WATER: {liters} (glass=0.25, bottle=1.0)\n" +
-                "   - E.g.: \"Logged 3 glasses of water\", \"Maine 2 bottle paani piya\"\n" +
-                "2. MEAL: {mealType (BREAKFAST|LUNCH|DINNER|SNACK), calories, protein, carbs, fats, foodName}\n" +
-                "   - E.g.: \"Ate 2 eggs\", \"Maine breakfast me sandwich khaya\", \"Dinner me 3 roti khayi\"\n" +
-                "   - Note: Estimate calories/macros for common Indian/Western foods if unspecified (e.g. roti=90kcal/3g protein, egg=75kcal/6g protein).\n" +
-                "3. WORKOUT: {type, durationMinutes (default 30), caloriesBurned}\n" +
-                "   - E.g.: \"Cardio for 40 minutes\", \"Gym kiya 1 hour\", \"Yoga did today\", \"Maine running ki half hour\"\n" +
-                "4. SLEEP: {hours, quality (GOOD|POOR)}\n" +
-                "   - E.g.: \"Slept for 7 hours\", \"8 ghante soya\", \"Sleep quality was bad\"\n" +
-                "   - Note: Set quality to POOR if sleep hours < 6 unless user explicitly states it was good sleep.\n" +
-                "5. ACTIVITY: {steps, distanceKm}\n" +
-                "   - E.g.: \"Walked 1000 steps\", \"Maine 5000 steps chle\", \"1000 kadam chale\", \"Aaj 8000 step chla\"\n" +
-                "   - Note: Use distanceKm = steps * 0.00075 if not specified.\n\n" +
-                "RULES FOR CLASSIFICATION:\n" +
-                "- NEVER classify steps or distance (e.g., \"1000 steps\", \"kadam\", \"chala\", \"chle\", \"chale\") as MEAL or WORKOUT. Steps/kadam MUST be classified as ACTIVITY.\n" +
-                "- If the user command is off-topic, chit-chat, hello/hi, or doesn't contain a clear health/habit log, reply with:\n" +
-                "  { \"action\": \"ERROR\", \"displayMessage\": \"I couldn't find any habit log in your message. Try saying 'Log 2 glasses of water' or 'Maine 3 roti khayi'! 🎙️\", \"voiceMessage\": \"I couldn't find any habit log in your message.\" }\n\n" +
-                "RULES FOR RESPONSE:\n" +
-                "- Reply in the same language style as the user (Hinglish/English).\n" +
-                "- displayMessage: Emojis allowed. E.g. 'Logged 1000 steps! Kadam badhate raho! 🏃‍♂️'\n" +
-                "- voiceMessage: Phonetic transliteration ONLY (use Latin/English characters for Hindi, e.g. 'Aapke steps log ho gaye' - NEVER USE DEVANAGARI/HINDI SCRIPT).\n" +
-                "- Output ONLY raw, clean, valid JSON. Do not include any comments or markdown codeblocks (```json).\n\n" +
-                "Format: { \"action\": \"WATER|MEAL|WORKOUT|SLEEP|ACTIVITY|ERROR\", \"displayMessage\": \"\", \"voiceMessage\": \"\", ...schemaKeys }\n" +
-                "USER COMMAND: " + transcript;
+                "2. MEAL: {mealType(BREAKFAST|LUNCH|DINNER|SNACK), calories, protein, carbs, fats, foodName} (Estimate macros if unspecified, e.g. roti=90kcal/3g protein, egg=75kcal/6g protein)\n" +
+                "3. WORKOUT: {type, durationMinutes(default 30), caloriesBurned}\n" +
+                "4. SLEEP: {hours, quality(GOOD|POOR)} (poor if hours < 6)\n" +
+                "5. ACTIVITY: {steps, distanceKm} (distanceKm=steps*0.00075)\n" +
+                "RULES:\n" +
+                "- Never classify steps as MEAL/WORKOUT. Must be ACTIVITY.\n" +
+                "- If off-topic/hello, return action: ERROR, displayMessage: \"I couldn't find any habit log in your message. Try saying 'Log 2 glasses of water' or 'Maine 3 roti khayi'! 🎙️\", voiceMessage: \"I couldn't find any habit log in your message.\"\n" +
+                "- displayMessage: Same language style as user (Hinglish/English). Emojis allowed.\n" +
+                "- voiceMessage: Same style, Latin/English characters only (no Devanagari).\n" +
+                "Format: {\"action\":\"WATER|MEAL|WORKOUT|SLEEP|ACTIVITY|ERROR\",\"displayMessage\":\"\",\"voiceMessage\":\"\",...keys}\n" +
+                "USER: " + transcript;
 
         String aiResponse = groqService.getResponse(systemPrompt, "llama-3.1-8b-instant", 150);
         Map<String, Object> result = new HashMap<>();

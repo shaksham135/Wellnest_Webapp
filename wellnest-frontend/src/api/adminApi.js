@@ -89,3 +89,7 @@ export const convertToPaid = async (userId) => {
 export const getBetaStats = async () => {
     return await apiClient.get('/admin/beta-stats');
 };
+
+export const getBetaFeedbacks = async () => {
+    return await apiClient.get('/admin/feedbacks');
+};

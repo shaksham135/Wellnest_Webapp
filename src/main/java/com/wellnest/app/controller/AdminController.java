@@ -38,6 +38,8 @@ public class AdminController {
     private final WaterIntakeRepository waterIntakeRepository;
     private final SleepLogRepository sleepLogRepository;
     private final BetaRequestRepository betaRequestRepository;
+    private final com.wellnest.app.repository.FeedbackRepository feedbackRepository;
+    private final com.wellnest.app.service.EmailService emailService;
 
     public AdminController(UserRepository userRepository, TrainerRepository trainerRepository,
             com.wellnest.app.service.UserService userService,
@@ -51,7 +53,9 @@ public class AdminController {
             MealRepository mealRepository,
             WaterIntakeRepository waterIntakeRepository,
             SleepLogRepository sleepLogRepository,
-            BetaRequestRepository betaRequestRepository) {
+            BetaRequestRepository betaRequestRepository,
+            com.wellnest.app.repository.FeedbackRepository feedbackRepository,
+            com.wellnest.app.service.EmailService emailService) {
         this.userRepository = userRepository;
         this.trainerRepository = trainerRepository;
         this.userService = userService;
@@ -66,6 +70,8 @@ public class AdminController {
         this.waterIntakeRepository = waterIntakeRepository;
         this.sleepLogRepository = sleepLogRepository;
         this.betaRequestRepository = betaRequestRepository;
+        this.feedbackRepository = feedbackRepository;
+        this.emailService = emailService;
     }
 
     @GetMapping("/metrics")
@@ -267,6 +273,11 @@ public class AdminController {
             if (isPremium) {
                 notificationService.createNotification(user.getId(), "Welcome to Premium!", 
                     "You have been upgraded to Wellnest Premium! Enjoy full access to AI diagnostics and advanced metrics.", "SUCCESS");
+                try {
+                    emailService.sendPremiumAccessGrantedEmail(user.getEmail(), user.getName(), "PAID_PREMIUM");
+                } catch (Exception e) {
+                    System.err.println("Error sending manual premium upgrade email: " + e.getMessage());
+                }
             } else {
                 notificationService.createNotification(user.getId(), "Premium Revoked", 
                     "Your Wellnest Premium subscription has ended. Contact support for any queries.", "ALERT");
@@ -413,6 +424,12 @@ public class AdminController {
                 "Congratulations! Your Wellnest Beta Premium access has been approved. Enjoy all premium features!",
                 "SUCCESS");
 
+            try {
+                emailService.sendPremiumAccessGrantedEmail(user.getEmail(), user.getName(), "BETA_PREMIUM");
+            } catch (Exception e) {
+                System.err.println("Error sending beta approval email: " + e.getMessage());
+            }
+
             return ResponseEntity.ok(java.util.Map.of(
                 "message", "Beta request approved and BETA_PREMIUM access granted to " + user.getEmail(),
                 "premiumAccessType", "BETA_PREMIUM"
@@ -461,6 +478,11 @@ public class AdminController {
                 "🎉 Beta Premium Access Granted!",
                 "You've been granted Wellnest Beta Premium access by the founder. Welcome to the inner circle!",
                 "SUCCESS");
+            try {
+                emailService.sendPremiumAccessGrantedEmail(user.getEmail(), user.getName(), "BETA_PREMIUM");
+            } catch (Exception e) {
+                System.err.println("Error sending beta grant email: " + e.getMessage());
+            }
             return ResponseEntity.ok(java.util.Map.of("message", "BETA_PREMIUM granted to user " + user.getEmail(), "premiumAccessType", "BETA_PREMIUM"));
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -482,6 +504,11 @@ public class AdminController {
                 "♾️ Lifetime Access Granted!",
                 "You've been granted Wellnest Lifetime Premium access. Enjoy all features forever — with our deepest gratitude.",
                 "SUCCESS");
+            try {
+                emailService.sendPremiumAccessGrantedEmail(user.getEmail(), user.getName(), "LIFETIME");
+            } catch (Exception e) {
+                System.err.println("Error sending lifetime grant email: " + e.getMessage());
+            }
             return ResponseEntity.ok(java.util.Map.of("message", "LIFETIME access granted to " + user.getEmail(), "premiumAccessType", "LIFETIME"));
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -546,5 +573,26 @@ public class AdminController {
         stats.put("adminGrantedUsers", adminGrantedUsers);
         stats.put("lifetimeUsers", lifetimeUsers);
         return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * GET /api/admin/feedbacks — list all beta feedbacks
+     */
+    @GetMapping("/feedbacks")
+    public ResponseEntity<?> getFeedbacks() {
+        List<com.wellnest.app.model.Feedback> feedbacks = feedbackRepository.findAllByOrderByCreatedAtDesc();
+        var response = feedbacks.stream().map(f -> {
+            java.util.Map<String, Object> item = new java.util.HashMap<>();
+            item.put("id", f.getId());
+            item.put("userId", f.getUser().getId());
+            item.put("userName", f.getUser().getName());
+            item.put("userEmail", f.getUser().getEmail());
+            item.put("category", f.getCategory());
+            item.put("rating", f.getRating());
+            item.put("feedbackText", f.getFeedbackText());
+            item.put("createdAt", f.getCreatedAt() != null ? f.getCreatedAt().toString() : null);
+            return item;
+        }).toList();
+        return ResponseEntity.ok(response);
     }
 }
