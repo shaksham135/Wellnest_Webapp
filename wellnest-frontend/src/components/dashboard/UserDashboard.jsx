@@ -113,21 +113,7 @@ const UserDashboard = ({ user }) => {
                 
                 <FocusAura reserve={readiness} />
 
-                {/* Score Confidence indicator */}
-                <div style={{
-                    fontSize: '10px',
-                    fontWeight: 800,
-                    padding: '3px 8px',
-                    borderRadius: '8px',
-                    color: qualityInfo.color,
-                    background: qualityInfo.bg,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    marginTop: '-4px',
-                    border: `1px solid ${qualityInfo.color}20`
-                }}>
-                    Data Quality: {qualityInfo.label}
-                </div>
+
 
                 {/* Factors checklist */}
                 <div style={{ 
