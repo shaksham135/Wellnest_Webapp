@@ -21,6 +21,12 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    @Value("${admin.username}")
+    private String adminEmail;
+
+    @Value("${notification.beta-request.email}")
+    private String betaRequestEmail;
+
     @Value("${app.frontend.base-url:http://localhost:3000}")
     private String frontendBaseUrl;
 
@@ -39,7 +45,7 @@ public class EmailService {
                 "Message:\n" + content;
 
         // Try Resend first
-        if (sendViaResend(fromEmail, userEmail, subject, body)) {
+        if (sendViaResend(adminEmail, userEmail, subject, body)) {
             return;
         }
 
@@ -52,15 +58,15 @@ public class EmailService {
             // Set the "From" name to include the user's email, so it shows up in the inbox
             // e.g. "shaksham135@gmail.com (via Wellnest)"
             helper.setFrom(fromEmail, userEmail + " (via Wellnest)");
-            helper.setTo(fromEmail);
+            helper.setTo(adminEmail);
             helper.setReplyTo(userEmail); // This ensures "Reply" goes to the user
             helper.setSubject(subject);
             helper.setText(body);
 
             mailSender.send(message);
-            System.out.println("Email sent successfully via SMTP to " + fromEmail);
+            System.out.println("Email sent successfully via SMTP to " + adminEmail);
         } catch (Exception e) {
-            System.err.println("CRITICAL ERROR: Failed to send contact message via SMTP to " + fromEmail + ". Error: " + e.getMessage());
+            System.err.println("CRITICAL ERROR: Failed to send contact message via SMTP to " + adminEmail + ". Error: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -77,7 +83,7 @@ public class EmailService {
                 "Thank you,\nThe Wellnest Team";
 
         // Try Resend first
-        if (sendViaResend(fromEmail, userEmail, subject, bodyText)) {
+        if (sendViaResend(betaRequestEmail, userEmail, subject, bodyText)) {
             return;
         }
 
@@ -88,13 +94,13 @@ public class EmailService {
                     message, true);
 
             helper.setFrom(fromEmail, userName + " (via Wellnest)");
-            helper.setTo(fromEmail);
+            helper.setTo(betaRequestEmail);
             helper.setReplyTo(userEmail);
             helper.setSubject(subject);
             helper.setText(bodyText);
 
             mailSender.send(message);
-            System.out.println("Beta access request notification sent successfully via SMTP to " + fromEmail);
+            System.out.println("Beta access request notification sent successfully via SMTP to " + betaRequestEmail);
         } catch (Exception e) {
             System.err.println("Error sending beta access request email via SMTP: " + e.getMessage());
         }
@@ -147,7 +153,7 @@ public class EmailService {
                 "Thank you,\nThe Wellnest Team";
 
         // Try Resend first
-        if (sendViaResend(fromEmail, userEmail, subject, body)) {
+        if (sendViaResend(adminEmail, userEmail, subject, body)) {
             return;
         }
 
@@ -158,13 +164,13 @@ public class EmailService {
                     message, true);
 
             helper.setFrom(fromEmail, userName + " (via Wellnest)");
-            helper.setTo(fromEmail);
+            helper.setTo(adminEmail);
             helper.setReplyTo(userEmail);
             helper.setSubject(subject);
             helper.setText(body);
 
             mailSender.send(message);
-            System.out.println("Feedback notification email sent successfully via SMTP to " + fromEmail);
+            System.out.println("Feedback notification email sent successfully via SMTP to " + adminEmail);
         } catch (Exception e) {
             System.err.println("Error sending feedback notification email via SMTP: " + e.getMessage());
         }

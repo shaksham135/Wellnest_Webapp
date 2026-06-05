@@ -34,3 +34,6 @@ groq.api.key=apikey1234
 # ===== ADMIN CREDENTIALS =====
 admin.username=admin123@gmail.com
 admin.password=admin123
+
+# ===== NOTIFICATION RECIPIENTS =====
+notification.beta-request.email=${BETA_REQUEST_EMAIL:admin123@gmail.com}

@@ -35,15 +35,7 @@ const UserDashboard = ({ user }) => {
     );
 
     const readiness = energyForecast?.dailyReadiness !== undefined ? energyForecast.dailyReadiness : (energyForecast?.cognitiveReserve || 70);
-    const quality = energyForecast?.dataQuality || 'LOW';
     const factors = energyForecast?.factors || { sleep: false, hydration: false, workout: false, mental: false };
-
-    const getQualityStyle = (q) => {
-        if (q === 'HIGH') return { color: '#10b981', bg: 'rgba(16,185,129,0.08)', label: 'High Confidence' };
-        if (q === 'MEDIUM') return { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', label: 'Medium Confidence' };
-        return { color: '#ef4444', bg: 'rgba(239,68,68,0.08)', label: 'Low Confidence' };
-    };
-    const qualityInfo = getQualityStyle(quality);
 
     const factorList = [
         { name: 'Sleep', active: factors.sleep, icon: '💤' },
