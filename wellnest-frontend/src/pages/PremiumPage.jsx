@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     FiArrowLeft, FiCheckCircle, FiZap, FiMic, FiCpu, FiActivity,
-    FiStar, FiCheck, FiLoader, FiShield, FiAward, FiSend, FiClock,
-    FiUsers, FiGift, FiUnlock, FiLock, FiHeart, FiTrendingUp
+    FiLoader, FiShield, FiAward, FiSend, FiClock,
+    FiUsers, FiGift, FiUnlock, FiTrendingUp
 } from 'react-icons/fi';
 import { useData } from '../context/DataContext';
 import apiClient from '../api/apiClient';

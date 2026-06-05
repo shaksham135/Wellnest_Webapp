@@ -18,12 +18,10 @@ const OnboardingFlow = ({ user, onComplete, onTriggerMic }) => {
     // Fallback & Permission states
     const [speechSupported, setSpeechSupported] = useState(true);
     const [voiceDisabled, setVoiceDisabled] = useState(false);
-    const [permissionChecked, setPermissionChecked] = useState(false);
 
     // Wow-moment states
     const [wowLogging, setWowLogging] = useState(false);
     const [wowSuccess, setWowSuccess] = useState(false);
-    const [wowTranscript, setWowTranscript] = useState("");
     const [wowError, setWowError] = useState("");
 
     const calibrationProgressRef = useRef(0);
@@ -61,7 +59,6 @@ const OnboardingFlow = ({ user, onComplete, onTriggerMic }) => {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             stream.getTracks().forEach(track => track.stop());
             setCalibrationError("");
-            setPermissionChecked(true);
         } catch (err) {
             console.error("Mic permission denied:", err);
             setCalibrationError("Microphone permission denied. Please allow mic access in your browser settings. 🎙️");
@@ -201,7 +198,6 @@ const OnboardingFlow = ({ user, onComplete, onTriggerMic }) => {
             const res = await submitVoiceCommand(input);
             if (res && res.status === 'SUCCESS') {
                 setWowSuccess(true);
-                setWowTranscript(res.displayMessage || "Logged 500ml Water");
             } else {
                 setWowError("I couldn't catch that. Please say 'Drank 500ml water' clearly!");
             }

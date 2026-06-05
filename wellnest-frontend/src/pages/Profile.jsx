@@ -1,9 +1,9 @@
 // src/pages/Profile.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiTarget, FiCheck, FiStar, FiBell, FiShield, FiActivity, FiZap } from "react-icons/fi";
+import { FiEdit2, FiUser, FiPhone, FiLogOut, FiSave, FiTarget, FiCheck, FiStar, FiBell, FiShield, FiActivity, FiArrowLeft, FiCalendar, FiZap, FiSmartphone } from "react-icons/fi";
 import "./Profile.css";
-import { updateUserProfile, togglePremium, seedDemoData } from "../api/userApi";
+import { updateUserProfile, seedDemoData } from "../api/userApi";
 import apiClient from "../api/apiClient";
 import storageService from "../api/storageService";
 import VerificationUpload from "../components/VerificationUpload";

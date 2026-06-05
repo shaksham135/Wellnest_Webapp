@@ -9,7 +9,6 @@ import {
     FiTrendingUp,
     FiBookOpen,
     FiUsers,
-    FiCheck,
     FiMenu,
     FiX,
     FiChevronDown,

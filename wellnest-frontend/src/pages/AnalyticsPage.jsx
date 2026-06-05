@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import PremiumGate from "../components/shared/PremiumGate";
 import apiClient from "../api/apiClient";
 import cacheService from "../api/cacheService";
 import GoalProgress from "../components/dashboard/GoalProgress";

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiStar, FiLock } from 'react-icons/fi';
+import { FiLock } from 'react-icons/fi';
 import './PremiumGate.css';
 
 const PREMIUM_TYPES = ['BETA_PREMIUM', 'PAID_PREMIUM', 'ADMIN_GRANTED', 'LIFETIME'];

@@ -18,7 +18,6 @@ import {
   deleteSleep,
   deleteActivity,
 } from "../api/trackerApi";
-import { FiTrash2 } from "react-icons/fi";
 import 'react-circular-progressbar/dist/styles.css';
 import cacheService from "../api/cacheService";
 import { useData } from "../context/DataContext";
@@ -334,7 +333,7 @@ const Trackers = () => {
       } catch (err) {}
     };
     load();
-  }, [tab]);
+  }, [tab, setRecentWorkouts, setRecentMeals, setRecentSleep, setRecentWater, setRecentActivity]);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -564,6 +563,7 @@ const Trackers = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const onDeleteWorkout = async (id) => {
     if (!window.confirm("Are you sure you want to delete this workout?")) return;
     try {
@@ -576,6 +576,7 @@ const Trackers = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const onDeleteMeal = async (id) => {
     if (!window.confirm("Are you sure you want to delete this meal?")) return;
     try {
@@ -588,6 +589,7 @@ const Trackers = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const onDeleteWater = async (id) => {
     if (!window.confirm("Are you sure you want to delete this log?")) return;
     try {
@@ -600,6 +602,7 @@ const Trackers = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const onDeleteSleep = async (id) => {
     if (!window.confirm("Are you sure you want to delete this sleep log?")) return;
     try {

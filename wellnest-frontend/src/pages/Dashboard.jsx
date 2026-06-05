@@ -18,11 +18,11 @@ import { toLocalDateString } from "../utils/streakUtils";
 
 const Dashboard = ({ onLogout, onOpenChat }) => {
     const navigate = useNavigate();
-    const { 
-        userData, isUserDataLoaded, refreshUserData, 
+    const {
+        userData, isUserDataLoaded, refreshUserData,
         activities, isTrackersLoaded, refreshTrackers, isSyncing,
         energyForecast, refreshEnergyForecast,
-        sleep, workouts, water, meals 
+        sleep
     } = useData();
 
     const [user, setUser] = useState(userData);
@@ -160,14 +160,6 @@ const Dashboard = ({ onLogout, onOpenChat }) => {
     };
 
   const readinessScore = getUnifiedVitalityScore();
-  
-  // Traditional Readiness Score for the Wellness Grade (Structural Foundation)
-  const structuralReadiness = (() => {
-        const lastSleep = sleep[0]?.hours || 0;
-        const sleepScore = Math.min((lastSleep / 8) * 40, 40);
-        const stepsScore = Math.min(((todayActivity?.steps || 0) / 10000) * 40, 40);
-        return Math.round(sleepScore + stepsScore + 20);
-  })();
 
   return (
     <div className="dashboard-page container" style={{ paddingBottom: '100px', paddingTop: '24px' }}>

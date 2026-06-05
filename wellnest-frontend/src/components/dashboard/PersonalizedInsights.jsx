@@ -5,8 +5,6 @@ import './PersonalizedInsights.css';
 
 const PersonalizedInsights = ({ isPremium = false, analyticsData = {} }) => {
     // Extract data
-    const avgSteps = analyticsData.dailyActivityAnalytics?.avgDailySteps || 0;
-    const targetSteps = analyticsData.dailyActivityAnalytics?.targetSteps || 10000;
     const stepsMetDays = analyticsData.dailyActivityAnalytics?.daysMetStepsGoal || 0;
 
     const avgWaterMl = analyticsData.waterIntakeAnalytics?.avgDailyIntake || 0;
@@ -16,7 +14,6 @@ const PersonalizedInsights = ({ isPremium = false, analyticsData = {} }) => {
     const sleepConsistency = analyticsData.sleepAnalytics?.sleepConsistency || 'Fair';
 
     // Calculate comparative metrics
-    const stepsDiffPercent = targetSteps > 0 ? Math.round(((avgSteps - targetSteps) / targetSteps) * 100) : 0;
     const waterDiffPercent = targetWaterMl > 0 ? Math.round(((avgWaterMl - targetWaterMl) / targetWaterMl) * 100) : 0;
     const sleepDiffPercent = 8.0 > 0 ? Math.round(((avgSleep - 8.0) / 8.0) * 100) : 0;
 
