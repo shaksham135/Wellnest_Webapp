@@ -17,7 +17,7 @@ import {
     createActivity
 } from '../../api/trackerApi';
 import apiClient from '../../api/apiClient';
-import { FiTrash2, FiEdit2, FiActivity, FiCoffee, FiDroplet, FiMoon, FiSmile, FiX, FiCheck } from 'react-icons/fi';
+import { FiTrash2, FiEdit2, FiActivity, FiCoffee, FiDroplet, FiMoon, FiX, FiCheck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import './LogHistoryTimeline.css';
 
