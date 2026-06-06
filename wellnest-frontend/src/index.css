@@ -304,6 +304,21 @@ canvas {
   color: var(--primary);
 }
 
+.nav-link.nav-btn-cta {
+  background: linear-gradient(135deg, var(--primary) 0%, #0d9488 100%);
+  color: #02040a !important;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(94, 234, 212, 0.25);
+  margin-left: 8px;
+}
+
+.nav-link.nav-btn-cta:hover {
+  background: linear-gradient(135deg, var(--primary) 0%, #0d9488 100%);
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(94, 234, 212, 0.4);
+}
+
 /* ---------------- THEME TOGGLE BUTTON ---------------- */
 .theme-toggle-btn {
   width: 40px;

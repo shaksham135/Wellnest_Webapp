@@ -90,7 +90,7 @@ const Support = () => {
                 ) : (
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         <div className="input-group">
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: 'var(--text-secondary)' }}>Your Email</label>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: 'var(--text-muted)' }}>Your Email</label>
                             <input
                                 type="email"
                                 name="email"
@@ -104,7 +104,7 @@ const Support = () => {
                         </div>
 
                         <div className="input-group">
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: 'var(--text-secondary)' }}>Topic</label>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: 'var(--text-muted)' }}>Topic</label>
                             <select
                                 name="topic"
                                 value={formData.topic}
@@ -120,7 +120,7 @@ const Support = () => {
                         </div>
 
                         <div className="input-group">
-                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: 'var(--text-secondary)' }}>Message</label>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: 'var(--text-muted)' }}>Message</label>
                             <textarea
                                 name="message"
                                 value={formData.message}

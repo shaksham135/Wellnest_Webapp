@@ -111,9 +111,11 @@ public class User {
         java.time.LocalDate today = java.time.LocalDate.now();
         java.time.LocalDate signupDate = this.getCreatedAt() != null ? this.getCreatedAt().toLocalDate() : today;
         
-        if (signupDate.equals(today)) {
+        long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(signupDate, today);
+        
+        if (daysBetween <= 0) {
             return 7;
-        } else if (signupDate.plusDays(2).equals(today)) {
+        } else if (daysBetween == 1 || daysBetween == 2) {
             return 5;
         } else {
             return 3;

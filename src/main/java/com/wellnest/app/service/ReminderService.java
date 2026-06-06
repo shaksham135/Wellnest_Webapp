@@ -60,6 +60,36 @@ public class ReminderService {
         "Healthy eating: Aim for a variety of colorful vegetables in your next meal. 🥦"
     };
 
+    private boolean isUserActiveInLast48Hours(User user) {
+        LocalDate today = LocalDate.now();
+        LocalDate twoDaysAgo = today.minusDays(2);
+        
+        // 1. Check direct user activity timestamps
+        if (user.getLastChatDate() != null && !user.getLastChatDate().isBefore(twoDaysAgo)) return true;
+        if (user.getLastVoiceDate() != null && !user.getLastVoiceDate().isBefore(twoDaysAgo)) return true;
+        if (user.getLastScanDate() != null && !user.getLastScanDate().isBefore(twoDaysAgo)) return true;
+        
+        // 2. Check daily activity logs for the last 3 days (today, yesterday, day before)
+        try {
+            boolean hasRecentActivity = dailyActivityRepository.findByUserIdAndDate(user.getId(), today).isPresent()
+                    || dailyActivityRepository.findByUserIdAndDate(user.getId(), today.minusDays(1)).isPresent()
+                    || dailyActivityRepository.findByUserIdAndDate(user.getId(), today.minusDays(2)).isPresent();
+            if (hasRecentActivity) return true;
+        } catch (Exception e) {
+            // Ignore
+        }
+        
+        // 3. Check if they registered in the last 48 hours
+        if (user.getCreatedAt() != null) {
+            java.time.LocalDateTime twoDaysAgoLDT = java.time.LocalDateTime.now().minusDays(2);
+            if (user.getCreatedAt().isAfter(twoDaysAgoLDT)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     // Every day at 10:00 AM and 6:00 PM (prevents startup spam)
     @Scheduled(cron = "0 0 10,18 * * *") 
     public void sendWaterReminders() {
@@ -79,10 +109,16 @@ public class ReminderService {
                     String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
                     String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "stay healthy";
                     
-                    String message = groqService.generateNotification(role, name, "Goal: " + goal + ". Needs a hydration reminder.");
+                    String message;
+                    // Cost Optimization: Only call AI for active premium users
+                    if (user.isPremium() && isUserActiveInLast48Hours(user)) {
+                        message = groqService.generateNotification(role, name, "Goal: " + goal + ". Needs a hydration reminder.");
+                    } else {
+                        message = waterReminders[random.nextInt(waterReminders.length)];
+                    }
                     
                     // Fallback if AI message is error or too long
-                    if (message.contains("Error") || message.length() > 150) {
+                    if (message == null || message.contains("Error") || message.length() > 150) {
                         message = waterReminders[random.nextInt(waterReminders.length)];
                     }
                     
@@ -110,10 +146,16 @@ public class ReminderService {
                     String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
                     String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "fitness progress";
 
-                    String message = groqService.generateNotification(role, name, "Goal: " + goal + ". Needs a motivation push to log a workout.");
+                    String message;
+                    // Cost Optimization: Only call AI for active premium users
+                    if (user.isPremium() && isUserActiveInLast48Hours(user)) {
+                        message = groqService.generateNotification(role, name, "Goal: " + goal + ". Needs a motivation push to log a workout.");
+                    } else {
+                        message = workoutReminders[random.nextInt(workoutReminders.length)];
+                    }
 
                     // Fallback
-                    if (message.contains("Error") || message.length() > 150) {
+                    if (message == null || message.contains("Error") || message.length() > 150) {
                         message = workoutReminders[random.nextInt(workoutReminders.length)];
                     }
 

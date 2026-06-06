@@ -157,7 +157,7 @@ const PremiumPage = () => {
                             borderRadius: '24px',
                             padding: '32px',
                             marginTop: '28px',
-                            boxShadow: 'var(--card-shadow)',
+                            boxShadow: 'var(--shadow-md)',
                             backdropFilter: 'blur(10px)',
                             textAlign: 'left'
                         }}>
@@ -185,8 +185,8 @@ const PremiumPage = () => {
                                         onClick={() => setFeedbackSubmitted(false)}
                                         style={{
                                             padding: '8px 16px',
-                                            background: 'rgba(255,255,255,0.05)',
-                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            background: 'var(--input-bg)',
+                                            border: '1px solid var(--input-border)',
                                             borderRadius: '8px',
                                             color: 'var(--text-main)',
                                             cursor: 'pointer',
@@ -201,7 +201,7 @@ const PremiumPage = () => {
                                 <form onSubmit={handleSendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                     <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
                                         <div style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Feedback Category</label>
+                                            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Feedback Category</label>
                                             <select 
                                                 value={feedbackCategory}
                                                 onChange={e => setFeedbackCategory(e.target.value)}
@@ -209,8 +209,8 @@ const PremiumPage = () => {
                                                     width: '100%',
                                                     padding: '12px',
                                                     borderRadius: '12px',
-                                                    border: '1px solid var(--card-border)',
-                                                    background: 'rgba(255,255,255,0.03)',
+                                                    border: '1px solid var(--input-border)',
+                                                    background: 'var(--input-bg)',
                                                     color: 'var(--text-main)',
                                                     outline: 'none',
                                                     cursor: 'pointer'
@@ -224,7 +224,7 @@ const PremiumPage = () => {
                                         </div>
                                         
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '180px' }}>
-                                            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Rating</label>
+                                            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Rating</label>
                                             <div style={{ display: 'flex', alignItems: 'center', height: '42px' }}>
                                                 {[1, 2, 3, 4, 5].map(star => (
                                                     <span 
@@ -234,7 +234,7 @@ const PremiumPage = () => {
                                                             cursor: 'pointer',
                                                             fontSize: '28px',
                                                             marginRight: '6px',
-                                                            color: star <= feedbackRating ? '#fbbf24' : 'rgba(255,255,255,0.2)',
+                                                            color: star <= feedbackRating ? '#fbbf24' : 'var(--text-muted)',
                                                             transition: 'transform 0.2s',
                                                             userSelect: 'none'
                                                         }}
@@ -249,7 +249,7 @@ const PremiumPage = () => {
                                     </div>
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Your Message</label>
+                                        <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>Your Message</label>
                                         <textarea
                                             value={feedbackText}
                                             onChange={e => setFeedbackText(e.target.value)}
@@ -261,8 +261,8 @@ const PremiumPage = () => {
                                                 width: '100%',
                                                 padding: '14px',
                                                 borderRadius: '12px',
-                                                border: '1px solid var(--card-border)',
-                                                background: 'rgba(255,255,255,0.03)',
+                                                border: '1px solid var(--input-border)',
+                                                background: 'var(--input-bg)',
                                                 color: 'var(--text-main)',
                                                 outline: 'none',
                                                 resize: 'vertical',
@@ -282,7 +282,7 @@ const PremiumPage = () => {
                                         style={{
                                             padding: '12px 24px',
                                             background: 'linear-gradient(135deg, var(--primary), #059669)',
-                                            color: '#000',
+                                            color: '#fff',
                                             border: 'none',
                                             borderRadius: '12px',
                                             fontSize: '14px',

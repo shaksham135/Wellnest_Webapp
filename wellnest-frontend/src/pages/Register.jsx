@@ -388,7 +388,7 @@ const Register = ({ onLoginSuccess }) => {
         {message && <p className="auth-message">{message}</p>}
 
         <p className="auth-toggle">
-          Already have an account? <Link to="/">Login</Link>
+          Already have an account? <Link to="/login">Login</Link>
         </p>
       </div>
     </div>

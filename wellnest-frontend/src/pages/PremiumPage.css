@@ -2,8 +2,8 @@
 
 .premium-page-v2 {
     min-height: 100vh;
-    background: var(--bg-primary, #0d0f14);
-    color: var(--text-primary, #f1f5f9);
+    background: var(--bg-main);
+    color: var(--text-main);
     padding: 24px 16px 80px;
     font-family: 'Inter', 'Outfit', sans-serif;
 }
@@ -19,8 +19,8 @@
     align-items: center;
     gap: 8px;
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: var(--text-muted, #94a3b8);
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
     padding: 8px 16px;
     border-radius: 8px;
     cursor: pointer;
@@ -29,8 +29,8 @@
     transition: all 0.2s ease;
 }
 .premium-back-btn:hover {
-    background: rgba(255,255,255,0.05);
-    color: var(--text-primary, #f1f5f9);
+    background: var(--primary-light);
+    color: var(--text-main);
 }
 
 /* === HERO === */
@@ -114,7 +114,7 @@
 .beta-stat-divider {
     width: 1px;
     height: 20px;
-    background: rgba(255,255,255,0.1);
+    background: var(--card-border);
 }
 
 /* === FEATURES GRID === */
@@ -127,7 +127,7 @@
     font-weight: 700;
     margin-bottom: 24px;
     text-align: center;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-main);
 }
 
 .beta-features-grid {
@@ -140,16 +140,16 @@
     display: flex;
     gap: 14px;
     align-items: flex-start;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 14px;
     padding: 18px;
     transition: all 0.2s ease;
 }
-
+ 
 .beta-feature-card:hover {
-    background: rgba(16, 185, 129, 0.06);
-    border-color: rgba(16, 185, 129, 0.25);
+    background: var(--primary-light);
+    border-color: var(--primary);
     transform: translateY(-2px);
 }
 
@@ -170,12 +170,12 @@
     font-size: 14px;
     font-weight: 600;
     margin: 0 0 4px;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-main);
 }
-
+ 
 .beta-feature-body p {
     font-size: 12px;
-    color: var(--text-muted, #94a3b8);
+    color: var(--text-muted);
     margin: 0;
     line-height: 1.5;
 }
@@ -252,7 +252,7 @@
     align-items: center;
     gap: 6px;
     font-size: 12px;
-    color: rgba(255,255,255,0.3);
+    color: var(--text-muted);
     min-width: 90px;
 }
 
@@ -276,7 +276,7 @@
 .beta-step-line {
     flex: 1;
     height: 2px;
-    background: rgba(255,255,255,0.1);
+    background: var(--card-border);
     margin-bottom: 18px;
     min-width: 40px;
 }
@@ -287,8 +287,8 @@
 
 /* === FORM CARD === */
 .beta-form-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 20px;
     padding: 40px;
 }
@@ -336,10 +336,10 @@
 
 .beta-input,
 .beta-textarea {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
     border-radius: 10px;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-main);
     font-size: 14px;
     padding: 12px 14px;
     width: 100%;
@@ -377,7 +377,12 @@
     border-radius: 10px;
     padding: 12px 14px;
     font-size: 13px;
-    color: #93c5fd;
+    color: #3b82f6;
+}
+[data-theme="light"] .beta-form-note {
+    background: rgba(37, 99, 235, 0.08);
+    border-color: rgba(37, 99, 235, 0.2);
+    color: #1d4ed8;
 }
 
 .beta-submit-btn {
@@ -425,8 +430,8 @@
     flex: 1;
     min-width: 200px;
     max-width: 240px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 16px;
     padding: 24px;
     text-align: center;
@@ -461,7 +466,7 @@
 
 .beta-how-arrow {
     font-size: 24px;
-    color: rgba(255,255,255,0.2);
+    color: var(--text-muted);
     flex-shrink: 0;
 }
 
@@ -477,8 +482,8 @@
 }
 
 .beta-faq-item {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 12px;
     padding: 16px 20px;
     cursor: pointer;
@@ -508,11 +513,11 @@
 
 .beta-faq-a {
     font-size: 13px;
-    color: var(--text-muted, #94a3b8);
+    color: var(--text-muted);
     line-height: 1.65;
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    border-top: 1px solid var(--card-border);
 }
 
 /* === ACTIVE (PREMIUM) STATE === */
@@ -570,9 +575,10 @@
     gap: 10px;
     font-size: 13px;
     font-weight: 500;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-main);
     padding: 8px 12px;
-    background: rgba(255,255,255,0.04);
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
     border-radius: 8px;
 }
 
@@ -625,14 +631,14 @@
 
 .beta-dashboard-btn.outline {
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.15);
-    color: var(--text-muted, #94a3b8);
+    border: 1px solid var(--input-border);
+    color: var(--text-muted);
 }
 
 .beta-dashboard-btn.outline:hover {
-    background: rgba(255,255,255,0.05);
+    background: var(--input-bg);
     box-shadow: none;
-    color: var(--text-primary, #f1f5f9);
+    color: var(--text-main);
 }
 
 /* spin utility */

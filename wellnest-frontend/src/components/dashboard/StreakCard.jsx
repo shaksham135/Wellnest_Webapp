@@ -67,7 +67,7 @@ const StreakCard = ({ workouts = [], meals = [], water = [] }) => {
                 </div>
             </div>
             
-            <p style={{ margin: '16px 0 0', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+            <p style={{ margin: '16px 0 0', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
                 {getStreakMessage(currentStreak)}
             </p>
 

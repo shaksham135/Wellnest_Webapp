@@ -14,7 +14,8 @@ import {
     FiChevronDown,
     FiAward,
     FiBell,
-    FiCpu
+    FiCpu,
+    FiPlay
 } from "react-icons/fi";
 import { useNotifications } from "../../context/NotificationContext";
 import ThemeToggle from "../ThemeToggle"; // Adjust import path if needed
@@ -26,7 +27,7 @@ const Navbar = ({ isLoggedIn, userRole, isOpen, onToggle, onClose, onOpenChat })
     const { unreadCount } = useNotifications() || { unreadCount: 0 };
 
     // Force public view if on login or register page
-    const isAuthPage = location.pathname === '/' || location.pathname === '/register' || location.pathname === '/login';
+    const isAuthPage = location.pathname === '/register' || location.pathname === '/login';
     const showAuthenticated = isLoggedIn && !isAuthPage;
 
     return (
@@ -87,13 +88,30 @@ const Navbar = ({ isLoggedIn, userRole, isOpen, onToggle, onClose, onOpenChat })
                 {/* Not logged in (or on Auth Page) */}
                 {!showAuthenticated && (
                     <>
-                        <NavLink to="/" className="nav-link" onClick={onClose}>
-                            <FiHome />
+                        {location.pathname === '/' ? (
+                            <>
+                                <a href="#demo" className="nav-link" onClick={onClose}>
+                                    <FiPlay />
+                                    <span>How it Works</span>
+                                </a>
+                                <a href="#features" className="nav-link" onClick={onClose}>
+                                    <FiActivity />
+                                    <span>Features</span>
+                                </a>
+                            </>
+                        ) : (
+                            <Link to="/" className="nav-link" onClick={onClose}>
+                                <FiHome />
+                                <span>Home</span>
+                            </Link>
+                        )}
+                        <NavLink to="/login" className="nav-link" onClick={onClose}>
+                            <FiUser />
                             <span>Login</span>
                         </NavLink>
-                        <NavLink to="/register" className="nav-link" onClick={onClose}>
+                        <NavLink to="/register" className="nav-link nav-btn-cta" onClick={onClose}>
                             <FiUserPlus />
-                            <span>Register</span>
+                            <span>Join Beta</span>
                         </NavLink>
                     </>
                 )}

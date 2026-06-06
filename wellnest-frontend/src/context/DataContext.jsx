@@ -36,6 +36,12 @@ export const DataProvider = ({ children }) => {
     
     // Sync Guard Ref
     const syncInProgress = useRef(false);
+    const goalDataRef = useRef(null);
+
+    // Sync Ref keeper to avoid infinite rendering callback loops
+    useEffect(() => {
+        goalDataRef.current = goalData;
+    }, [goalData]);
  
     // --- INDUSTRY-READY OFFLINE CACHING ---
     useEffect(() => {
@@ -151,7 +157,7 @@ export const DataProvider = ({ children }) => {
         }
     }, [refreshEnergyForecast, refreshMentalState]);
 
-    const refreshTrackers = useCallback(async () => {
+    const refreshTrackers = useCallback(async (updatedType = null) => {
         if (syncInProgress.current) {
             console.log("DataContext: Sync already in progress, skipping redundant pulse... 🛡️");
             return;
@@ -160,40 +166,83 @@ export const DataProvider = ({ children }) => {
         try {
             syncInProgress.current = true;
             setIsSyncing(true);
-            const [w, m, wa, s, a, g, p, ms] = await Promise.all([
-                getWorkouts().catch(() => ({ data: [] })),
-                getMeals().catch(() => ({ data: [] })),
-                getWater().catch(() => ({ data: [] })),
-                getSleep().catch(() => ({ data: [] })),
-                apiClient.get('/trackers/activity').catch(() => ({ data: [] })),
-                apiClient.get('/analytics/summary').catch(() => ({ data: {} })),
-                getMyDietPlan().catch(() => ({ data: null })),
-                apiClient.get('/mental').catch(() => ({ data: [] })),
-                refreshMentalState().catch(() => null)
-            ]);
 
-            const freshData = {
-                workouts: w.data || [],
-                meals: m.data || [],
-                water: wa.data || [],
-                sleep: s.data || [],
-                activities: a.data || [],
-                mentalStates: ms.data || [],
-                goalData: g.data?.goalProgress || null,
-                dietPlan: p.data || null
-            };
+            if (updatedType && ['WATER', 'MEAL', 'WORKOUT', 'SLEEP', 'ACTIVITY'].includes(updatedType)) {
+                console.log(`DataContext: Targeted sync triggered for type: ${updatedType} 🚀`);
+                
+                // Fetch only the specific updated tracker + analytics summary
+                let targetPromise;
+                if (updatedType === 'WATER') targetPromise = getWater().catch(() => ({ data: [] }));
+                else if (updatedType === 'MEAL') targetPromise = getMeals().catch(() => ({ data: [] }));
+                else if (updatedType === 'WORKOUT') targetPromise = getWorkouts().catch(() => ({ data: [] }));
+                else if (updatedType === 'SLEEP') targetPromise = getSleep().catch(() => ({ data: [] }));
+                else if (updatedType === 'ACTIVITY') targetPromise = apiClient.get('/trackers/activity').catch(() => ({ data: [] }));
+                
+                // Always fetch summary to update dashboard progress gauges
+                const summaryPromise = apiClient.get('/analytics/summary').catch(() => ({ data: {} }));
+                
+                const [targetRes, summaryRes] = await Promise.all([targetPromise, summaryPromise]);
+                
+                // Update specific state while preserving others
+                let freshGoalData = goalDataRef.current;
+                if (summaryRes && summaryRes.data) {
+                    freshGoalData = summaryRes.data.goalProgress || null;
+                    setGoalData(freshGoalData);
+                }
 
-            setWorkouts(freshData.workouts);
-            setMeals(freshData.meals);
-            setWater(freshData.water);
-            setSleep(freshData.sleep);
-            setActivities(freshData.activities);
-            setMentalStates(freshData.mentalStates);
-            setGoalData(freshData.goalData);
-            setDietPlan(freshData.dietPlan);
-            
-            saveToCache(freshData);
-            setIsTrackersLoaded(true);
+                if (updatedType === 'WATER') {
+                    setWater(targetRes.data || []);
+                    saveToCache({ water: targetRes.data || [], goalData: freshGoalData });
+                } else if (updatedType === 'MEAL') {
+                    setMeals(targetRes.data || []);
+                    saveToCache({ meals: targetRes.data || [], goalData: freshGoalData });
+                } else if (updatedType === 'WORKOUT') {
+                    setWorkouts(targetRes.data || []);
+                    saveToCache({ workouts: targetRes.data || [], goalData: freshGoalData });
+                } else if (updatedType === 'SLEEP') {
+                    setSleep(targetRes.data || []);
+                    saveToCache({ sleep: targetRes.data || [], goalData: freshGoalData });
+                } else if (updatedType === 'ACTIVITY') {
+                    setActivities(targetRes.data || []);
+                    saveToCache({ activities: targetRes.data || [], goalData: freshGoalData });
+                }
+            } else {
+                // Complete sync
+                const [w, m, wa, s, a, g, p, ms] = await Promise.all([
+                    getWorkouts().catch(() => ({ data: [] })),
+                    getMeals().catch(() => ({ data: [] })),
+                    getWater().catch(() => ({ data: [] })),
+                    getSleep().catch(() => ({ data: [] })),
+                    apiClient.get('/trackers/activity').catch(() => ({ data: [] })),
+                    apiClient.get('/analytics/summary').catch(() => ({ data: {} })),
+                    getMyDietPlan().catch(() => ({ data: null })),
+                    apiClient.get('/mental').catch(() => ({ data: [] })),
+                    refreshMentalState().catch(() => null)
+                ]);
+
+                const freshData = {
+                    workouts: w.data || [],
+                    meals: m.data || [],
+                    water: wa.data || [],
+                    sleep: s.data || [],
+                    activities: a.data || [],
+                    mentalStates: ms.data || [],
+                    goalData: g.data?.goalProgress || null,
+                    dietPlan: p.data || null
+                };
+
+                setWorkouts(freshData.workouts);
+                setMeals(freshData.meals);
+                setWater(freshData.water);
+                setSleep(freshData.sleep);
+                setActivities(freshData.activities);
+                setMentalStates(freshData.mentalStates);
+                setGoalData(freshData.goalData);
+                setDietPlan(freshData.dietPlan);
+                
+                saveToCache(freshData);
+                setIsTrackersLoaded(true);
+            }
         } catch (error) {
             console.error("DataContext: Failed to fetch trackers", error);
         } finally {
@@ -218,9 +267,9 @@ export const DataProvider = ({ children }) => {
             }
             
             if (res.data && res.data.status === 'SUCCESS') {
-                // Refresh all trackers and user profile to update daily limit counts
+                // Refresh only the affected tracker and user profile to update daily limit counts
                 await Promise.all([
-                    refreshTrackers(),
+                    refreshTrackers(res.data.createdType),
                     refreshUserData()
                 ]);
                 
@@ -256,7 +305,7 @@ export const DataProvider = ({ children }) => {
                 params: { type, id }
             });
             await Promise.all([
-                refreshTrackers(),
+                refreshTrackers(type),
                 refreshUserData()
             ]);
         } catch (error) {

@@ -14,12 +14,20 @@ const getBaseURL = () => {
 
 const apiClient = axios.create({
   baseURL: getBaseURL(),
-  timeout: 30000, 
+  timeout: 90000, 
 });
 
-// Debug logging for production if needed
+// Debug logging and wakeup tracking
 apiClient.interceptors.request.use((config) => {
-  config.metadata = { startTime: new Date() };
+  config.metadata = { 
+    startTime: new Date(),
+    timer: setTimeout(() => {
+      config.metadata.toastId = toast.loading(
+        "Establishing secure connection to Wellnest Cloud...",
+        { id: "backend-wakeup" }
+      );
+    }, 4500)
+  };
   return config;
 }, (error) => Promise.reject(error));
 
@@ -72,22 +80,39 @@ apiClient.interceptors.request.use(async (config) => {
 
 apiClient.interceptors.response.use(
   (response) => {
+    // Clear the wakeup warning timer
+    if (response.config?.metadata?.timer) {
+      clearTimeout(response.config.metadata.timer);
+    }
+    // If a wakeup toast was actually shown, dismiss it and show success
+    if (response.config?.metadata?.toastId) {
+      toast.success("Secure connection established!", { id: "backend-wakeup", duration: 2500 });
+    } else {
+      toast.dismiss("backend-wakeup");
+    }
+
     const duration = new Date() - response.config.metadata.startTime;
     console.log(`API [${response.config.method.toUpperCase()}] ${response.config.url} took ${duration}ms`);
     return response;
   },
   (error) => {
+    // Clear the wakeup warning timer
+    if (error.config?.metadata?.timer) {
+      clearTimeout(error.config.metadata.timer);
+    }
+    toast.dismiss("backend-wakeup");
+
     if (error.code === 'ECONNABORTED') {
-      console.error("API Request Timeout:", error.config.url);
-      toast.error("Request timed out. Please check your connection.");
+      console.error("API Request Timeout:", error.config?.url);
+      toast.error("Connection timed out. Server might be taking too long to wake up.");
     }
     
     if (error.response) {
       if (error.response.status === 401) {
-        console.warn("API 401 Unauthorized:", error.config.url);
+        console.warn("API 401 Unauthorized:", error.config?.url);
         
         // Skip redirect for auth routes (like login/register errors)
-        if (!error.config.url.includes("/auth/")) {
+        if (error.config?.url && !error.config.url.includes("/auth/")) {
             const token = localStorage.getItem("token");
             if (token) {
                 // If we HAVE a token but got 401, it's a genuine expiry.
@@ -106,7 +131,7 @@ apiClient.interceptors.response.use(
             }
         }
       } else if (error.response.status === 403) {
-        console.error("API 403 Forbidden:", error.config.url);
+        console.error("API 403 Forbidden:", error.config?.url);
         const serverMsg = error.response.data?.displayMessage || error.response.data?.error || "You don't have permission to perform this action.";
         toast.error(serverMsg);
       } else if (error.response.status === 500) {

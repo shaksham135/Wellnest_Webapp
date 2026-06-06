@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FiMic, FiZap, FiLoader } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import './VoiceScanButton.css';
 
 const VoiceScanButton = ({ onScanComplete, mode = "scan", onBeforeStart }) => {
@@ -10,10 +11,14 @@ const VoiceScanButton = ({ onScanComplete, mode = "scan", onBeforeStart }) => {
     const mediaRecorderRef = useRef(null);
     const streamRef = useRef(null);
     const isRecordingRef = useRef(false);
+    const recordingTimeoutRef = useRef(null);
 
     // Clean up on unmount
     useEffect(() => {
         return () => {
+            if (recordingTimeoutRef.current) {
+                clearTimeout(recordingTimeoutRef.current);
+            }
             if (recognitionRef.current) {
                 try {
                     recognitionRef.current.abort();
@@ -50,18 +55,22 @@ const VoiceScanButton = ({ onScanComplete, mode = "scan", onBeforeStart }) => {
                 }
             };
 
-            mediaRecorder.onstop = () => {
+            mediaRecorder.onstop = async () => {
                 const audioBlob = new Blob(audioChunks, { type: mimeType });
                 setIsRecording(false);
                 setIsProcessing(true);
                 
-                onScanComplete(audioBlob);
+                try {
+                    await onScanComplete(audioBlob);
+                } catch (err) {
+                    console.error("Audio upload failed:", err);
+                } finally {
+                    setIsProcessing(false);
+                }
                 
                 stream.getTracks().forEach(track => track.stop());
                 mediaRecorderRef.current = null;
                 streamRef.current = null;
-                
-                setTimeout(() => setIsProcessing(false), 2000);
             };
 
             setIsRecording(true);
@@ -127,12 +136,17 @@ const VoiceScanButton = ({ onScanComplete, mode = "scan", onBeforeStart }) => {
                     isRecordingRef.current = false;
                 };
 
-                recognition.onresult = (event) => {
+                recognition.onresult = async (event) => {
                     const transcript = event.results[0][0].transcript;
                     console.log("Speech Recognition Success:", transcript);
                     setIsProcessing(true);
-                    onScanComplete(transcript);
-                    setTimeout(() => setIsProcessing(false), 2000);
+                    try {
+                        await onScanComplete(transcript);
+                    } catch (err) {
+                        console.error("Text command execution failed:", err);
+                    } finally {
+                        setIsProcessing(false);
+                    }
                 };
 
                 recognition.start();
@@ -143,9 +157,23 @@ const VoiceScanButton = ({ onScanComplete, mode = "scan", onBeforeStart }) => {
         } else {
             startAudioFallback();
         }
+
+        // Strict 15-second duration limit to prevent massive audio payloads
+        recordingTimeoutRef.current = setTimeout(() => {
+            if (isRecordingRef.current) {
+                console.log("Auto-stopping recording: 15-second limit reached.");
+                toast.error("15-second recording limit reached. Syncing command... 🎙️", { id: "recording-limit-toast" });
+                handlePressEnd();
+            }
+        }, 15000);
     };
 
     const handlePressEnd = () => {
+        if (recordingTimeoutRef.current) {
+            clearTimeout(recordingTimeoutRef.current);
+            recordingTimeoutRef.current = null;
+        }
+
         if (!isRecordingRef.current) return;
         isRecordingRef.current = false;
 

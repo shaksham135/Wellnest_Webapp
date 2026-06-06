@@ -422,8 +422,8 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore, onUserRefresh 
                     </p>
                     
                     <div style={{
-                        background: 'rgba(255, 255, 255, 0.02)',
-                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--input-border)',
                         borderRadius: '16px',
                         padding: '20px',
                         textAlign: 'left',
@@ -432,7 +432,7 @@ const AIAgentHeader = ({ user, activities, sleep, readinessScore, onUserRefresh 
                         flexDirection: 'column',
                         gap: '12px'
                     }}>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
                             Request Beta Access to unlock:
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'var(--text-main)' }}>

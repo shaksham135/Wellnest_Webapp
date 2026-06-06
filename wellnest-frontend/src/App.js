@@ -13,7 +13,7 @@ import {
 // Icons removed
 
 // Pages
-// Pages
+import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -174,10 +174,20 @@ const AppContent = ({
             <Route path="/" element={
               isLoggedIn ? 
                 <Navigate to={userRole === "ROLE_ADMIN" ? "/admin-dashboard" : "/dashboard"} replace /> : 
+                <LandingPage />
+            } />
+            
+            <Route path="/login" element={
+              isLoggedIn ? 
+                <Navigate to={userRole === "ROLE_ADMIN" ? "/admin-dashboard" : "/dashboard"} replace /> : 
                 <Login onLoginSuccess={handleLoginSuccess} />
             } />
             
-            <Route path="/register" element={<Register onLoginSuccess={handleLoginSuccess} />} />
+            <Route path="/register" element={
+              isLoggedIn ? 
+                <Navigate to={userRole === "ROLE_ADMIN" ? "/admin-dashboard" : "/dashboard"} replace /> : 
+                <Register onLoginSuccess={handleLoginSuccess} />
+            } />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 

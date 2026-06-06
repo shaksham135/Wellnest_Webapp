@@ -6,10 +6,6 @@ import {
   FiLock,
   FiEye,
   FiEyeOff,
-  FiTrendingUp,
-  FiMic,
-  FiZap,
-  FiCalendar,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import apiClient from "../api/apiClient";
@@ -239,103 +235,11 @@ const Login = ({ onLoginSuccess }) => {
     </form>
   );
 
-  if (isNative) {
-    return (
-      <div className="minimal-auth-page">
-        <div className="auth-container">
-           {renderLoginForm()}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="login-long-page">
-      <section className="login-hero">
-        <div className="login-hero-inner">
-          <div className="login-text-content">
-            <h1>Track Your Health. <span>Just By Speaking.</span></h1>
-            <p className="hero-subtitle">
-              Log water, workouts, sleep and daily habits using natural voice commands.
-              No forms. No manual tracking.
-            </p>
-            <div className="hero-features-preview">
-              <div className="preview-item"><FiMic /> <span>Log by Voice</span></div>
-              <div className="preview-item"><FiZap /> <span>Daily Readiness</span></div>
-              <div className="preview-item"><FiTrendingUp /> <span>Weekly Progress</span></div>
-            </div>
-          </div>
-
-          {renderLoginForm()}
-        </div>
-      </section>
-
-      <section className="info-section">
-        <h2>Why Choose Wellnest?</h2>
-        <p>
-          Most wellness apps make tracking feel like work. Wellnest is different.
-          Just speak naturally and let the app handle the logging, tracking and insights for you.
-        </p>
-      </section>
-
-      <section className="features-section">
-        <h2>Everything you need to succeed</h2>
-
-        <div className="features-grid">
-          <div className="feature-card">
-            <FiMic />
-            <h3>Voice Logging</h3>
-            <p>
-              Track water, workouts, sleep and daily activities simply by speaking.
-            </p>
-          </div>
-
-          <div className="feature-card">
-            <FiZap />
-            <h3>Daily Readiness</h3>
-            <p>
-              See how your habits impact your energy, focus and recovery.
-            </p>
-          </div>
-
-          <div className="feature-card">
-            <FiTrendingUp />
-            <h3>Weekly Insights</h3>
-            <p>
-              Get simple summaries and trends based on your wellness activity.
-            </p>
-          </div>
-
-          <div className="feature-card">
-            <FiCalendar />
-            <h3>Consistency Tracking</h3>
-            <p>
-              Build streaks, stay accountable and make healthy habits stick.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="cta-section">
-        <div className="cta-card">
-          <h2>Start your wellness journey today</h2>
-          <p>Join thousands of users who are transforming their lives with Wellnest.</p>
-          <div className="cta-actions">
-            <Link to="/register" className="primary-btn large-btn">
-              Get Started for Free
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <footer className="site-footer">
-        <p>© {new Date().getFullYear()} Wellnest. All rights reserved.</p>
-        <div className="footer-links">
-          <Link to="/privacy">Privacy</Link>
-          <Link to="/terms">Terms</Link>
-          <Link to="/support">Support</Link>
-        </div>
-      </footer>
+    <div className="minimal-auth-page">
+      <div className="auth-container">
+         {renderLoginForm()}
+      </div>
     </div>
   );
 };

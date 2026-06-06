@@ -40,6 +40,9 @@ public class GroqService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final SystemSettingsService systemSettingsService;
 
+    private RestTemplate fastRestTemplate;
+    private RestTemplate heavyRestTemplate;
+
     public GroqService(SystemSettingsService systemSettingsService) {
         this.systemSettingsService = systemSettingsService;
     }
@@ -55,6 +58,17 @@ public class GroqService {
                 log.error("GROQ_API_KEY is missing! AI features will not work.");
             }
         }
+
+        // Initialize RestTemplate with custom request factories to support connection pooling and timeouts
+        org.springframework.http.client.SimpleClientHttpRequestFactory fastFactory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        fastFactory.setConnectTimeout(5000);  // 5 seconds
+        fastFactory.setReadTimeout(15000);    // 15 seconds (Whisper/voice commands are fast)
+        this.fastRestTemplate = new RestTemplate(fastFactory);
+
+        org.springframework.http.client.SimpleClientHttpRequestFactory heavyFactory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        heavyFactory.setConnectTimeout(10000); // 10 seconds
+        heavyFactory.setReadTimeout(50000);   // 50 seconds (Weekly reports are complex)
+        this.heavyRestTemplate = new RestTemplate(heavyFactory);
     }
 
     public String generateNotification(String role, String name, String context) {
@@ -74,7 +88,7 @@ public class GroqService {
 
         log.info("Sending Voice Scan to Groq Whisper...");
         try {
-            RestTemplate restTemplate = new RestTemplate();
+            RestTemplate restTemplate = this.fastRestTemplate;
             
             // Multi-part Form Headers
             HttpHeaders headers = new HttpHeaders();
@@ -129,12 +143,10 @@ public class GroqService {
 
         log.info("Sending prompt to Groq API (Model: {})...", modelName);
         try {
-            // Using SimpleClientHttpRequestFactory for modern timeout control
-            org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
-            factory.setConnectTimeout(10000); // 10 seconds
-            factory.setReadTimeout(50000);  // 50 seconds (Weekly reports are complex)
-            
-            RestTemplate restTemplate = new RestTemplate(factory);
+            // Determine RestTemplate based on request complexity (heavy vs fast)
+            RestTemplate restTemplate = (modelName != null && modelName.equals(heavyModel)) 
+                    ? this.heavyRestTemplate 
+                    : this.fastRestTemplate;
 
             // Headers
             HttpHeaders headers = new HttpHeaders();

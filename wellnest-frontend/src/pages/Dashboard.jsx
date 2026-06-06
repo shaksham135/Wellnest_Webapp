@@ -243,7 +243,7 @@ const Dashboard = ({ onLogout, onOpenChat }) => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ fontSize: '28px' }}>📝</div>
                     <div>
-                        <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#a78bfa', fontWeight: 800 }}>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: 'var(--secondary)', fontWeight: 800 }}>
                             Beta Tester Feedback
                         </h3>
                         <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
@@ -252,8 +252,8 @@ const Dashboard = ({ onLogout, onOpenChat }) => {
                     </div>
                 </div>
                 <div style={{
-                    background: 'rgba(139, 92, 246, 0.2)',
-                    color: '#a78bfa',
+                    background: 'rgba(139, 92, 246, 0.08)',
+                    color: 'var(--secondary)',
                     padding: '8px 16px',
                     borderRadius: '20px',
                     fontSize: '12px',
@@ -261,7 +261,7 @@ const Dashboard = ({ onLogout, onOpenChat }) => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    border: '1px solid rgba(139, 92, 246, 0.3)'
+                    border: '1px solid rgba(139, 92, 246, 0.25)'
                 }}>
                     Give Feedback
                 </div>
@@ -296,7 +296,7 @@ const Dashboard = ({ onLogout, onOpenChat }) => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ fontSize: '28px' }}>⚡</div>
                     <div>
-                        <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: '#10b981', fontWeight: 800 }}>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', color: 'var(--primary)', fontWeight: 800 }}>
                             Beta Premium Access
                         </h3>
                         <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
@@ -305,8 +305,8 @@ const Dashboard = ({ onLogout, onOpenChat }) => {
                     </div>
                 </div>
                 <div style={{
-                    background: 'rgba(16, 185, 129, 0.2)',
-                    color: '#10b981',
+                    background: 'var(--primary-light)',
+                    color: 'var(--primary)',
                     padding: '8px 16px',
                     borderRadius: '20px',
                     fontSize: '12px',
@@ -314,7 +314,7 @@ const Dashboard = ({ onLogout, onOpenChat }) => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    border: '1px solid rgba(16, 185, 129, 0.3)'
+                    border: '1px solid var(--primary-border)'
                 }}>
                     <FiStar size={14} /> Apply Now
                 </div>
