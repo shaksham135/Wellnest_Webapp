@@ -17,16 +17,10 @@ const apiClient = axios.create({
   timeout: 90000, 
 });
 
-// Debug logging and wakeup tracking
+// Debug logging and response time tracking
 apiClient.interceptors.request.use((config) => {
   config.metadata = { 
-    startTime: new Date(),
-    timer: setTimeout(() => {
-      config.metadata.toastId = toast.loading(
-        "Establishing secure connection to Wellnest Cloud...",
-        { id: "backend-wakeup" }
-      );
-    }, 4500)
+    startTime: new Date()
   };
   return config;
 }, (error) => Promise.reject(error));
@@ -80,27 +74,11 @@ apiClient.interceptors.request.use(async (config) => {
 
 apiClient.interceptors.response.use(
   (response) => {
-    // Clear the wakeup warning timer
-    if (response.config?.metadata?.timer) {
-      clearTimeout(response.config.metadata.timer);
-    }
-    // If a wakeup toast was actually shown, dismiss it and show success
-    if (response.config?.metadata?.toastId) {
-      toast.success("Secure connection established!", { id: "backend-wakeup", duration: 2500 });
-    } else {
-      toast.dismiss("backend-wakeup");
-    }
-
     const duration = new Date() - response.config.metadata.startTime;
     console.log(`API [${response.config.method.toUpperCase()}] ${response.config.url} took ${duration}ms`);
     return response;
   },
   (error) => {
-    // Clear the wakeup warning timer
-    if (error.config?.metadata?.timer) {
-      clearTimeout(error.config.metadata.timer);
-    }
-    toast.dismiss("backend-wakeup");
 
     if (error.code === 'ECONNABORTED') {
       console.error("API Request Timeout:", error.config?.url);

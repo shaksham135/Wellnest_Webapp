@@ -9,9 +9,14 @@ import org.springframework.stereotype.Service;
 import com.wellnest.app.model.DailyActivity;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
@@ -57,6 +62,38 @@ public class NotificationService {
         "Sensational work, %s! You've logged sleep, meals, and water today. You are operating at peak efficiency! 🏆",
         "Boom! %s, all trackers logged today. You're building a bulletproof habit loop! Keep it up. 🚀",
         "Perfect compliance, %s! Rest, fuel, and hydration are all logged. You're winning today! 🌟"
+    };
+
+    private static final String[] PREMIUM_WEIGHT_LOSS_TIPS = {
+        "High-protein meals and neat activities like standing more are perfect for fat loss goals. Keep active, %s! 💪",
+        "Fat loss tip: A slight calorie deficit combined with daily step targets works wonders. Have you walked yet, %s? 🚶‍♂️",
+        "Premium Tip, %s: Drink water before meals to stay satiated and avoid overeating today! 🚰",
+        "Fat loss focus, %s: Combine resistance training with solid sleep to protect muscle while losing fat! 🏋️‍♂️",
+        "Keep consistency high! Fat loss is a marathon. Track all your meals today to stay on plan, %s! 🥗"
+    };
+
+    private static final String[] PREMIUM_MUSCLE_GAIN_TIPS = {
+        "Muscle gain tip, %s: Aim for 1.6g - 2.2g of protein per kg of body weight today! Log your protein. 🥩",
+        "Premium Coach: Progressive overload in your workouts is the key to building lean muscle. Push hard, %s! 🏋️‍♂️",
+        "Muscle building: Don't skip post-workout nutrition. Carbs and protein are vital for recovery, %s! 🍳",
+        "Recovery focus, %s: Muscles grow when you rest, not just when you train. Get 8 hours of solid sleep tonight! 😴",
+        "Muscle Tip: Stay hydrated to keep muscle fullness and strength optimal during your lifts, %s! 💧"
+    };
+
+    private static final String[] PREMIUM_ENDURANCE_TIPS = {
+        "Endurance check, %s: Ensure your electrolyte balance is optimal, especially on high activity days! ⚡",
+        "Premium Coach: Aerobic base building takes time. Keep your heart rate in Zone 2 for long runs, %s! 🏃‍♂️",
+        "Fueling for performance: Complex carbohydrates are your best friend for sustained energy today, %s! 🍝",
+        "Rest day logic, %s: Active recovery like light yoga or walking helps flush lactic acid. Stay mobile! 🧘‍♂️",
+        "Hydration is key: Dehydration by just 2%% can significantly drop athletic performance. Keep drinking water, %s! 🚰"
+    };
+
+    private static final String[] PREMIUM_GENERAL_TIPS = {
+        "Premium Coach: Wellness starts with daily consistency in tracking sleep, nutrition, and steps, %s! 🌟",
+        "Healthy mind, %s: A 5-minute mindfulness breathing session can dramatically reduce cortisol and stress. 🧘‍♀️",
+        "Hydration boost: Water flushes toxins and boosts cognitive focus. Get your glass now, %s! 💧",
+        "Consistent habits build lives. What small health habit can you win today, %s? 🚀",
+        "Better sleep quality leads to better cognitive performance and mood. Prioritize your sleep tonight, %s! 🌙"
     };
 
     public NotificationService(NotificationRepository notificationRepository, 
@@ -129,35 +166,32 @@ public class NotificationService {
 
         if (!alreadyGotTip) {
             String name = user.getName() != null ? user.getName() : "Hero";
-            String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
             String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "wellbeing";
 
             String tip;
             String title = "Daily Health Tip";
 
             if (user.isPremium()) {
-                title = "Your AI Coach Nudge";
-                // Gather Context for Premium
-                StringBuilder context = new StringBuilder();
-                context.append("Goal: ").append(goal).append(". ");
-                
-                try {
-                    List<com.wellnest.app.model.Workout> workouts = trackerService.getWorkoutsForToday(user.getId());
-                    if (!workouts.isEmpty()) {
-                        context.append("Awesome job—workout logged already! ");
-                    }
-                } catch (Exception e) {
-                    context.append("Keep pushing towards your goals! ");
+                title = "Your Premium Coach Nudge";
+                String[] tipArray;
+                if (goal.contains("loss") || goal.contains("weight") || goal.contains("fat")) {
+                    tipArray = PREMIUM_WEIGHT_LOSS_TIPS;
+                } else if (goal.contains("gain") || goal.contains("muscle") || goal.contains("bulk")) {
+                    tipArray = PREMIUM_MUSCLE_GAIN_TIPS;
+                } else if (goal.contains("endurance") || goal.contains("cardio") || goal.contains("run")) {
+                    tipArray = PREMIUM_ENDURANCE_TIPS;
+                } else {
+                    tipArray = PREMIUM_GENERAL_TIPS;
                 }
-
-                tip = groqService.generateNotification(role, name, context.toString());
+                int index = (int) (Math.random() * tipArray.length);
+                tip = "🏆 " + String.format(tipArray[index], name);
             } else {
                 // Normal User: Standard Tip + Upsell
                 int index = (int) (Math.random() * STATIC_TIPS.length);
                 tip = STATIC_TIPS[index] + "\n\n✨ Upgrade to Wellnest Premium for personalized AI coaching!";
             }
             
-            if (tip == null || tip.contains("Error") || tip.length() > 300) tip = STATIC_TIPS[0];
+            if (tip == null || tip.length() > 300) tip = STATIC_TIPS[0];
 
             Notification notification = new Notification(user, title, tip, "TIP");
             notificationRepository.save(notification);
@@ -213,119 +247,220 @@ public class NotificationService {
 
     @Scheduled(cron = "0 0 8 * * *") // Every day at 8:00 AM
     public void scheduleMorningMotivation() {
-        logger.info("Triggering Morning AI Nudges...");
-        processScheduledNudges("Morning Performance Nudge", "Rise and shine!");
+        logger.info("Triggering Morning Nudges...");
+        processMorningMotivation();
     }
 
     @Scheduled(cron = "0 30 13 * * *") // Every day at 1:30 PM
     public void scheduleMidDayCheck() {
-        logger.info("Triggering Mid-Day AI Nudges...");
-        processScheduledNudges("Elite Momentum Check", "Stay consistent!");
+        logger.info("Triggering Mid-Day Nudges...");
+        processMidDayCheck();
     }
 
     @Scheduled(cron = "0 45 20 * * *") // Every day at 8:45 PM
     public void scheduleEveningReview() {
-        logger.info("Triggering Evening AI Nudges...");
-        processScheduledNudges("Nightly Recovery Recap", "Reflect and recover.");
+        logger.info("Triggering Evening Nudges...");
+        processEveningReview();
     }
 
-    private void processScheduledNudges(String title, String defaultMsg) {
-        List<User> premiumUsers = userRepository.findByIsPremiumTrue();
-
-        for (User user : premiumUsers) {
-            try {
-                // --- ACTIVE-USER FILTERING (48 Hours) ---
-                if (!isUserActiveInLast48Hours(user)) {
-                    logger.info("User {} is inactive in the last 48 hours. Skipping AI cron nudge. 💤", user.getId());
-                    continue;
-                }
-
-                // --- NEURAL MEMORY (CACHING) GUARD ---
-                // Check if we already generated this specific nudge for today
-                java.time.Instant startOfToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
-                boolean alreadySentSlot = notificationRepository.existsByUser_IdAndTitleAndCreatedAtAfter(
-                        user.getId(), title, startOfToday);
-
-                if (alreadySentSlot) {
-                    logger.info("Neural Cache Hit: {} already sent to user {}. Skipping Groq pulse. 🛡️", title, user.getId());
-                    continue;
-                }
-
-                String name = user.getName() != null ? user.getName() : "Hero";
-                String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "wellbeing";
-                
-                StringBuilder context = new StringBuilder();
-                context.append("Current Goal: ").append(goal).append(". ");
-                
-                // --- GAP DETECTION LOGIC ---
-                List<com.wellnest.app.model.WaterIntake> water = trackerService.getWaterForToday(user.getId());
-                boolean missingWater = water.isEmpty();
-                
-                List<com.wellnest.app.model.Meal> meals = trackerService.getMealsForToday(user.getId());
-                boolean missingMeals = meals.isEmpty();
-                
-                // Sleep check (was last night's sleep logged?)
-                List<com.wellnest.app.model.SleepLog> sleep = trackerService.getSleepForToday(user.getId()); 
-                boolean missingSleep = sleep.isEmpty();
-
-                int missingCount = 0;
-                if (missingSleep) missingCount++;
-                if (missingMeals) missingCount++;
-                if (missingWater) missingCount++;
-
-                String nudgeMessage = null;
-
-                if (missingCount == 0) {
-                    // Hybrid optimization: 0 tokens used
-                    int index = (int) (Math.random() * STATIC_ALL_LOGGED_NUDGES.length);
-                    nudgeMessage = String.format(STATIC_ALL_LOGGED_NUDGES[index], name);
-                    logger.info("Hybrid Nudge (0-token All Logged) generated for user {}", user.getId());
-                } else if (missingCount == 1) {
-                    // Hybrid optimization: 0 tokens used
-                    if (missingWater) {
-                        int index = (int) (Math.random() * STATIC_WATER_NUDGES.length);
-                        nudgeMessage = String.format(STATIC_WATER_NUDGES[index], name);
-                    } else if (missingMeals) {
-                        int index = (int) (Math.random() * STATIC_MEAL_NUDGES.length);
-                        nudgeMessage = String.format(STATIC_MEAL_NUDGES[index], name);
-                    } else if (missingSleep) {
-                        int index = (int) (Math.random() * STATIC_SLEEP_NUDGES.length);
-                        nudgeMessage = String.format(STATIC_SLEEP_NUDGES[index], name);
+    private void processMorningMotivation() {
+        Pageable pageable = PageRequest.of(0, 100);
+        Page<User> page;
+        do {
+            page = userRepository.findAll(pageable);
+            for (User user : page.getContent()) {
+                try {
+                    if (!isUserActiveInLast48Hours(user)) {
+                        continue;
                     }
-                    logger.info("Hybrid Nudge (0-token Single Gap) generated for user {}", user.getId());
-                } else {
-                    // Call Groq (complex multi-parameter alert)
-                    if (missingSleep) context.append("Aha—it looks like you missed your sleep log last night! ");
-                    if (missingMeals) context.append("Fuel check! You haven't logged any meals today. Consistency is key. ");
-                    if (missingWater) context.append("Hydration gap detected—let's hit your target! ");
 
-                    nudgeMessage = groqService.generateNotification("elite coach", name, context.toString());
-                }
-                
-                if (nudgeMessage != null && !nudgeMessage.contains("Error")) {
-                    // SENT TO ANDROID AND PERSISTED IN DB (CACHED)
-                    createNotification(user.getId(), title, nudgeMessage, "AI_NUDGE");
-                    logger.info("Sent personalized AI nudge (Cached): {} to user {}", title, user.getId());
-                }
+                    String title = "Morning Performance Nudge";
+                    java.time.Instant startOfToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+                    if (notificationRepository.existsByUser_IdAndTitleAndCreatedAtAfter(user.getId(), title, startOfToday)) {
+                        continue;
+                    }
 
-                // RPM Protection: Biological Jitter
-                Thread.sleep(300);
-            } catch (Exception e) {
-                logger.error("Error processing scheduled nudge for user " + user.getId() + ": " + e.getMessage());
+                    boolean sleepLogged = !trackerService.getSleepForToday(user.getId()).isEmpty();
+                    String name = user.getName() != null ? user.getName() : "Hero";
+                    String message;
+
+                    if (!sleepLogged) {
+                        int index = (int) (Math.random() * STATIC_SLEEP_NUDGES.length);
+                        message = String.format(STATIC_SLEEP_NUDGES[index], name);
+                    } else {
+                        boolean waterLogged = !trackerService.getWaterForToday(user.getId()).isEmpty();
+                        if (!waterLogged) {
+                            message = String.format("Good morning, %s! Sleep logged successfully! Let's start the day strong by drinking a glass of water. 💧", name);
+                        } else {
+                            message = String.format("Good morning, %s! Sleep logged successfully! Remember to fuel up with a healthy breakfast. 🍳", name);
+                        }
+                    }
+
+                    createNotification(user.getId(), title, message, "TRACKING_REMINDER");
+                    Thread.sleep(100);
+                } catch (Exception e) {
+                    logger.error("Error processing morning motivation for user " + user.getId() + ": " + e.getMessage());
+                }
             }
-        }
+            pageable = pageable.next();
+        } while (page.hasNext());
+    }
+
+    private void processMidDayCheck() {
+        Pageable pageable = PageRequest.of(0, 100);
+        Page<User> page;
+        do {
+            page = userRepository.findAll(pageable);
+            for (User user : page.getContent()) {
+                try {
+                    if (!isUserActiveInLast48Hours(user)) {
+                        continue;
+                    }
+
+                    String title = "Elite Momentum Check";
+                    java.time.Instant startOfToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+                    if (notificationRepository.existsByUser_IdAndTitleAndCreatedAtAfter(user.getId(), title, startOfToday)) {
+                        continue;
+                    }
+
+                    boolean waterLogged = !trackerService.getWaterForToday(user.getId()).isEmpty();
+                    boolean mealsLogged = !trackerService.getMealsForToday(user.getId()).isEmpty();
+                    String name = user.getName() != null ? user.getName() : "Hero";
+                    String message;
+
+                    if (!waterLogged || !mealsLogged) {
+                        if (!mealsLogged) {
+                            int index = (int) (Math.random() * STATIC_MEAL_NUDGES.length);
+                            message = String.format(STATIC_MEAL_NUDGES[index], name);
+                        } else {
+                            int index = (int) (Math.random() * STATIC_WATER_NUDGES.length);
+                            message = String.format(STATIC_WATER_NUDGES[index], name);
+                        }
+                    } else {
+                        message = String.format("Great job on logging your meals, %s! How is your step target looking today? Keep moving! 🚶‍♂️", name);
+                    }
+
+                    createNotification(user.getId(), title, message, "TRACKING_REMINDER");
+                    Thread.sleep(100);
+                } catch (Exception e) {
+                    logger.error("Error processing mid-day check for user " + user.getId() + ": " + e.getMessage());
+                }
+            }
+            pageable = pageable.next();
+        } while (page.hasNext());
+    }
+
+    private void processEveningReview() {
+        Pageable pageable = PageRequest.of(0, 100);
+        Page<User> page;
+        do {
+            page = userRepository.findAll(pageable);
+            for (User user : page.getContent()) {
+                try {
+                    if (!isUserActiveInLast48Hours(user)) {
+                        continue;
+                    }
+
+                    String title = "Nightly Recovery Recap";
+                    java.time.Instant startOfToday = LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+                    if (notificationRepository.existsByUser_IdAndTitleAndCreatedAtAfter(user.getId(), title, startOfToday)) {
+                        continue;
+                    }
+
+                    boolean missingWater = trackerService.getWaterForToday(user.getId()).isEmpty();
+                    boolean missingMeals = trackerService.getMealsForToday(user.getId()).isEmpty();
+                    boolean missingSleep = trackerService.getSleepForToday(user.getId()).isEmpty();
+
+                    boolean missingWorkout = true;
+                    List<com.wellnest.app.model.Workout> workouts = trackerService.getWorkoutsForToday(user.getId());
+                    if (workouts != null && !workouts.isEmpty()) {
+                        missingWorkout = false;
+                    } else {
+                        List<DailyActivity> activities = trackerService.getDailyActivities(user.getId(), LocalDate.now(), LocalDate.now());
+                        if (activities != null && !activities.isEmpty()) {
+                            for (DailyActivity act : activities) {
+                                if (act.getSteps() != null && act.getSteps() > 0) {
+                                    missingWorkout = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    int missingCount = 0;
+                    if (missingSleep) missingCount++;
+                    if (missingMeals) missingCount++;
+                    if (missingWater) missingCount++;
+                    if (missingWorkout) missingCount++;
+
+                    String name = user.getName() != null ? user.getName() : "Hero";
+                    String message = null;
+
+                    if (missingCount == 0) {
+                        int index = (int) (Math.random() * STATIC_ALL_LOGGED_NUDGES.length);
+                        message = String.format(STATIC_ALL_LOGGED_NUDGES[index], name);
+                    } else {
+                        if (user.isPremium()) {
+                            String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "wellbeing";
+                            String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
+                            StringBuilder context = new StringBuilder();
+                            context.append("Goal: ").append(goal).append(". ");
+                            context.append("Today's log completion: ");
+                            if (!missingSleep) context.append("Sleep logged. ");
+                            else context.append("Sleep NOT logged. ");
+                            if (!missingMeals) context.append("Meals logged. ");
+                            else context.append("Meals NOT logged. ");
+                            if (!missingWater) context.append("Water logged. ");
+                            else context.append("Water NOT logged. ");
+                            if (!missingWorkout) context.append("Workout/Activity logged. ");
+                            else context.append("Workout/Activity NOT logged. ");
+
+                            message = groqService.generateNotification(role, name, context.toString());
+                        }
+
+                        if (message == null || message.contains("Error")) {
+                            List<String> missingItems = new ArrayList<>();
+                            if (missingWater) missingItems.add("water 🚰");
+                            if (missingWorkout) missingItems.add("workout/activity 🏃‍♂️");
+                            if (missingMeals) missingItems.add("meals 🍽️");
+                            if (missingSleep) missingItems.add("sleep 😴");
+
+                            String missingStr = "";
+                            if (missingItems.size() == 1) {
+                                missingStr = missingItems.get(0);
+                            } else if (missingItems.size() == 2) {
+                                missingStr = missingItems.get(0) + " and " + missingItems.get(1);
+                            } else {
+                                for (int i = 0; i < missingItems.size(); i++) {
+                                    if (i == missingItems.size() - 1) {
+                                        missingStr += "and " + missingItems.get(i);
+                                    } else {
+                                        missingStr += missingItems.get(i) + ", ";
+                                    }
+                                }
+                            }
+                            message = String.format("Hey %s! Let's keep your streak alive. Don't forget to log your %s before bed! 🚀", name, missingStr);
+                        }
+                    }
+
+                    createNotification(user.getId(), title, message, "AI_NUDGE");
+                    Thread.sleep(100);
+                } catch (Exception e) {
+                    logger.error("Error processing evening review for user " + user.getId() + ": " + e.getMessage());
+                }
+            }
+            pageable = pageable.next();
+        } while (page.hasNext());
     }
 
     private boolean isUserActiveInLast48Hours(User user) {
         LocalDate today = LocalDate.now();
         LocalDate twoDaysAgo = today.minusDays(2);
         
-        // 1. Check user chat/voice/scan dates
         if (user.getLastChatDate() != null && !user.getLastChatDate().isBefore(twoDaysAgo)) return true;
         if (user.getLastVoiceDate() != null && !user.getLastVoiceDate().isBefore(twoDaysAgo)) return true;
         if (user.getLastScanDate() != null && !user.getLastScanDate().isBefore(twoDaysAgo)) return true;
         
-        // 2. Check if they have logged daily activities in the last 2 days
         try {
             List<DailyActivity> activities = trackerService.getDailyActivities(user.getId(), twoDaysAgo, today);
             if (activities != null && !activities.isEmpty()) {
@@ -341,7 +476,6 @@ public class NotificationService {
             logger.warn("Error checking active-user daily activities: " + e.getMessage());
         }
         
-        // 3. Fallback: check if they have registered/created recently
         if (user.getCreatedAt() != null) {
             LocalDateTime twoDaysAgoLDT = LocalDateTime.now().minusDays(2);
             if (user.getCreatedAt().isAfter(twoDaysAgoLDT)) {

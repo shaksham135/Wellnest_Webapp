@@ -27,17 +27,17 @@ public class ReminderService {
     private final Random random = new Random();
 
     private final String[] waterReminders = {
-        "Time for a sip! Drink a glass of water to stay hydrated. 💧",
-        "Hydration check! Your body needs water to function at its best. 🚰",
-        "Feeling a bit tired? A glass of water might be just what you need! 🥤",
-        "Stay fresh! Keep your hydration levels up. 🌊"
+        "Time for a sip, %s! Drink a glass of water to stay hydrated. 💧",
+        "Hydration check, %s! Your body needs water to function at its best. 🚰",
+        "Feeling a bit tired, %s? A glass of water might be just what you need! 🥤",
+        "Stay fresh, %s! Keep your hydration levels up. 🌊"
     };
 
     private final String[] workoutReminders = {
-        "Did you move today? A quick 15-minute workout can boost your mood! 🏃‍♂️",
-        "Consistency is key! Don't forget to track your activity today. 💪",
-        "Healthy mind, healthy body. Ready for a quick stretch? 🧘‍♀️",
-        "Your goals are waiting! Let's get that workout in. 🏋️‍♂️"
+        "Did you move today, %s? A quick 15-minute workout can boost your mood! 🏃‍♂️",
+        "Consistency is key, %s! Don't forget to track your activity today. 💪",
+        "Healthy mind, healthy body, %s. Ready for a quick stretch? 🧘‍♀️",
+        "Your goals are waiting, %s! Let's get that workout in. 🏋️‍♂️"
     };
 
     public ReminderService(NotificationService notificationService, 
@@ -60,36 +60,6 @@ public class ReminderService {
         "Healthy eating: Aim for a variety of colorful vegetables in your next meal. 🥦"
     };
 
-    private boolean isUserActiveInLast48Hours(User user) {
-        LocalDate today = LocalDate.now();
-        LocalDate twoDaysAgo = today.minusDays(2);
-        
-        // 1. Check direct user activity timestamps
-        if (user.getLastChatDate() != null && !user.getLastChatDate().isBefore(twoDaysAgo)) return true;
-        if (user.getLastVoiceDate() != null && !user.getLastVoiceDate().isBefore(twoDaysAgo)) return true;
-        if (user.getLastScanDate() != null && !user.getLastScanDate().isBefore(twoDaysAgo)) return true;
-        
-        // 2. Check daily activity logs for the last 3 days (today, yesterday, day before)
-        try {
-            boolean hasRecentActivity = dailyActivityRepository.findByUserIdAndDate(user.getId(), today).isPresent()
-                    || dailyActivityRepository.findByUserIdAndDate(user.getId(), today.minusDays(1)).isPresent()
-                    || dailyActivityRepository.findByUserIdAndDate(user.getId(), today.minusDays(2)).isPresent();
-            if (hasRecentActivity) return true;
-        } catch (Exception e) {
-            // Ignore
-        }
-        
-        // 3. Check if they registered in the last 48 hours
-        if (user.getCreatedAt() != null) {
-            java.time.LocalDateTime twoDaysAgoLDT = java.time.LocalDateTime.now().minusDays(2);
-            if (user.getCreatedAt().isAfter(twoDaysAgoLDT)) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
     // Every day at 10:00 AM and 6:00 PM (prevents startup spam)
     @Scheduled(cron = "0 0 10,18 * * *") 
     public void sendWaterReminders() {
@@ -106,21 +76,8 @@ public class ReminderService {
                 
                 if (!hasLoggedWater) {
                     String name = user.getName() != null ? user.getName() : "Hero";
-                    String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
-                    String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "stay healthy";
-                    
-                    String message;
-                    // Cost Optimization: Only call AI for active premium users
-                    if (user.isPremium() && isUserActiveInLast48Hours(user)) {
-                        message = groqService.generateNotification(role, name, "Goal: " + goal + ". Needs a hydration reminder.");
-                    } else {
-                        message = waterReminders[random.nextInt(waterReminders.length)];
-                    }
-                    
-                    // Fallback if AI message is error or too long
-                    if (message == null || message.contains("Error") || message.length() > 150) {
-                        message = waterReminders[random.nextInt(waterReminders.length)];
-                    }
+                    String template = waterReminders[random.nextInt(waterReminders.length)];
+                    String message = String.format(template, name);
                     
                     notificationService.createNotification(user.getId(), "Hydration Reminder", message, "INFO");
                 }
@@ -143,21 +100,8 @@ public class ReminderService {
                 
                 if (!hasLoggedActivity) {
                     String name = user.getName() != null ? user.getName() : "Hero";
-                    String role = user.getRole() != null ? user.getRole().replace("ROLE_", "").toLowerCase() : "user";
-                    String goal = user.getFitnessGoal() != null ? user.getFitnessGoal().replace("_", " ").toLowerCase() : "fitness progress";
-
-                    String message;
-                    // Cost Optimization: Only call AI for active premium users
-                    if (user.isPremium() && isUserActiveInLast48Hours(user)) {
-                        message = groqService.generateNotification(role, name, "Goal: " + goal + ". Needs a motivation push to log a workout.");
-                    } else {
-                        message = workoutReminders[random.nextInt(workoutReminders.length)];
-                    }
-
-                    // Fallback
-                    if (message == null || message.contains("Error") || message.length() > 150) {
-                        message = workoutReminders[random.nextInt(workoutReminders.length)];
-                    }
+                    String template = workoutReminders[random.nextInt(workoutReminders.length)];
+                    String message = String.format(template, name);
 
                     notificationService.createNotification(user.getId(), "Activity Check", message, "SUCCESS");
                 }
