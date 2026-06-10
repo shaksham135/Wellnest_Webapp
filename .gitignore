@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 
+### Temporary local shell overrides ###
+powershell.cmd
+powershell.bat

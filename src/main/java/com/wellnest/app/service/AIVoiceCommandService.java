@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wellnest.app.dto.*;
 import com.wellnest.app.model.DailyActivity;
+import com.wellnest.app.util.TranscriptNormalizer;
+import com.wellnest.app.util.NumberParser;
+import com.wellnest.app.util.DurationParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -57,7 +60,8 @@ public class AIVoiceCommandService {
             return result;
         }
 
-        String normalized = normalizeNumbers(transcript.toLowerCase().trim());
+        String normalized = TranscriptNormalizer.normalize(transcript);
+        normalized = NumberParser.resolveNumbers(normalized);
         
         String systemPrompt = "Convert user's health log (English/Hinglish) into JSON format.\n" +
                 "SCHEMAS:\n" +
@@ -227,10 +231,11 @@ public class AIVoiceCommandService {
         } catch (Exception e) {
             log.error("Failed to parse AI Voice Command: {}", e.getMessage());
             
-            String friendlyMsg = e.getMessage();
+            String friendlyMsg;
             if (e instanceof IllegalArgumentException) {
                 friendlyMsg = e.getMessage();
             } else {
+                friendlyMsg = "I couldn't process that command. Try saying: 'Log 2 glasses of water' or 'I ran for 30 minutes'! 🎙️";
                 // Try heuristic parse fallback before returning ERROR
                 try {
                     Map<String, Object> fallbackResult = tryHeuristicParse(userId, transcript);
@@ -242,8 +247,6 @@ public class AIVoiceCommandService {
                     log.error("Heuristic fallback failed: {}", ex.getMessage());
                     if (ex instanceof IllegalArgumentException) {
                         friendlyMsg = ex.getMessage();
-                    } else {
-                        friendlyMsg = "AI Sync failed: " + ex.getMessage();
                     }
                 }
             }
@@ -261,14 +264,12 @@ public class AIVoiceCommandService {
             return null;
         }
 
-        String normalized = transcript.toLowerCase().trim();
-        normalized = normalizeNumbers(normalized);
+        String normalized = TranscriptNormalizer.normalize(transcript);
+        normalized = NumberParser.resolveNumbers(normalized);
 
         // 1. WATER LOGS
         if ((normalized.contains("water") || normalized.contains("paani") || normalized.contains("pani") || 
-            normalized.contains("gilaas") || normalized.contains("glass") || normalized.contains("gilas") || 
-            normalized.contains("liter") || normalized.contains("litre") || normalized.contains("botal") || 
-            normalized.contains("bottle") || normalized.contains("ml"))
+            normalized.contains("glass") || normalized.contains("bottle") || normalized.contains("ml"))
             && !(normalized.contains("milk") || normalized.contains("doodh") || normalized.contains("juice") || 
                  normalized.contains("chai") || normalized.contains("tea") || normalized.contains("coffee") || 
                  normalized.contains("shake") || normalized.contains("lassi"))) {
@@ -281,11 +282,11 @@ public class AIVoiceCommandService {
             double liters = 0.25; // default
             if (normalized.contains("ml")) {
                 liters = value * 0.001;
-            } else if (normalized.contains("glass") || normalized.contains("gilaas") || normalized.contains("gilas")) {
+            } else if (normalized.contains("glass")) {
                 liters = value * 0.25;
             } else if (normalized.contains("liter") || normalized.contains("litre") || normalized.contains(" l ") || normalized.endsWith(" l")) {
                 liters = value;
-            } else if (normalized.contains("bottle") || normalized.contains("botal")) {
+            } else if (normalized.contains("bottle")) {
                 liters = value * 1.0;
             } else {
                 if (value >= 50) {
@@ -381,12 +382,12 @@ public class AIVoiceCommandService {
             normalized.contains("soye") || normalized.contains("soyi") || normalized.contains("slept") || 
             normalized.contains("sleeping")) {
             
-            Double value = extractFirstNumber(normalized);
-            if (value == null) {
-                value = 8.0; // Default 8 hours
+            DurationParser.QuantityResult durationRes = DurationParser.parse(normalized, transcript);
+            double hours = 8.0; // Default 8 hours
+            if (durationRes.hasDuration) {
+                hours = durationRes.getAsHours();
             }
 
-            double hours = value;
             if (hours < 3.0 || hours > 18.0) {
                 Map<String, Object> result = new HashMap<>();
                 result.put("status", "ERROR");
@@ -426,16 +427,13 @@ public class AIVoiceCommandService {
             normalized.contains("exercise") || normalized.contains("excersise") || normalized.contains("kasrat") || 
             normalized.contains("training") || normalized.contains("cycle") || normalized.contains("walk") ||
             normalized.contains("walking") || normalized.contains("running") || normalized.contains("bhaga") || 
-            normalized.contains("bhage") || normalized.contains("dauda") || normalized.contains("daude")) {
+            normalized.contains("bhage") || normalized.contains("dauda") || normalized.contains("daude") ||
+            normalized.contains("worked") || normalized.contains("work out") || normalized.contains("work ")) {
             
-            Double value = extractFirstNumber(normalized);
-            if (value == null) {
-                value = 30.0; // Default 30 minutes
-            }
-
-            int duration = value.intValue();
-            if (normalized.contains("hour") || normalized.contains("hr") || normalized.contains("ghante") || normalized.contains("ghanta")) {
-                duration = (int) (value * 60);
+            DurationParser.QuantityResult durationRes = DurationParser.parse(normalized, transcript);
+            int duration = 30; // Default 30 minutes
+            if (durationRes.hasDuration) {
+                duration = (int) Math.round(durationRes.getAsMinutes());
             }
             
             if (duration < 5 || duration > 180) {
@@ -476,12 +474,13 @@ public class AIVoiceCommandService {
             } else if (normalized.contains("walk") || normalized.contains("walking")) {
                 type = "walking";
                 met = 3.5;
-            } else if (normalized.contains("exercise") || normalized.contains("excersise") || normalized.contains("kasrat") || normalized.contains("workout") || normalized.contains("training")) {
+            } else if (normalized.contains("exercise") || normalized.contains("excersise") || normalized.contains("kasrat") || 
+                       normalized.contains("workout") || normalized.contains("training") ||
+                       normalized.contains("work out") || normalized.contains("worked") || normalized.contains("work ")) {
                 type = "workout";
                 met = 6.0;
             }
             
-            // Fetch user weight
             Double userWeight = 70.0;
             try {
                 com.wellnest.app.model.User user = userRepository.findById(userId).orElse(null);
@@ -530,13 +529,12 @@ public class AIVoiceCommandService {
             Double caloriesExplicit = null;
             Double quantity = null;
             
-            // Check if there is an explicit calorie amount in the string
             if (normalized.contains("calorie") || normalized.contains("kcal") || normalized.contains("cal")) {
                 caloriesExplicit = extractFirstNumber(normalized);
             } else {
                 quantity = extractFirstNumber(normalized);
             }
-            if (quantity == null) quantity = 1.0; // default
+            if (quantity == null) quantity = 1.0; 
             
             int calories = 0;
             int protein = 0;
@@ -687,7 +685,6 @@ public class AIVoiceCommandService {
                 foodName = "Meal";
             }
             
-            // Overwrite calories if explicitly provided in command
             if (caloriesExplicit != null && caloriesExplicit > 0) {
                 calories = caloriesExplicit.intValue();
                 protein = calories / 20;
@@ -728,59 +725,6 @@ public class AIVoiceCommandService {
         return null;
     }
 
-    private String normalizeNumbers(String text) {
-        String res = text.replaceAll("\\bek\\b", "1")
-                   .replaceAll("\\bdo\\b", "2")
-                   .replaceAll("\\bteen\\b", "3")
-                   .replaceAll("\\bchaar\\b", "4")
-                   .replaceAll("\\bpaanch\\b", "5")
-                   .replaceAll("\\bche\\b", "6")
-                   .replaceAll("\\bchheh\\b", "6")
-                   .replaceAll("\\bsaat\\b", "7")
-                   .replaceAll("\\baath\\b", "8")
-                   .replaceAll("\\bnau\\b", "9")
-                   .replaceAll("\\bdas\\b", "10")
-                   .replaceAll("\\baadha\\b", "0.5")
-                   .replaceAll("\\bone\\b", "1")
-                   .replaceAll("\\btwo\\b", "2")
-                   .replaceAll("\\btoo\\b", "2")
-                   .replaceAll("\\bthree\\b", "3")
-                   .replaceAll("\\bfour\\b", "4")
-                   .replaceAll("\\bfive\\b", "5")
-                   .replaceAll("\\bsix\\b", "6")
-                   .replaceAll("\\bseven\\b", "7")
-                   .replaceAll("\\beight\\b", "8")
-                   .replaceAll("\\bnine\\b", "9")
-                   .replaceAll("\\bten\\b", "10");
-
-        // Handle common STT homophone error: "to/too" followed by a wellness item/unit
-        // e.g. "to eggs" -> "2 eggs", "to glass" -> "2 glass", "to roti" -> "2 roti"
-        res = res.replaceAll("\\bto\\s+(egg|anda|ande|andey|glass|gilaas|gilas|roti|apple|seb|banana|kela|bottle|botal|shake|bread|step|kadam|hour|ghante|ghanta)", "2 $1");
-        res = res.replaceAll("\\btoo\\s+(egg|anda|ande|andey|glass|gilaas|gilas|roti|apple|seb|banana|kela|bottle|botal|shake|bread|step|kadam|hour|ghante|ghanta)", "2 $1");
-
-        // Decimal k handling (e.g. 1.5k -> 1500)
-        res = res.replaceAll("(\\d+)\\.(\\d)\\s*k\\b", "$1$200");
-        res = res.replaceAll("(\\d+)\\.(\\d{2})\\s*k\\b", "$1$20");
-        // Integer k handling (e.g. 10k -> 10000)
-        res = res.replaceAll("(\\d+)\\s*k\\b", "$1000");
-        
-        // Decimal thousand handling (e.g. 1.5 thousand -> 1500)
-        res = res.replaceAll("(\\d+)\\.(\\d)\\s*thousand\\b", "$1$200");
-        res = res.replaceAll("(\\d+)\\s*thousand\\b", "$1000");
-        
-        // Decimal lakh handling (e.g. 1.5 lakh -> 150000)
-        res = res.replaceAll("(\\d+)\\.(\\d)\\s*lakhs?\\b", "$1$20000");
-        res = res.replaceAll("(\\d+)\\.(\\d{2})\\s*lakhs?\\b", "$1$2000");
-        res = res.replaceAll("(\\d+)\\s*lakhs?\\b", "$100000");
-        
-        // Decimal million handling (e.g. 1.5 million -> 1500000)
-        res = res.replaceAll("(\\d+)\\.(\\d)\\s*million\\b", "$1$200000");
-        res = res.replaceAll("(\\d+)\\.(\\d{2})\\s*million\\b", "$1$20000");
-        res = res.replaceAll("(\\d+)\\s*million\\b", "$1000000");
-
-        return res;
-    }
-
     private Double extractFirstNumber(String text) {
         Pattern p = Pattern.compile("(\\d+(\\.\\d+)?)");
         Matcher m = p.matcher(text);
@@ -799,6 +743,12 @@ public class AIVoiceCommandService {
         String normalized = text.toLowerCase();
         
         String[] keywords = {
+            // Workout & Physical Activities
+            "workout", "work-out", "gym", "run", "running", "walk", "walking", "walked", "yoga", "exercise", "excersise", "cardio", "hiit", 
+            "strength", "boxing", "cycling", "cycle", "swimming", "swim", "stretching", "stretch", "pilates", "dauda", "doda", "bhaga", "bhage", 
+            "worked", "work out", "work ",
+            "kasrat", "training", "steps", "step", "kadam", "chala", "distance", "km", "kiya", "kia", "ki", "kar", "kara", "karna",
+
             // Water & Drinks
             "water", "paani", "pani", "glass", "gilaas", "gilas", "liter", "litre", "ml", "bottle", "botal", "cup", "drink", 
             "piya", "peeya", "peea", "piye", "piyi", "pi", "pee", "peena", "drank", "drinking", "chai", "coffee", "juice",
@@ -811,6 +761,7 @@ public class AIVoiceCommandService {
             // Workout & Physical Activities
             "workout", "work-out", "gym", "run", "running", "walk", "walking", "walked", "yoga", "exercise", "excersise", "cardio", "hiit", 
             "strength", "boxing", "cycling", "cycle", "swimming", "swim", "stretching", "stretch", "pilates", "dauda", "doda", "bhaga", "bhage", 
+            "worked", "work out", "work ",
             "kasrat", "training", "steps", "step", "kadam", "chala", "distance", "km", "kiya", "kia", "ki", "kar", "kara", "karna",
             
             // Sleep & Rest
@@ -860,6 +811,7 @@ public class AIVoiceCommandService {
             normalized.contains("hiit") || normalized.contains("stretching") ||
             normalized.contains("exercise") || normalized.contains("excersise") || 
             normalized.contains("kasrat") || normalized.contains("training") ||
+            normalized.contains("worked") || normalized.contains("work out") || normalized.contains("work ") ||
             (normalized.contains("walk") && (normalized.contains("minute") || normalized.contains("min") || 
                                               normalized.contains("hour") || normalized.contains("ghante") || 
                                               normalized.contains("ghanta")))) {
@@ -879,13 +831,14 @@ public class AIVoiceCommandService {
     }
 
     private Map<String, Object> tryHeuristicParse(Long userId, String transcript) {
-        String normalized = transcript.toLowerCase().trim();
-        normalized = normalizeNumbers(normalized);
+        String normalized = TranscriptNormalizer.normalize(transcript);
+        normalized = NumberParser.resolveNumbers(normalized);
         
         String action = heuristicClassify(normalized);
         if (action == null) return null;
         
         Double value = extractFirstNumber(normalized);
+        DurationParser.QuantityResult durationRes = DurationParser.parse(normalized, transcript);
         
         Map<String, Object> result = new HashMap<>();
         result.put("status", "SUCCESS");
@@ -897,7 +850,7 @@ public class AIVoiceCommandService {
                 if (value != null) {
                     if (normalized.contains("ml")) liters = value * 0.001;
                     else if (normalized.contains("liter") || normalized.contains("litre") || normalized.contains(" l ") || normalized.endsWith(" l") || normalized.contains(" l.")) liters = value;
-                    else if (normalized.contains("bottle") || normalized.contains("botal")) liters = value * 1.0;
+                    else if (normalized.contains("bottle")) liters = value * 1.0;
                     else liters = value * 0.25;
                 }
                 
@@ -960,7 +913,7 @@ public class AIVoiceCommandService {
                 return result;
                 
             case "SLEEP":
-                double hours = (value != null && value > 0.0) ? value : 8.0;
+                double hours = durationRes.hasDuration ? durationRes.getAsHours() : 8.0;
                 if (hours < 3.0 || hours > 18.0) {
                     result.put("status", "ERROR");
                     result.put("displayMessage", "Invalid Duration: Sleep duration must be between 3 and 18 hours.");
@@ -985,11 +938,7 @@ public class AIVoiceCommandService {
                 return result;
                 
             case "WORKOUT":
-                int duration = value != null ? value.intValue() : 30;
-                if (normalized.contains("hour") || normalized.contains("hr") || normalized.contains("ghante") || normalized.contains("ghanta")) {
-                    duration = (int) (duration * 60);
-                }
-                
+                int duration = durationRes.hasDuration ? (int) Math.round(durationRes.getAsMinutes()) : 30;
                 if (duration < 5 || duration > 180) {
                     result.put("status", "ERROR");
                     result.put("displayMessage", "Invalid Duration: Workout duration must be between 5 and 180 minutes (3 hours).");
