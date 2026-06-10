@@ -9,6 +9,7 @@ import {
   Navigate,
   useNavigate
 } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 
 // Icons removed
 
@@ -429,6 +430,7 @@ const App = () => {
                 isAuthReady={isAuthReady} isSplashFinished={isSplashFinished}
                 handleSplashFinish={handleSplashFinish}
               />
+              <Analytics />
             </ErrorBoundary>
           </Router>
         </ActivityProvider>
