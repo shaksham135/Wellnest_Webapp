@@ -118,6 +118,17 @@ const AppContent = ({
   const { clearAllData } = useData();
   const navigate = useNavigate();
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const location = useLocation();
+
+  // Route change tracking for Google Analytics page views
+  useEffect(() => {
+    const gaId = process.env.REACT_APP_GA_MEASUREMENT_ID;
+    if (gaId && window.gtag) {
+      window.gtag("config", gaId, {
+        page_path: location.pathname + location.search,
+      });
+    }
+  }, [location]);
 
   // --- NATIVE PUSH SYNC ---
   useEffect(() => {
